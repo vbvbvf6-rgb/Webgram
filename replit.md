@@ -2,7 +2,7 @@
 
 ## Overview
 
-pnpm workspace monorepo using TypeScript. Each package manages its own dependencies.
+pnpm workspace monorepo using TypeScript. Full-stack Telegram-inspired messenger app called **Pulse**.
 
 ## Stack
 
@@ -15,6 +15,48 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 - **Validation**: Zod (`zod/v4`), `drizzle-zod`
 - **API codegen**: Orval (from OpenAPI spec)
 - **Build**: esbuild (CJS bundle)
+- **Auth**: Clerk (ClerkProvider + @clerk/express)
+- **Frontend**: React + Vite, Tailwind CSS v4, framer-motion, lucide-react, wouter
+- **State**: @tanstack/react-query with generated hooks from Orval
+
+## Project: Pulse Messenger
+
+A Telegram-inspired real-time messaging app with:
+- Dark indigo/violet theme (background: `222 47% 8%`, primary: `258 84% 68%`)
+- Sign in / sign up with Clerk (Google + email)
+- Direct messages and group chats
+- Message reactions (emoji), reply threads, edit & delete
+- User search and discovery
+- Online presence indicators
+- Unread message tracking
+- Chat stats in sidebar
+
+## Artifacts
+
+### `artifacts/messenger` (web, path: `/`)
+React+Vite frontend. Pages:
+- `/` → Landing (or redirect to `/chats` if signed in)
+- `/sign-in`, `/sign-up` → Clerk auth pages
+- `/chats/:chatId?` → Main chat UI (sidebar + chat window)
+- `/settings` → Profile settings
+- `/search` → User discovery
+
+### `artifacts/api-server` (api, path: `/api`)
+Express backend. Routes:
+- `GET /api/healthz`
+- `GET/PUT /api/users/me`
+- `GET /api/users/search?q=`
+- `GET /api/users/online`
+- `GET /api/chats/stats`
+- `GET/POST /api/chats`
+- `GET /api/chats/:chatId`
+- `GET/POST /api/chats/:chatId/members`
+- `GET /api/chats/:chatId/messages`
+- `POST /api/chats/:chatId/messages`
+- `PUT /api/chats/:chatId/messages/:messageId`
+- `DELETE /api/chats/:chatId/messages/:messageId`
+- `POST /api/chats/:chatId/messages/:messageId/react`
+- `POST /api/chats/:chatId/messages/:messageId/read`
 
 ## Key Commands
 
@@ -23,5 +65,14 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from OpenAPI spec
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
 - `pnpm --filter @workspace/api-server run dev` — run API server locally
+
+## Important Notes
+
+- `ensureUser(clerkId)` uses `INSERT ... ON CONFLICT DO UPDATE` to avoid race conditions
+- Clerk auth tokens are attached via `setAuthTokenGetter` using `useAuth().getToken()`
+- Messages poll every 3 seconds for real-time feel (`refetchInterval: 3000`)
+- `lib/api-zod/src/index.ts` only exports `./generated/api` (not types or schemas)
+- Tailwind uses `tailwindcss({ optimize: false })` in vite.config.ts for Clerk CSS layer compatibility
+- CSS starts with `@layer theme, base, clerk, components, utilities;`
 
 See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details.
