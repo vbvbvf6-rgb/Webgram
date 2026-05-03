@@ -10,7 +10,7 @@ import {
   Copy, MoreHorizontal, Pin, PinOff, ImageIcon, Play, Pause,
   Star, StopCircle, ExternalLink, Keyboard, Hash,
   BarChart2, Zap, Sparkles, Palette, UserCircle2,
-  Slash, ChevronUp, Bookmark, Trophy,
+  Slash, ChevronUp, Bookmark, Trophy, CornerUpLeft,
 } from "lucide-react";
 import {
   useGetMe, useGetChats, useGetMessages, useSendMessage,
@@ -722,7 +722,7 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
   const { data: chats } = useGetChats();
   const { data: messages, isLoading: msgsLoading } = useGetMessages(
     chatId, {},
-    { query: { refetchInterval: 3000, queryKey: getGetMessagesQueryKey(chatId, {}) } }
+    { query: { refetchInterval: 1500, queryKey: getGetMessagesQueryKey(chatId, {}) } }
   );
 
   const sendMessage = useSendMessage();
@@ -742,6 +742,10 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
   const [msgSearch, setMsgSearch] = useState("");
   const [contextMenu, setContextMenu] = useState<{ msg: Message; x: number; y: number } | null>(null);
   const longPressRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Swipe-to-reply tracking
+  const swipeTouchStartX = useRef<number>(0);
+  const swipeTouchMsgId = useRef<number | null>(null);
+  const [swipeOffset, setSwipeOffset] = useState<{ id: number; x: number } | null>(null);
   const [, setLocation] = useLocation();
 
   // ── Call state ──────────────────────────────────────────────────────────────
@@ -829,8 +833,19 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
       if (isOwnMsg || atBottom) {
         scrollToBottom();
       } else {
-        // Play sound for new message from others
         playMessageSound();
+        // Browser notification for new messages from others
+        if (lastMsg && !isOwnMsg && !(lastMsg as any)._optimistic) {
+          if (Notification.permission === "granted" && document.visibilityState !== "visible") {
+            try {
+              new Notification(`${lastMsg.sender?.displayName || "New message"} in ${chatName || "Droidgram"}`, {
+                body: formatMsgPreview(lastMsg.content),
+                icon: "/logo.svg",
+                tag: `msg-${lastMsg.id}`,
+              });
+            } catch {}
+          }
+        }
       }
     }
     prevMsgCountRef.current = newCount;
@@ -852,6 +867,13 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
       }
     });
   }, [messages, chatId]);
+
+  // Request browser notification permission once
+  useEffect(() => {
+    if ("Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission().catch(() => {});
+    }
+  }, []);
 
   // Typing indicator polling
   useEffect(() => {
@@ -1013,16 +1035,61 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
     clearInput();
     setReplyTo(null);
     setEditingMsg(null);
-    try {
-      if (wasEditing) {
+
+    if (wasEditing) {
+      // Optimistic edit
+      qc.setQueryData(getGetMessagesQueryKey(chatId, {}), (old: any) => {
+        const patch = (msgs: any[]) => msgs.map(m => m.id === wasEditing.id ? { ...m, content: text, isEdited: true } : m);
+        if (Array.isArray(old)) return patch(old);
+        if (old?.messages) return { ...old, messages: patch(old.messages) };
+        return old;
+      });
+      try {
         await editMessage.mutateAsync({ chatId, messageId: wasEditing.id, data: { content: text } });
-      } else {
-        await sendMessage.mutateAsync({ chatId, data: { content: text, replyToId: rId } });
+        qc.invalidateQueries({ queryKey: getGetMessagesQueryKey(chatId, {}) });
+      } catch {
+        toast({ title: "Failed to edit message", variant: "destructive" });
+        qc.invalidateQueries({ queryKey: getGetMessagesQueryKey(chatId, {}) });
       }
-      qc.invalidateQueries({ queryKey: getGetMessagesQueryKey(chatId, {}) });
-      qc.invalidateQueries({ queryKey: getGetChatsQueryKey() });
-    } catch {
-      toast({ title: wasEditing ? "Failed to edit message" : "Failed to send", variant: "destructive" });
+    } else {
+      // Optimistic send — instantly show in UI
+      const tempId = -(Date.now());
+      const tempMsg: any = {
+        id: tempId,
+        chatId,
+        senderId: myId,
+        content: text,
+        createdAt: new Date().toISOString(),
+        isDeleted: false,
+        isEdited: false,
+        readBy: [myId],
+        reactions: [],
+        replyToId: rId,
+        replyTo: rId ? msgList.find((m: Message) => m.id === rId) || null : null,
+        sender: { id: myId, displayName: me?.displayName || "You", avatarUrl: me?.avatarUrl || null },
+        _optimistic: true,
+      };
+      qc.setQueryData(getGetMessagesQueryKey(chatId, {}), (old: any) => {
+        if (Array.isArray(old)) return [...old, tempMsg];
+        if (old?.messages) return { ...old, messages: [...old.messages, tempMsg] };
+        return old;
+      });
+      // Scroll to bottom immediately
+      setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }), 30);
+      try {
+        await sendMessage.mutateAsync({ chatId, data: { content: text, replyToId: rId } });
+        qc.invalidateQueries({ queryKey: getGetMessagesQueryKey(chatId, {}) });
+        qc.invalidateQueries({ queryKey: getGetChatsQueryKey() });
+      } catch {
+        // Remove optimistic message on error
+        qc.setQueryData(getGetMessagesQueryKey(chatId, {}), (old: any) => {
+          const patch = (msgs: any[]) => msgs.filter(m => m.id !== tempId);
+          if (Array.isArray(old)) return patch(old);
+          if (old?.messages) return { ...old, messages: patch(old.messages) };
+          return old;
+        });
+        toast({ title: "Failed to send", variant: "destructive" });
+      }
     }
   }
 
@@ -1612,16 +1679,44 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
 
                     <motion.div
                       initial={{ opacity: 0, y: 6, scale: 0.97 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      transition={{ duration: 0.18 }}
+                      animate={{ opacity: 1, y: 0, scale: 1, x: swipeOffset?.id === msg.id ? Math.min(swipeOffset.x, 72) : 0 }}
+                      transition={{ duration: swipeOffset?.id === msg.id ? 0 : 0.18 }}
+                      style={{ opacity: (msg as any)._optimistic ? 0.75 : 1 }}
                       className={`flex ${isOwn ? "justify-end" : "justify-start"} group relative ${isGrouped ? "mt-0.5" : "mt-3"}`}
                       onMouseEnter={() => setHoveredMsgId(msg.id)}
                       onMouseLeave={() => { setHoveredMsgId(null); }}
                       onContextMenu={e => openContextMenu(e, msg)}
-                      onTouchStart={e => { longPressRef.current = setTimeout(() => openContextMenu(e, msg), 500); }}
-                      onTouchEnd={() => { if (longPressRef.current) { clearTimeout(longPressRef.current); longPressRef.current = null; } }}
-                      onTouchMove={() => { if (longPressRef.current) { clearTimeout(longPressRef.current); longPressRef.current = null; } }}
+                      onTouchStart={e => {
+                        longPressRef.current = setTimeout(() => openContextMenu(e, msg), 500);
+                        swipeTouchStartX.current = e.touches[0].clientX;
+                        swipeTouchMsgId.current = msg.id;
+                      }}
+                      onTouchMove={e => {
+                        // Cancel long-press if moving
+                        if (longPressRef.current) { clearTimeout(longPressRef.current); longPressRef.current = null; }
+                        const dx = e.touches[0].clientX - swipeTouchStartX.current;
+                        if (swipeTouchMsgId.current === msg.id && dx > 8) {
+                          setSwipeOffset({ id: msg.id, x: dx });
+                        }
+                      }}
+                      onTouchEnd={() => {
+                        if (longPressRef.current) { clearTimeout(longPressRef.current); longPressRef.current = null; }
+                        if (swipeTouchMsgId.current === msg.id && swipeOffset?.id === msg.id && swipeOffset.x >= 60) {
+                          setReplyTo(msg);
+                          if (inputRef.current) inputRef.current.focus();
+                          if (navigator.vibrate) navigator.vibrate(30);
+                        }
+                        setSwipeOffset(null);
+                        swipeTouchMsgId.current = null;
+                      }}
                     >
+                      {/* Swipe reply hint icon */}
+                      {swipeOffset?.id === msg.id && swipeOffset.x > 20 && (
+                        <div className={`absolute ${isOwn ? "right-full mr-2" : "left-full ml-2"} top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center transition-all`}
+                          style={{ opacity: Math.min(swipeOffset.x / 60, 1) }}>
+                          <CornerUpLeft size={14} className="text-primary" />
+                        </div>
+                      )}
                       {/* Avatar spacer/avatar */}
                       {!isOwn && (
                         <div className="w-8 mr-2 mt-auto shrink-0">
@@ -1674,7 +1769,10 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
                             <span>{new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
                             {msg.isEdited && !msg.isDeleted && <span>· edited</span>}
                             {isOwn && !msg.isDeleted && (
-                              msg.readBy.length > 1 ? (
+                              (msg as any)._optimistic ? (
+                                <motion.div className="w-3 h-3 border border-white/30 border-t-white/80 rounded-full shrink-0"
+                                  animate={{ rotate: 360 }} transition={{ duration: 0.8, repeat: Infinity, ease: "linear" }} />
+                              ) : msg.readBy.length > 1 ? (
                                 <motion.span key="read" initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: "spring", stiffness: 400 }}>
                                   <CheckCheck size={12} className="text-blue-300 drop-shadow-sm" />
                                 </motion.span>
