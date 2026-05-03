@@ -365,8 +365,8 @@ export default function ChatsPage({ activeChatId }: { activeChatId?: number }) {
     qc.clear();
     const app = await import("../App");
     app.setTabLoggedOut();
-    setLocation("/");
-    toast({ title: "Logged out on this tab" });
+    await signOut();
+    setLocation("/sign-in");
   };
   const { data: me } = useGetMe();
   const { data: chats, isLoading: chatsLoading } = useGetChats();
