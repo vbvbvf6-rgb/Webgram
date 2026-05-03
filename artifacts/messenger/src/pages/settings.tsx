@@ -200,7 +200,7 @@ export default function SettingsPage() {
     <div className="min-h-screen bg-background flex flex-col pb-16 md:pb-0">
       {/* Header */}
       <div className="sticky top-0 z-20 flex items-center gap-3 px-4 py-3 border-b border-border bg-sidebar/80 backdrop-blur-xl">
-        <button onClick={() => setLocation("/chats")} className="w-8 h-8 flex items-center justify-center rounded-xl hover:bg-accent transition-colors md:hidden">
+        <button onClick={() => setLocation("/chats")} className="w-8 h-8 flex items-center justify-center rounded-xl hover:bg-accent transition-colors">
           <ArrowLeft size={18} />
         </button>
         <h1 className="font-bold text-lg">Settings</h1>
