@@ -14,6 +14,43 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
 
+// Profanity filter
+const BAD_WORDS = ["fuck", "shit", "bitch", "asshole", "pussy", "dick", "cunt", "damn", "hell", "piss"];
+function hasProfanity(text: string): boolean {
+  const lower = text.toLowerCase();
+  return BAD_WORDS.some(word => lower.includes(word));
+}
+
+// Compress avatar image
+async function compressAvatar(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const maxSize = 128;
+        let { width, height } = img;
+        if (width > height) {
+          height = Math.round((height * maxSize) / width);
+          width = maxSize;
+        } else {
+          width = Math.round((width * maxSize) / height);
+          height = maxSize;
+        }
+        canvas.width = width;
+        canvas.height = height;
+        canvas.getContext('2d')?.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', 0.6));
+      };
+      img.onerror = () => reject(new Error('Image load failed'));
+      img.src = e.target?.result as string;
+    };
+    reader.onerror = () => reject(new Error('File read failed'));
+    reader.readAsDataURL(file);
+  });
+}
+
 function Avatar({ src, name, size = 80 }: { src?: string | null; name: string; size?: number }) {
   const hue = (name.charCodeAt(0) * 37 + (name.charCodeAt(1) || 0) * 17) % 360;
   const initials = name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase();
@@ -540,7 +577,13 @@ export default function SettingsPage() {
 
                 <div className="space-y-4">
                   {[
-                    { icon: User, label: "Display Name", value: displayName, setter: mark(setDisplayName), placeholder: "Your name" },
+                    { icon: User, label: "Display Name", value: displayName, setter: (val: string) => {
+                      if (hasProfanity(val)) {
+                        toast({ title: "⚠️ Inappropriate content not allowed", variant: "destructive" });
+                        return;
+                      }
+                      mark(setDisplayName)(val);
+                    }, placeholder: "Your name" },
                   ].map(f => (
                     <div key={f.label}>
                       <label className="flex items-center gap-2 text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5"><f.icon size={11} />{f.label}</label>
@@ -551,7 +594,14 @@ export default function SettingsPage() {
                     <label className="flex items-center gap-2 text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5"><AtSign size={11} />Username</label>
                     <div className="relative">
                       <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 text-sm font-medium">@</span>
-                      <input value={username} onChange={e => mark(setUsername)(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ""))} placeholder="username" className="w-full bg-white/6 border border-white/10 rounded-xl pl-8 pr-4 py-3 text-sm text-slate-100 outline-none focus:ring-2 ring-fuchsia-400/40 transition-all placeholder:text-slate-500" />
+                      <input value={username} onChange={e => {
+                        const val = e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "");
+                        if (hasProfanity(val)) {
+                          toast({ title: "⚠️ Inappropriate username", variant: "destructive" });
+                          return;
+                        }
+                        mark(setUsername)(val);
+                      }} placeholder="username" className="w-full bg-white/6 border border-white/10 rounded-xl pl-8 pr-4 py-3 text-sm text-slate-100 outline-none focus:ring-2 ring-fuchsia-400/40 transition-all placeholder:text-slate-500" />
                     </div>
                   </div>
                   <div>
@@ -564,16 +614,19 @@ export default function SettingsPage() {
                     <input 
                       type="file" 
                       accept="image/*" 
-                      onChange={e => {
+                      onChange={async (e) => {
                         const file = e.target.files?.[0];
-                        if (file) {
-                          const reader = new FileReader();
-                          reader.onload = (ev) => {
-                            const result = ev.target?.result as string;
-                            setAvatarUrl(result);
-                            setDirty(true);
-                          };
-                          reader.readAsDataURL(file);
+                        if (!file) return;
+                        if (file.size > 5 * 1024 * 1024) {
+                          toast({ title: "Image too large (max 5MB)", variant: "destructive" });
+                          return;
+                        }
+                        try {
+                          const compressed = await compressAvatar(file);
+                          setAvatarUrl(compressed);
+                          setDirty(true);
+                        } catch {
+                          toast({ title: "Failed to process image", variant: "destructive" });
                         }
                       }} 
                       className="w-full bg-white/6 border border-white/10 rounded-xl px-4 py-3 text-sm text-slate-100 outline-none focus:ring-2 ring-fuchsia-400/40 transition-all file:mr-3 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-primary/20 file:text-primary hover:file:bg-primary/30"
