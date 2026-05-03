@@ -735,6 +735,7 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
   const [forwardingMsg, setForwardingMsg] = useState<Message | null>(null);
   const [showImageInput, setShowImageInput] = useState(false);
   const [imageInputUrl, setImageInputUrl] = useState("");
+  const [pickedMediaPreview, setPickedMediaPreview] = useState<{ url: string; type: "image" | "video" } | null>(null);
   const [voiceRecState, setVoiceRecState] = useState<"idle"|"recording"|"preview">("idle");
   const [voiceDuration, setVoiceDuration] = useState(0);
   const [voiceBlob, setVoiceBlob] = useState<Blob | null>(null);
@@ -1045,14 +1046,27 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
   }
 
   async function handleImageSend() {
-    const url = imageInputUrl.trim();
+    const url = pickedMediaPreview?.url || imageInputUrl.trim();
     if (!url) return;
     try {
       await sendMessage.mutateAsync({ chatId, data: { content: url, replyToId: null } });
       qc.invalidateQueries({ queryKey: getGetMessagesQueryKey(chatId, {}) });
       qc.invalidateQueries({ queryKey: getGetChatsQueryKey() });
-      setShowImageInput(false); setImageInputUrl("");
+      setShowImageInput(false); setImageInputUrl(""); setPickedMediaPreview(null);
     } catch { toast({ title: "Failed to send image", variant: "destructive" }); }
+  }
+
+  function handleMediaPick(file: File | null) {
+    if (!file) return;
+    if (!file.type.startsWith("image/") && !file.type.startsWith("video/")) {
+      toast({ title: "Choose an image or video file", variant: "destructive" });
+      return;
+    }
+    const type = file.type.startsWith("video/") ? "video" : "image";
+    const url = URL.createObjectURL(file);
+    setPickedMediaPreview({ url, type });
+    setShowImageInput(true);
+    setImageInputUrl("");
   }
 
   function toggleStar(msgId: number, msg?: Message) {
@@ -1585,13 +1599,28 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
           <AnimatePresence>
             {showImageInput && (
               <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden mb-2">
-                <div className="flex items-center gap-2 bg-accent/60 rounded-xl px-3 py-2 border border-border/50">
-                  <ImageIcon size={13} className="text-muted-foreground shrink-0" />
-                  <input autoFocus value={imageInputUrl} onChange={e => setImageInputUrl(e.target.value)}
-                    onKeyDown={e => { if (e.key === "Enter") handleImageSend(); if (e.key === "Escape") { setShowImageInput(false); setImageInputUrl(""); } }}
-                    placeholder="Paste image URL (https://...jpg)" className="flex-1 bg-transparent text-xs outline-none placeholder:text-muted-foreground" />
-                  <button onClick={handleImageSend} disabled={!imageInputUrl.trim()} className="text-primary hover:text-primary/80 disabled:opacity-40 transition-colors"><Send size={12} /></button>
-                  <button onClick={() => { setShowImageInput(false); setImageInputUrl(""); }} className="text-muted-foreground hover:text-foreground"><X size={13} /></button>
+                <div className="space-y-2 bg-accent/60 rounded-xl px-3 py-2 border border-border/50">
+                  {pickedMediaPreview && (
+                    <div className="rounded-lg overflow-hidden border border-border/60 bg-background">
+                      {pickedMediaPreview.type === "image" ? (
+                        <img src={pickedMediaPreview.url} alt="" className="w-full max-h-40 object-cover" />
+                      ) : (
+                        <video src={pickedMediaPreview.url} controls className="w-full max-h-40 object-cover" />
+                      )}
+                    </div>
+                  )}
+                  <div className="flex items-center gap-2">
+                    <ImageIcon size={13} className="text-muted-foreground shrink-0" />
+                    <label className="text-xs px-2 py-1 rounded-lg bg-background border border-border/60 cursor-pointer hover:bg-accent transition-colors">
+                      Choose file
+                      <input type="file" accept="image/*,video/*" className="hidden" onChange={e => handleMediaPick(e.target.files?.[0] || null)} />
+                    </label>
+                    <input autoFocus value={imageInputUrl} onChange={e => setImageInputUrl(e.target.value)}
+                      onKeyDown={e => { if (e.key === "Enter") handleImageSend(); if (e.key === "Escape") { setShowImageInput(false); setImageInputUrl(""); setPickedMediaPreview(null); } }}
+                      placeholder="Paste image URL (https://...jpg)" className="flex-1 bg-transparent text-xs outline-none placeholder:text-muted-foreground" />
+                    <button onClick={handleImageSend} disabled={!imageInputUrl.trim() && !pickedMediaPreview} className="text-primary hover:text-primary/80 disabled:opacity-40 transition-colors"><Send size={12} /></button>
+                    <button onClick={() => { setShowImageInput(false); setImageInputUrl(""); setPickedMediaPreview(null); }} className="text-muted-foreground hover:text-foreground"><X size={13} /></button>
+                  </div>
                 </div>
               </motion.div>
             )}
