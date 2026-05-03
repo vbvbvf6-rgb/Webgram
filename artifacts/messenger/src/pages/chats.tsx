@@ -110,9 +110,12 @@ function PollMessage({ pollId, pollsData, onVote, myId }: { pollId: number; poll
       <BarChart2 size={13} /> Loading poll…
     </div>
   );
-  const totalVotes = (poll.options || []).reduce((sum: number, o: any) => sum + (o.voterIds?.length || 0), 0);
-  const myVotes: number[] = (poll.options || []).reduce((acc: number[], o: any, i: number) => { if ((o.voterIds || []).includes(myId)) acc.push(i); return acc; }, []);
-  const hasVoted = myVotes.length > 0;
+  // API returns: options[] (strings), optionCounts[] (numbers), myVote?.choices[], totalVoters
+  const options: string[] = poll.options || [];
+  const counts: number[] = poll.optionCounts || options.map(() => 0);
+  const totalVotes: number = poll.totalVoters ?? counts.reduce((s: number, c: number) => s + c, 0);
+  const myChoices: number[] = poll.myVote?.choices ?? [];
+  const hasVoted = myChoices.length > 0;
   return (
     <div className="min-w-[200px] max-w-[280px]">
       <div className="flex items-center gap-1.5 mb-2">
@@ -120,24 +123,24 @@ function PollMessage({ pollId, pollsData, onVote, myId }: { pollId: number; poll
         <p className="text-sm font-semibold leading-tight">{poll.question}</p>
       </div>
       <div className="space-y-1.5">
-        {(poll.options || []).map((opt: any, i: number) => {
-          const votes = opt.voterIds?.length || 0;
+        {options.map((label: string, i: number) => {
+          const votes = counts[i] || 0;
           const pct = totalVotes > 0 ? Math.round((votes / totalVotes) * 100) : 0;
-          const isMyVote = myVotes.includes(i);
+          const isMyVote = myChoices.includes(i);
           return (
             <button key={i} onClick={() => !hasVoted && onVote(pollId, [i])}
               disabled={hasVoted}
               className={`w-full text-left rounded-xl overflow-hidden relative transition-all ${hasVoted ? "cursor-default" : "hover:opacity-90 active:scale-[0.98]"}`}>
-              {hasVoted && <div className="absolute inset-y-0 left-0 bg-primary/20 rounded-xl transition-all" style={{ width: `${pct}%` }} />}
-              <div className={`relative flex items-center justify-between px-3 py-2 rounded-xl border ${isMyVote ? "border-primary/50 bg-primary/10" : "border-border/50 bg-accent/40"}`}>
-                <span className="text-xs font-medium truncate">{opt.text}</span>
-                {hasVoted && <span className="text-[10px] text-muted-foreground ml-2 shrink-0">{pct}%</span>}
+              {hasVoted && <div className="absolute inset-y-0 left-0 bg-primary/25 rounded-xl transition-all" style={{ width: `${pct}%` }} />}
+              <div className={`relative flex items-center justify-between px-3 py-2 rounded-xl border ${isMyVote ? "border-primary/60 bg-primary/15" : "border-white/20 bg-white/10"}`}>
+                <span className="text-xs font-medium truncate">{label}</span>
+                {hasVoted && <span className="text-[10px] opacity-70 ml-2 shrink-0">{pct}%</span>}
               </div>
             </button>
           );
         })}
       </div>
-      <p className="text-[10px] text-muted-foreground mt-1.5">{totalVotes} vote{totalVotes !== 1 ? "s" : ""}{poll.allowMultiple ? " · Multi-choice" : ""}</p>
+      <p className="text-[10px] opacity-60 mt-1.5">{totalVotes} vote{totalVotes !== 1 ? "s" : ""}{poll.allowMultiple ? " · Multi-choice" : ""}</p>
     </div>
   );
 }
@@ -1547,8 +1550,8 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
                         {/* Message bubble */}
                         <div id={`msg-${msg.id}`} className={`relative rounded-2xl px-3.5 py-2.5 text-sm break-words
                           ${isOwn
-                            ? "bg-primary text-primary-foreground rounded-br-md"
-                            : "bg-card border border-border/60 text-foreground rounded-bl-md"
+                            ? `${activeTheme.msgBg || "bg-primary"} text-white rounded-br-md`
+                            : "bg-card border border-border/80 text-foreground rounded-bl-md"
                           }
                           ${msg.isDeleted ? "opacity-50" : ""}
                           ${pinnedMsg?.id === msg.id ? "ring-1 ring-primary/40" : ""}
@@ -1565,7 +1568,7 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
                           {starredMsgs.has(msg.id) && <Star size={8} className={`absolute top-1 ${isOwn ? "right-1" : "left-1"} text-yellow-400 fill-yellow-400`} />}
 
                           {/* Timestamp + status */}
-                          <div className={`flex items-center gap-1 mt-1 text-[10px] ${isOwn ? "text-primary-foreground/60 justify-end" : "text-muted-foreground"}`}>
+                          <div className={`flex items-center gap-1 mt-1 text-[10px] ${isOwn ? "text-white/60 justify-end" : "text-muted-foreground"}`}>
                             <span>{new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
                             {msg.isEdited && !msg.isDeleted && <span>· edited</span>}
                             {isOwn && !msg.isDeleted && (
