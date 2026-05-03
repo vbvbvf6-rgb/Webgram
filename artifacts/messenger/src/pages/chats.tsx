@@ -809,7 +809,6 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
   });
   const [showThemePicker, setShowThemePicker] = useState(false);
   const [profileViewer, setProfileViewer] = useState<any>(null);
-  const [showPollCreate, setShowPollCreate] = useState(false);
   const [pollQuestion, setPollQuestion] = useState("");
   const [pollOptions, setPollOptions] = useState(["", ""]);
   const [pollMultiple, setPollMultiple] = useState(false);
@@ -2286,14 +2285,14 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
           <AnimatePresence>
             {showStickers && (
               <motion.div initial={{ opacity: 0, y: 6, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 6, scale: 0.98 }} transition={{ duration: 0.15 }} className="mb-2">
-                <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-2xl">
+                <div className="bg-[#ffffffea] border border-white/60 rounded-2xl overflow-hidden shadow-2xl">
                   {/* Header */}
                   <div className="flex items-center justify-between px-3.5 pt-3 pb-2">
                     <div className="flex items-center gap-2">
                       <Sparkles size={13} className="text-primary" />
-                      <p className="text-xs font-bold text-foreground">Stickers</p>
+                      <p className="text-xs font-bold text-[#4b1f7a]">Stickers</p>
                     </div>
-                    <button onClick={() => setShowStickers(false)} className="w-6 h-6 flex items-center justify-center rounded-full bg-accent text-muted-foreground hover:text-foreground transition-colors">
+                    <button onClick={() => setShowStickers(false)} className="w-6 h-6 flex items-center justify-center rounded-full bg-white/80 text-[#5b3d8c] hover:text-[#2f1857] transition-colors">
                       <X size={12}/>
                     </button>
                   </div>
@@ -2304,7 +2303,7 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
                       const isActive = stickerPack === pack;
                       return (
                         <button key={pack} onClick={() => setStickerPack(pack)} title={pack}
-                          className={`w-9 h-9 flex items-center justify-center rounded-xl text-lg shrink-0 transition-all ${isActive ? "bg-primary/20 ring-2 ring-primary/40 scale-105" : "hover:bg-accent"}`}>
+                          className={`w-9 h-9 flex items-center justify-center rounded-xl text-lg shrink-0 transition-all ${isActive ? "bg-violet-200 ring-2 ring-violet-300 scale-105" : "hover:bg-violet-100/80"}`}>
                           {icon}
                         </button>
                       );
@@ -2315,7 +2314,7 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
                     {(STICKER_PACKS[stickerPack] || []).map(s => (
                       <motion.button key={s} whileHover={{ scale: 1.2 }} whileTap={{ scale: 0.9 }}
                         onClick={async () => { setShowStickers(false); await sendMessage.mutateAsync({ chatId, data: { content: s, replyToId: null } }); qc.invalidateQueries({ queryKey: getGetMessagesQueryKey(chatId, {}) }); }}
-                        className="text-2xl flex items-center justify-center h-11 rounded-xl hover:bg-accent transition-colors">
+                        className="text-2xl flex items-center justify-center h-11 rounded-xl hover:bg-violet-100/80 transition-colors">
                         {s}
                       </motion.button>
                     ))}
@@ -2337,11 +2336,7 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
                   className={`w-8 h-8 flex items-center justify-center rounded-xl transition-all shrink-0 ${showStickers ? "bg-primary/20 text-primary" : "text-muted-foreground hover:text-foreground"}`} title="Stickers">
                   <Sparkles size={15} />
                 </motion.button>
-                <motion.button whileTap={{ scale: 0.9 }} onClick={() => setShowPollCreate(true)}
-                  className="w-8 h-8 flex items-center justify-center rounded-xl transition-all shrink-0 text-muted-foreground hover:text-foreground" title="Create poll">
-                  <BarChart2 size={15} />
-                </motion.button>
-                <motion.button whileTap={{ scale: 0.9 }} onClick={startVoiceRecording}
+                <motion.button whileTap={{ scale: 0.9 }} animate={{ rotate: [0, 10, -10, 0] }} transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }} onClick={startVoiceRecording}
                   className="w-8 h-8 flex items-center justify-center rounded-xl transition-all shrink-0 text-muted-foreground hover:text-foreground" title="Record voice message">
                   <Mic size={15} />
                 </motion.button>
@@ -2352,8 +2347,8 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
                   role="textbox"
                   aria-multiline="true"
                   data-placeholder={editingMsg ? "Edit message..." : `Message ${chatName || "..."}… (/ for commands)`}
-                  className={`flex-1 outline-none text-sm max-h-32 overflow-y-auto py-1.5 px-1.5 break-words min-h-[20px] leading-relaxed
-                    empty:before:content-[attr(data-placeholder)] empty:before:text-muted-foreground empty:before:pointer-events-none`}
+                  className={`flex-1 outline-none text-sm max-h-32 overflow-y-auto py-1.5 px-1.5 break-words min-h-[20px] leading-relaxed text-white
+                    empty:before:content-[attr(data-placeholder)] empty:before:text-white/60 empty:before:pointer-events-none`}
                   onInput={e => {
                     const val = e.currentTarget.textContent || "";
                     setInput(val);
