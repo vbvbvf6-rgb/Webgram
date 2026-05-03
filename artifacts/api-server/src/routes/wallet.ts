@@ -32,27 +32,18 @@ router.post("/daily", requireAuth, async (req: AuthenticatedRequest, res): Promi
   try {
     const user = await ensureUser(req.userId!);
     const wallet = await ensureWallet(user.id);
-    const now = new Date();
-    if (wallet.lastDailyBonus) {
-      const diff = now.getTime() - wallet.lastDailyBonus.getTime();
-      if (diff < 24 * 60 * 60 * 1000) {
-        const next = new Date(wallet.lastDailyBonus.getTime() + 24 * 60 * 60 * 1000);
-        res.status(400).json({ error: "Already claimed today", nextAt: next.toISOString() });
-        return;
-      }
-    }
     const bonus = 50;
     const [updated] = await db.update(walletsTable)
-      .set({ balance: wallet.balance + bonus, lastDailyBonus: now, updatedAt: now })
+      .set({ balance: wallet.balance + bonus, updatedAt: new Date() })
       .where(eq(walletsTable.userId, user.id))
       .returning();
     await db.insert(transactionsTable).values({
       toUserId: user.id, amount: bonus, type: "bonus",
-      description: "Daily login bonus ⚡",
+      description: "Bonus ⚡",
     });
     res.json({ wallet: updated, bonus });
   } catch (err) {
-    req.log.error({ err }, "Failed to claim daily bonus");
+    req.log.error({ err }, "Failed to claim bonus");
     res.status(500).json({ error: "Internal server error" });
   }
 });
