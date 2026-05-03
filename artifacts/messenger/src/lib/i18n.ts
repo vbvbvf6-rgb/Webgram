@@ -13,7 +13,6 @@ const options: InitOptions = {
   },
   lng: savedLang,
   fallbackLng: "en",
-  initImmediate: false,
   interpolation: { escapeValue: false },
 };
 

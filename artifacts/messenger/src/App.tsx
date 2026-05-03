@@ -18,6 +18,7 @@ import ProfilePage from "@/pages/profile";
 import UserPage from "@/pages/user";
 import NotFound from "@/pages/not-found";
 import { BottomNav } from "@/components/BottomNav";
+import { Toaster } from "@/components/ui/toaster";
 
 function getTabSessionId() {
   const key = "pulse_tab_session_id";
@@ -292,6 +293,7 @@ function App() {
   return (
     <WouterRouter base={basePath}>
       <AppRoutes />
+      <Toaster />
     </WouterRouter>
   );
 }

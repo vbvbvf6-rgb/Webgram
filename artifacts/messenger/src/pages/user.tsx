@@ -146,7 +146,7 @@ export default function UserPage() {
                   className="flex flex-col items-center justify-center p-3 bg-white/6 border border-white/10 rounded-xl"
                   title={`${GIFTS_CATALOG[giftId]?.name || giftId} x${count}`}
                 >
-                  <span className="text-2xl mb-1">{GIFTS_CATALOG[giftId]?.emoji || "🎁"}</span>
+                  <span className="text-2xl mb-1">{String(GIFTS_CATALOG[giftId]?.emoji || "🎁")}</span>
                   <span className="text-xs font-bold text-fuchsia-300">×{count}</span>
                 </div>
               ))}

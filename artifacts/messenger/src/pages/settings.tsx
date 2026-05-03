@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
-import { useClerk, useUser } from "@clerk/react";
+import { useClerk, useAuth, useUser } from "@clerk/react";
 import { setTabLoggedOut } from "@/App";
 import {
   ArrowLeft, Save, LogOut, Camera, User, AtSign, FileText, Upload,
@@ -14,6 +14,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import i18n from "@/lib/i18n";
+import { useToast } from "@/hooks/use-toast";
 
 // Profanity filter
 const BAD_WORDS = ["fuck", "shit", "bitch", "asshole", "pussy", "dick", "cunt", "damn", "hell", "piss"];
@@ -215,6 +216,7 @@ function applyAccentColor(hex: string) {
 export default function SettingsPage() {
   const [, setLocation] = useLocation();
   const { signOut } = useClerk();
+  const { getToken } = useAuth();
   const { user: clerkUser } = useUser();
   const qc = useQueryClient();
   const { data: me, isLoading } = useGetMe();
@@ -319,7 +321,7 @@ export default function SettingsPage() {
   async function loadGifts() {
     setGiftsLoading(true);
     try {
-      const token = await clerkUser?.getToken?.();
+      const token = await getToken();
       if (!token) return;
       const res = await fetch(`/api/wallet/gifts`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -329,7 +331,7 @@ export default function SettingsPage() {
         setGifts(data);
       }
     } catch (err) {
-      req?.log?.error({ err }, "Failed to load gifts");
+      console.error("Failed to load gifts:", err);
     } finally {
       setGiftsLoading(false);
     }
@@ -367,6 +369,7 @@ export default function SettingsPage() {
   }, []);
 
   const { t } = useTranslation();
+  const { toast } = useToast();
   const mark = (fn: (v: string) => void) => (v: string) => { fn(v); setDirty(true); };
 
   // Load form values from server data on initial mount only
@@ -386,16 +389,17 @@ export default function SettingsPage() {
       await updateMe.mutateAsync({ data: { displayName, username, bio: bio || null, avatarUrl: avatarUrl || null, phone: phone || null } as any });
       qc.invalidateQueries({ queryKey: getGetMeQueryKey() });
       setDirty(false);
-      void 0;
+      toast({ title: t("settings.profile.saved") })
     } catch {
-      void 0;
+      toast({ title: "Failed to save", variant: "destructive" })
     }
   }
 
   // Simulated phone verification (OTP sent via toast; real SMS would need Twilio/etc.)
   async function sendPhoneCode() {
     if (!phone.trim() || !/^\+?[\d\s\-()]{7,15}$/.test(phone.trim())) {
-      void 0; return;
+      toast({ title: "Enter a valid phone number", variant: "destructive" });
+      return;
     }
     const code = Math.floor(100000 + Math.random() * 900000).toString();
     sessionStorage.setItem("phone_verify_code", code);
@@ -416,12 +420,12 @@ export default function SettingsPage() {
         setPhoneSent(false);
         setPhoneCode("");
         sessionStorage.removeItem("phone_verify_code");
-        void 0;
+        toast({ title: "Phone number verified ✓" })
       } catch {
-        void 0;
+        toast({ title: "Failed to save phone", variant: "destructive" })
       }
     } else {
-      void 0;
+      toast({ title: "Wrong code", description: "Check and try again", variant: "destructive" })
     }
     setPhoneVerifying(false);
   }
@@ -462,11 +466,11 @@ export default function SettingsPage() {
     const title = kind === "bug" ? bugTitle.trim() : supportTitle.trim();
     const details = kind === "bug" ? bugDetails.trim() : supportDetails.trim();
     if (!title || !details) {
-      void 0;
+      toast({ title: t("settings.about.fillFields"), variant: "destructive" })
       return;
     }
     try {
-      const token = await clerkUser?.getToken?.();
+      const token = await getToken();
       await fetch("/api/reports", {
         method: "POST",
         headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
@@ -475,7 +479,7 @@ export default function SettingsPage() {
     } catch {
       // silently continue — report may have failed but we still clear form
     }
-    void 0;
+    toast({ title: kind === "bug" ? t("settings.about.bugSent") : t("settings.about.supportSent") })
     if (kind === "bug") { setBugTitle(""); setBugDetails(""); } else { setSupportTitle(""); setSupportDetails(""); }
   }
 
@@ -483,7 +487,7 @@ export default function SettingsPage() {
     const userId = parseInt(grantUserId.trim());
     const amount = parseInt(grantAmount.trim());
     if (!userId || !amount || amount < 1 || amount > 10000) {
-      void 0;
+      toast({ title: "Invalid user ID or amount (1-10000)", variant: "destructive" })
       return;
     }
     setGrantLoading(true);
@@ -499,7 +503,7 @@ export default function SettingsPage() {
       setGrantUserId("");
       setGrantAmount("");
     } catch (err) {
-      void 0;
+      toast({ title: "Failed to grant currency", description: String(err).slice(0, 100), variant: "destructive" });
     } finally {
       setGrantLoading(false);
     }
@@ -597,7 +601,7 @@ export default function SettingsPage() {
                     <input value={displayName} onChange={e => {
                       const val = e.target.value;
                       if (hasProfanity(val)) {
-                        void 0;
+                        // TODO: show feedback
                         return;
                       }
                       mark(setDisplayName)(val);
@@ -610,7 +614,7 @@ export default function SettingsPage() {
                       <input value={username} onChange={e => {
                         const val = e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "");
                         if (hasProfanity(val)) {
-                          void 0;
+                          // TODO: show feedback
                           return;
                         }
                         mark(setUsername)(val);
@@ -631,7 +635,7 @@ export default function SettingsPage() {
                         const file = e.target.files?.[0];
                         if (!file) return;
                         if (file.size > 5 * 1024 * 1024) {
-                          void 0;
+                          // TODO: show feedback
                           return;
                         }
                         try {
@@ -639,7 +643,7 @@ export default function SettingsPage() {
                           setAvatarUrl(compressed);
                           setDirty(true);
                         } catch {
-                          void 0;
+                          // TODO: show feedback
                         }
                       }} 
                       className="w-full bg-white/6 border border-white/10 rounded-xl px-4 py-3 text-sm text-slate-100 outline-none focus:ring-2 ring-fuchsia-400/40 transition-all file:mr-3 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-primary/20 file:text-primary hover:file:bg-primary/30"
@@ -736,7 +740,7 @@ export default function SettingsPage() {
                           className="flex flex-col items-center justify-center p-3 bg-white/6 border border-white/10 rounded-xl hover:bg-white/10 transition-colors"
                           title={`${GIFTS_CATALOG[giftId]?.name || giftId} x${count}`}
                         >
-                          <span className="text-2xl mb-1">{GIFTS_CATALOG[giftId]?.emoji || "🎁"}</span>
+                          <span className="text-2xl mb-1">{String(GIFTS_CATALOG[giftId]?.emoji || "🎁")}</span>
                           <span className="text-xs font-bold text-fuchsia-300">×{count}</span>
                         </button>
                       ))}
@@ -776,7 +780,7 @@ export default function SettingsPage() {
                     clearCurrentSession();
                     setTabLoggedOut();
                     setLocation("/");
-                    void 0;
+                    // TODO: show feedback
                   }} className="w-full flex items-center justify-center gap-2 border border-red-500/30 text-red-300 rounded-xl py-3 font-semibold text-sm hover:bg-red-500/8 transition-colors">
                     <LogOut size={15} />Sign out
                   </button>
@@ -984,7 +988,7 @@ export default function SettingsPage() {
                 <div className="bg-accent/30 border border-border rounded-2xl p-4 text-sm">
                   <p className="font-semibold mb-2 flex items-center gap-2"><Info size={14} className="text-primary" />Permissions</p>
                   <p className="text-xs text-muted-foreground mb-3">Droidgram needs camera and microphone access for calls.</p>
-                  <button onClick={() => navigator.mediaDevices?.getUserMedia({ audio: true, video: true }).then(s => { s.getTracks().forEach(t => t.stop()); void 0; }).catch(() => toast({ title: "Please allow access in browser settings", variant: "destructive" }))} className="text-xs bg-primary text-primary-foreground rounded-lg px-4 py-2 font-semibold hover:bg-primary/90 transition-colors">
+                  <button onClick={() => navigator.mediaDevices?.getUserMedia({ audio: true, video: true }).then(s => { s.getTracks().forEach(t => t.stop()); }).catch(() => toast({ title: "Please allow access in browser settings", variant: "destructive" }))} className="text-xs bg-primary text-primary-foreground rounded-lg px-4 py-2 font-semibold hover:bg-primary/90 transition-colors">
                     Test camera & microphone
                   </button>
                 </div>

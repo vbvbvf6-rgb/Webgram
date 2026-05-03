@@ -17,8 +17,6 @@ type Toast = Omit<ToasterToast, "id">
 const TOAST_LIMIT = 1
 const TOAST_REMOVE_DELAY = 3000
 
-type ToastActionElement = React.ReactNode
-
 // Global event emitter for toast notifications
 class ToastEmitter extends EventTarget {
   private toasts: ToasterToast[] = []
