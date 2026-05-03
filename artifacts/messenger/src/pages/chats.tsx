@@ -33,18 +33,18 @@ const STICKER_PACKS: Record<string, string[]> = {
 };
 
 const CURATED_GIFS = [
-  { url: "https://media.giphy.com/media/JIX9t2j0ZTN9S/giphy.gif", label: "Cat typing" },
-  { url: "https://media.giphy.com/media/ICOgUNjpvO0PC/giphy.gif", label: "Thumbs up" },
+  { url: "https://media.giphy.com/media/VbnUQpnihPSIgIXuZv/giphy.gif", label: "Cat love" },
+  { url: "https://media.giphy.com/media/111ebonMs90YLu/giphy.gif", label: "Thumbs up" },
+  { url: "https://media.giphy.com/media/artj92V8o75HK/giphy.gif", label: "Party!" },
   { url: "https://media.giphy.com/media/3oEjI6SIIHBdRxXI40/giphy.gif", label: "Yes!" },
-  { url: "https://media.giphy.com/media/26ufdipQqU2lhNA4g/giphy.gif", label: "Party" },
-  { url: "https://media.giphy.com/media/l0HlvtIPzPdt2usKs/giphy.gif", label: "Nope" },
-  { url: "https://media.giphy.com/media/5GoVLqeAOo6PK/giphy.gif", label: "Hi!" },
-  { url: "https://media.giphy.com/media/1BXa2alBjrCXC/giphy.gif", label: "Run!" },
-  { url: "https://media.giphy.com/media/iFmwm4Y8TKkMU/giphy.gif", label: "Shocked" },
-  { url: "https://media.giphy.com/media/blSTtZehjAZ8I/giphy.gif", label: "LOL" },
-  { url: "https://media.giphy.com/media/3o6ZtaO9BZHcOjmErm/giphy.gif", label: "Magic" },
-  { url: "https://media.giphy.com/media/8Iv5lqKwKsZ2g/giphy.gif", label: "Mind blown" },
-  { url: "https://media.giphy.com/media/11sBLVxNs7v6WA/giphy.gif", label: "Wow" },
+  { url: "https://media.giphy.com/media/ceeN6U57leAhi/giphy.gif", label: "Nope" },
+  { url: "https://media.giphy.com/media/ZqlvCTNHpqrio/giphy.gif", label: "LOL" },
+  { url: "https://media.giphy.com/media/13HgwGsXF0aiGY/giphy.gif", label: "Fire 🔥" },
+  { url: "https://media.giphy.com/media/5xaOcLGvzHxDKjufnLW/giphy.gif", label: "Dance" },
+  { url: "https://media.giphy.com/media/3o7527pa7qs9kCG78A/giphy.gif", label: "Wow" },
+  { url: "https://media.giphy.com/media/l3q2DbNaHBCFwKCMo/giphy.gif", label: "Think" },
+  { url: "https://media.giphy.com/media/TGcgrOq7K4P9gCLSbj/giphy.gif", label: "Clap" },
+  { url: "https://media.giphy.com/media/doPrWMkFHb3Pje7t9j/giphy.gif", label: "Cry" },
 ];
 
 const CHAT_THEMES: { id: string; label: string; gradient: string; msgBg: string }[] = [
@@ -1703,24 +1703,39 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
           {/* Sticker picker */}
           <AnimatePresence>
             {showStickers && (
-              <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 4 }} className="mb-2">
-                <div className="bg-card border border-border rounded-xl overflow-hidden shadow-xl">
-                  <div className="flex items-center justify-between px-3 pt-2.5 pb-1">
-                    <p className="text-xs font-semibold text-muted-foreground">Stickers</p>
-                    <button onClick={() => setShowStickers(false)} className="text-muted-foreground hover:text-foreground"><X size={13}/></button>
+              <motion.div initial={{ opacity: 0, y: 6, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 6, scale: 0.98 }} transition={{ duration: 0.15 }} className="mb-2">
+                <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-2xl">
+                  {/* Header */}
+                  <div className="flex items-center justify-between px-3.5 pt-3 pb-2">
+                    <div className="flex items-center gap-2">
+                      <Sparkles size={13} className="text-primary" />
+                      <p className="text-xs font-bold text-foreground">Stickers</p>
+                    </div>
+                    <button onClick={() => setShowStickers(false)} className="w-6 h-6 flex items-center justify-center rounded-full bg-accent text-muted-foreground hover:text-foreground transition-colors">
+                      <X size={12}/>
+                    </button>
                   </div>
-                  <div className="flex gap-1 px-3 pb-2 overflow-x-auto">
-                    {Object.keys(STICKER_PACKS).map(pack => (
-                      <button key={pack} onClick={() => setStickerPack(pack)}
-                        className={`text-xs px-2 py-1 rounded-lg whitespace-nowrap shrink-0 transition-colors ${stickerPack === pack ? "bg-primary/20 text-primary" : "hover:bg-accent text-muted-foreground"}`}>
-                        {pack}
-                      </button>
-                    ))}
+                  {/* Pack tabs */}
+                  <div className="flex gap-1.5 px-3.5 pb-2 overflow-x-auto">
+                    {Object.keys(STICKER_PACKS).map(pack => {
+                      const icon = pack.split(" ")[0];
+                      const isActive = stickerPack === pack;
+                      return (
+                        <button key={pack} onClick={() => setStickerPack(pack)} title={pack}
+                          className={`w-9 h-9 flex items-center justify-center rounded-xl text-lg shrink-0 transition-all ${isActive ? "bg-primary/20 ring-2 ring-primary/40 scale-105" : "hover:bg-accent"}`}>
+                          {icon}
+                        </button>
+                      );
+                    })}
                   </div>
+                  {/* Sticker grid */}
                   <div className="grid grid-cols-6 gap-1 px-3 pb-3">
                     {(STICKER_PACKS[stickerPack] || []).map(s => (
-                      <button key={s} onClick={async () => { setShowStickers(false); await sendMessage.mutateAsync({ chatId, data: { content: s, replyToId: null } }); qc.invalidateQueries({ queryKey: getGetMessagesQueryKey(chatId, {}) }); }}
-                        className="text-2xl flex items-center justify-center h-10 rounded-xl hover:bg-accent transition-colors">{s}</button>
+                      <motion.button key={s} whileHover={{ scale: 1.2 }} whileTap={{ scale: 0.9 }}
+                        onClick={async () => { setShowStickers(false); await sendMessage.mutateAsync({ chatId, data: { content: s, replyToId: null } }); qc.invalidateQueries({ queryKey: getGetMessagesQueryKey(chatId, {}) }); }}
+                        className="text-2xl flex items-center justify-center h-11 rounded-xl hover:bg-accent transition-colors">
+                        {s}
+                      </motion.button>
                     ))}
                   </div>
                 </div>
@@ -1731,19 +1746,25 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
           {/* GIF picker */}
           <AnimatePresence>
             {showGifs && (
-              <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 4 }} className="mb-2">
-                <div className="bg-card border border-border rounded-xl overflow-hidden shadow-xl">
-                  <div className="flex items-center justify-between px-3 pt-2.5 pb-2">
-                    <p className="text-xs font-semibold text-muted-foreground">🎬 GIFs</p>
-                    <button onClick={() => setShowGifs(false)} className="text-muted-foreground hover:text-foreground"><X size={13}/></button>
+              <motion.div initial={{ opacity: 0, y: 6, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 6, scale: 0.98 }} transition={{ duration: 0.15 }} className="mb-2">
+                <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-2xl">
+                  <div className="flex items-center justify-between px-3.5 pt-3 pb-2">
+                    <div className="flex items-center gap-2">
+                      <Film size={13} className="text-primary" />
+                      <p className="text-xs font-bold text-foreground">GIFs</p>
+                    </div>
+                    <button onClick={() => setShowGifs(false)} className="w-6 h-6 flex items-center justify-center rounded-full bg-accent text-muted-foreground hover:text-foreground transition-colors">
+                      <X size={12}/>
+                    </button>
                   </div>
-                  <div className="grid grid-cols-3 gap-1.5 px-3 pb-3 max-h-52 overflow-y-auto">
+                  <div className="grid grid-cols-3 gap-1.5 px-3 pb-3 max-h-56 overflow-y-auto">
                     {CURATED_GIFS.map(g => (
                       <button key={g.url} onClick={async () => { setShowGifs(false); await sendMessage.mutateAsync({ chatId, data: { content: g.url, replyToId: null } }); qc.invalidateQueries({ queryKey: getGetMessagesQueryKey(chatId, {}) }); }}
-                        className="rounded-xl overflow-hidden hover:ring-2 hover:ring-primary transition-all aspect-video bg-accent relative group">
-                        <img src={g.url} alt={g.label} className="w-full h-full object-cover" loading="lazy" />
-                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-1">
-                          <span className="text-[9px] text-white font-medium">{g.label}</span>
+                        className="rounded-xl overflow-hidden hover:ring-2 hover:ring-primary/60 transition-all aspect-video bg-accent/80 relative group">
+                        <img src={g.url} alt={g.label} className="w-full h-full object-cover" loading="lazy"
+                          onError={e => { (e.currentTarget as HTMLImageElement).style.display = "none"; }} />
+                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-1.5">
+                          <span className="text-[9px] text-white font-semibold leading-tight">{g.label}</span>
                         </div>
                       </button>
                     ))}

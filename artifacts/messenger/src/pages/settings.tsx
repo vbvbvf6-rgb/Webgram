@@ -94,6 +94,36 @@ const TABS: { id: SettingsTab; label: string; icon: any }[] = [
   { id: "about", label: "About", icon: Info },
 ];
 
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+function hexToHSL(hex: string): string {
+  const r = parseInt(hex.slice(1, 3), 16) / 255;
+  const g = parseInt(hex.slice(3, 5), 16) / 255;
+  const b = parseInt(hex.slice(5, 7), 16) / 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b);
+  let h = 0, s = 0;
+  const l = (max + min) / 2;
+  if (max !== min) {
+    const d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    switch (max) {
+      case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
+      case g: h = ((b - r) / d + 2) / 6; break;
+      case b: h = ((r - g) / d + 4) / 6; break;
+    }
+  }
+  return `${Math.round(h * 360)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
+}
+
+function applyAccentColor(hex: string) {
+  const hsl = hexToHSL(hex);
+  const root = document.documentElement;
+  root.style.setProperty("--primary", hsl);
+  root.style.setProperty("--ring", hsl);
+  root.style.setProperty("--sidebar-primary", hsl);
+  root.style.setProperty("--sidebar-ring", hsl);
+}
+
 export default function SettingsPage() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
@@ -132,27 +162,35 @@ export default function SettingsPage() {
   const [doNotDisturb, setDoNotDisturb] = useState(false);
 
   // Appearance
-  const [accentColor, setAccentColor] = useState("#8B5CF6");
-  const [fontSize, setFontSize] = useState<"small" | "medium" | "large">("medium");
-  const [bubbleStyle, setBubbleStyle] = useState<"rounded" | "sharp" | "bubble">("rounded");
-  const [showAvatars, setShowAvatars] = useState(true);
-  const [compactMode, setCompactMode] = useState(false);
-  const [animationsEnabled, setAnimationsEnabled] = useState(true);
+  const [accentColor, setAccentColor] = useState(() => localStorage.getItem("pulse_accent") || "#8B5CF6");
+  const [fontSize, setFontSize] = useState<"small" | "medium" | "large">(() => (localStorage.getItem("pulse_font_size") as any) || "medium");
+  const [bubbleStyle, setBubbleStyle] = useState<"rounded" | "sharp" | "bubble">(() => (localStorage.getItem("pulse_bubble") as any) || "rounded");
+  const [showAvatars, setShowAvatars] = useState(() => localStorage.getItem("pulse_show_avatars") !== "false");
+  const [compactMode, setCompactMode] = useState(() => localStorage.getItem("pulse_compact") === "true");
+  const [animationsEnabled, setAnimationsEnabled] = useState(() => localStorage.getItem("pulse_animations") !== "false");
 
   // Privacy
-  const [readReceipts, setReadReceipts] = useState(true);
-  const [lastSeen, setLastSeen] = useState<"everyone" | "contacts" | "nobody">("everyone");
-  const [onlineStatus, setOnlineStatus] = useState(true);
-  const [screenshotAlerts, setScreenshotAlerts] = useState(false);
+  const [readReceipts, setReadReceipts] = useState(() => localStorage.getItem("pulse_read_receipts") !== "false");
+  const [lastSeen, setLastSeen] = useState<"everyone" | "contacts" | "nobody">(() => (localStorage.getItem("pulse_last_seen") as any) || "everyone");
+  const [onlineStatus, setOnlineStatus] = useState(() => localStorage.getItem("pulse_online_status") !== "false");
+  const [screenshotAlerts, setScreenshotAlerts] = useState(() => localStorage.getItem("pulse_screenshot_alerts") === "true");
 
   // Calls
-  const [noiseCancellation, setNoiseCancellation] = useState(true);
-  const [autoAnswerAfterSecs, setAutoAnswerAfterSecs] = useState<number | null>(null);
-  const [ringtone, setRingtone] = useState("default");
+  const [noiseCancellation, setNoiseCancellation] = useState(() => localStorage.getItem("pulse_noise_cancel") !== "false");
+  const [autoAnswerAfterSecs, setAutoAnswerAfterSecs] = useState<number | null>(() => {
+    const v = localStorage.getItem("pulse_auto_answer"); return v ? Number(v) : null;
+  });
+  const [ringtone, setRingtone] = useState(() => localStorage.getItem("pulse_ringtone") || "default");
   const [bugTitle, setBugTitle] = useState("");
   const [bugDetails, setBugDetails] = useState("");
   const [supportTitle, setSupportTitle] = useState("");
   const [supportDetails, setSupportDetails] = useState("");
+
+  // Load saved accent on mount
+  useEffect(() => {
+    const saved = localStorage.getItem("pulse_accent");
+    if (saved) applyAccentColor(saved);
+  }, []);
 
   useEffect(() => {
     if (me) {
@@ -178,6 +216,31 @@ export default function SettingsPage() {
   }
 
   function applyTab(tab: SettingsTab) {
+    if (tab === "appearance") {
+      applyAccentColor(accentColor);
+      localStorage.setItem("pulse_accent", accentColor);
+      localStorage.setItem("pulse_font_size", fontSize);
+      localStorage.setItem("pulse_bubble", bubbleStyle);
+      localStorage.setItem("pulse_show_avatars", String(showAvatars));
+      localStorage.setItem("pulse_compact", String(compactMode));
+      localStorage.setItem("pulse_animations", String(animationsEnabled));
+      const fontSizeMap = { small: "13px", medium: "15px", large: "17px" } as const;
+      document.documentElement.style.setProperty("font-size", fontSizeMap[fontSize]);
+    } else if (tab === "notifications") {
+      localStorage.setItem("pulse_notif_messages", String(notifMessages));
+      localStorage.setItem("pulse_notif_sounds", String(notifSounds));
+      localStorage.setItem("pulse_dnd", String(doNotDisturb));
+    } else if (tab === "privacy") {
+      localStorage.setItem("pulse_read_receipts", String(readReceipts));
+      localStorage.setItem("pulse_last_seen", lastSeen);
+      localStorage.setItem("pulse_online_status", String(onlineStatus));
+      localStorage.setItem("pulse_screenshot_alerts", String(screenshotAlerts));
+    } else if (tab === "calls") {
+      localStorage.setItem("pulse_noise_cancel", String(noiseCancellation));
+      localStorage.setItem("pulse_ringtone", ringtone);
+      if (autoAnswerAfterSecs !== null) localStorage.setItem("pulse_auto_answer", String(autoAnswerAfterSecs));
+      else localStorage.removeItem("pulse_auto_answer");
+    }
     setAppliedTabs(prev => ({ ...prev, [tab]: true }));
     toast({ title: `${TABS.find(t => t.id === tab)?.label || "Settings"} applied ✓` });
   }
