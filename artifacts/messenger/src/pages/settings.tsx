@@ -576,20 +576,17 @@ export default function SettingsPage() {
                 </div>
 
                 <div className="space-y-4">
-                  {[
-                    { icon: User, label: "Display Name", value: displayName, setter: (val: string) => {
+                  <div>
+                    <label className="flex items-center gap-2 text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5"><User size={11} />Display Name</label>
+                    <input value={displayName} onChange={e => {
+                      const val = e.target.value;
                       if (hasProfanity(val)) {
                         toast({ title: "⚠️ Inappropriate content not allowed", variant: "destructive" });
                         return;
                       }
                       mark(setDisplayName)(val);
-                    }, placeholder: "Your name" },
-                  ].map(f => (
-                    <div key={f.label}>
-                      <label className="flex items-center gap-2 text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5"><f.icon size={11} />{f.label}</label>
-                      <input value={f.value} onChange={e => f.setter(e.target.value)} placeholder={f.placeholder} className="w-full bg-white/6 border border-white/10 rounded-xl px-4 py-3 text-sm text-slate-100 outline-none focus:ring-2 ring-fuchsia-400/40 transition-all placeholder:text-slate-500" />
-                    </div>
-                  ))}
+                    }} placeholder="Your name" className="w-full bg-white/6 border border-white/10 rounded-xl px-4 py-3 text-sm text-slate-100 outline-none focus:ring-2 ring-fuchsia-400/40 transition-all placeholder:text-slate-500" />
+                  </div>
                   <div>
                     <label className="flex items-center gap-2 text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5"><AtSign size={11} />Username</label>
                     <div className="relative">
