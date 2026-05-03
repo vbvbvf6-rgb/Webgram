@@ -162,25 +162,23 @@ export default function SettingsPage() {
   const [doNotDisturb, setDoNotDisturb] = useState(false);
 
   // Appearance
-  const [accentColor, setAccentColor] = useState(() => localStorage.getItem("pulse_accent") || "#8B5CF6");
-  const [fontSize, setFontSize] = useState<"small" | "medium" | "large">(() => (localStorage.getItem("pulse_font_size") as any) || "medium");
-  const [bubbleStyle, setBubbleStyle] = useState<"rounded" | "sharp" | "bubble">(() => (localStorage.getItem("pulse_bubble") as any) || "rounded");
-  const [showAvatars, setShowAvatars] = useState(() => localStorage.getItem("pulse_show_avatars") !== "false");
-  const [compactMode, setCompactMode] = useState(() => localStorage.getItem("pulse_compact") === "true");
-  const [animationsEnabled, setAnimationsEnabled] = useState(() => localStorage.getItem("pulse_animations") !== "false");
+  const [accentColor, setAccentColor] = useState("#8B5CF6");
+  const [fontSize, setFontSize] = useState<"small" | "medium" | "large">("medium");
+  const [bubbleStyle, setBubbleStyle] = useState<"rounded" | "sharp" | "bubble">("rounded");
+  const [showAvatars, setShowAvatars] = useState(true);
+  const [compactMode, setCompactMode] = useState(false);
+  const [animationsEnabled, setAnimationsEnabled] = useState(true);
 
   // Privacy
-  const [readReceipts, setReadReceipts] = useState(() => localStorage.getItem("pulse_read_receipts") !== "false");
-  const [lastSeen, setLastSeen] = useState<"everyone" | "contacts" | "nobody">(() => (localStorage.getItem("pulse_last_seen") as any) || "everyone");
-  const [onlineStatus, setOnlineStatus] = useState(() => localStorage.getItem("pulse_online_status") !== "false");
-  const [screenshotAlerts, setScreenshotAlerts] = useState(() => localStorage.getItem("pulse_screenshot_alerts") === "true");
+  const [readReceipts, setReadReceipts] = useState(true);
+  const [lastSeen, setLastSeen] = useState<"everyone" | "contacts" | "nobody">("everyone");
+  const [onlineStatus, setOnlineStatus] = useState(true);
+  const [screenshotAlerts, setScreenshotAlerts] = useState(false);
 
   // Calls
-  const [noiseCancellation, setNoiseCancellation] = useState(() => localStorage.getItem("pulse_noise_cancel") !== "false");
-  const [autoAnswerAfterSecs, setAutoAnswerAfterSecs] = useState<number | null>(() => {
-    const v = localStorage.getItem("pulse_auto_answer"); return v ? Number(v) : null;
-  });
-  const [ringtone, setRingtone] = useState(() => localStorage.getItem("pulse_ringtone") || "default");
+  const [noiseCancellation, setNoiseCancellation] = useState(true);
+  const [autoAnswerAfterSecs, setAutoAnswerAfterSecs] = useState<number | null>(null);
+  const [ringtone, setRingtone] = useState("default");
   const [bugTitle, setBugTitle] = useState("");
   const [bugDetails, setBugDetails] = useState("");
   const [supportTitle, setSupportTitle] = useState("");
@@ -190,6 +188,27 @@ export default function SettingsPage() {
   useEffect(() => {
     const saved = localStorage.getItem("pulse_accent");
     if (saved) applyAccentColor(saved);
+  }, []);
+
+  useEffect(() => {
+    const savedAccent = localStorage.getItem("pulse_accent");
+    if (savedAccent) setAccentColor(savedAccent);
+    const savedFontSize = localStorage.getItem("pulse_font_size");
+    if (savedFontSize === "small" || savedFontSize === "medium" || savedFontSize === "large") setFontSize(savedFontSize);
+    const savedBubble = localStorage.getItem("pulse_bubble");
+    if (savedBubble === "rounded" || savedBubble === "sharp" || savedBubble === "bubble") setBubbleStyle(savedBubble);
+    setShowAvatars(localStorage.getItem("pulse_show_avatars") !== "false");
+    setCompactMode(localStorage.getItem("pulse_compact") === "true");
+    setAnimationsEnabled(localStorage.getItem("pulse_animations") !== "false");
+    setReadReceipts(localStorage.getItem("pulse_read_receipts") !== "false");
+    const savedSeen = localStorage.getItem("pulse_last_seen");
+    if (savedSeen === "everyone" || savedSeen === "contacts" || savedSeen === "nobody") setLastSeen(savedSeen);
+    setOnlineStatus(localStorage.getItem("pulse_online_status") !== "false");
+    setScreenshotAlerts(localStorage.getItem("pulse_screenshot_alerts") === "true");
+    setNoiseCancellation(localStorage.getItem("pulse_noise_cancel") !== "false");
+    const savedAuto = localStorage.getItem("pulse_auto_answer");
+    setAutoAnswerAfterSecs(savedAuto ? Number(savedAuto) : null);
+    setRingtone(localStorage.getItem("pulse_ringtone") || "default");
   }, []);
 
   useEffect(() => {
@@ -225,7 +244,7 @@ export default function SettingsPage() {
       localStorage.setItem("pulse_compact", String(compactMode));
       localStorage.setItem("pulse_animations", String(animationsEnabled));
       const fontSizeMap = { small: "13px", medium: "15px", large: "17px" } as const;
-      document.documentElement.style.setProperty("font-size", fontSizeMap[fontSize]);
+      document.documentElement.style.fontSize = fontSizeMap[fontSize];
     } else if (tab === "notifications") {
       localStorage.setItem("pulse_notif_messages", String(notifMessages));
       localStorage.setItem("pulse_notif_sounds", String(notifSounds));
