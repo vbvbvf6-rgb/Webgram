@@ -1475,24 +1475,24 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
                               <AnimatePresence>
                                 {showEmojiFor === msg.id && (
                                   <motion.div
-                                    initial={{ opacity: 0, y: 4, scale: 0.9 }}
+                                    initial={{ opacity: 0, y: 4, scale: 0.96 }}
                                     animate={{ opacity: 1, y: 0, scale: 1 }}
-                                    exit={{ opacity: 0, y: 4, scale: 0.9 }}
-                                    className={`absolute top-full mt-1 ${isOwn ? "right-0" : "left-0"} bg-card border border-border rounded-2xl p-2.5 shadow-2xl z-30 w-64`}
+                                    exit={{ opacity: 0, y: 4, scale: 0.96 }}
+                                    className={`absolute top-full mt-2 ${isOwn ? "right-0" : "left-0"} bg-card border border-border rounded-2xl p-3 shadow-2xl z-30 w-[19rem] max-w-[min(19rem,calc(100vw-2rem))]`}
                                     onMouseLeave={() => setShowEmojiFor(null)}
                                   >
-                                    <div className="flex gap-0.5 mb-2 pb-2 border-b border-border overflow-x-auto">
+                                    <div className="flex gap-1 mb-2.5 pb-2.5 border-b border-border overflow-x-auto scrollbar-none">
                                       {Object.keys(EMOJI_CATEGORIES).map(cat => (
                                         <button key={cat} onClick={() => setEmojiCat(cat)} title={cat}
-                                          className={`text-sm px-1.5 py-0.5 rounded-lg shrink-0 transition-colors ${emojiCat === cat ? "bg-primary/20 text-primary" : "hover:bg-accent text-muted-foreground"}`}>
+                                          className={`text-xs px-2.5 py-1 rounded-full shrink-0 transition-colors whitespace-nowrap ${emojiCat === cat ? "bg-primary/20 text-primary" : "hover:bg-accent text-muted-foreground"}`}>
                                           {cat.split(" ")[0]}
                                         </button>
                                       ))}
                                     </div>
-                                    <div className="grid grid-cols-8 gap-0.5 max-h-20 overflow-y-auto">
+                                    <div className="grid grid-cols-8 gap-1 max-h-44 overflow-y-auto pr-0.5">
                                       {EMOJI_CATEGORIES[emojiCat]?.map(emoji => (
                                         <motion.button key={emoji} whileHover={{ scale: 1.25 }} whileTap={{ scale: 0.9 }} onClick={() => handleReact(msg.id, emoji)}
-                                          className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-accent text-base">
+                                          className="w-8 h-8 flex items-center justify-center rounded-xl hover:bg-accent text-[1.05rem]">
                                           {emoji}
                                         </motion.button>
                                       ))}
@@ -1606,7 +1606,14 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
                     <div className="space-y-1">
                       <div className="flex items-center justify-between gap-2">
                         <p className="text-[11px] text-muted-foreground truncate">{pickedMediaName || (pickedMediaPreview.type === "image" ? "Image selected" : "Video selected")}</p>
-                        <button onClick={() => { setPickedMediaPreview(null); setPickedMediaName(""); }} className="text-[11px] text-muted-foreground hover:text-foreground">Remove</button>
+                        <button
+                          type="button"
+                          onClick={() => { setPickedMediaPreview(null); setPickedMediaName(""); }}
+                          className="w-7 h-7 flex items-center justify-center rounded-full bg-background border border-border/60 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors shrink-0"
+                          aria-label="Remove selected media"
+                        >
+                          <X size={13} />
+                        </button>
                       </div>
                       <div className="rounded-lg overflow-hidden border border-border/60 bg-background">
                         {pickedMediaPreview.type === "image" ? (
