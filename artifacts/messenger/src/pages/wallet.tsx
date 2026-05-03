@@ -51,7 +51,8 @@ const GIFTS_CATALOG = [
 const TABS = [
   { id: "wallet", label: "Wallet", icon: Zap },
   { id: "history", label: "History", icon: History },
-  { id: "gifts", label: "Gifts", icon: Gift },
+  { id: "shop", label: "Shop", icon: Gift },
+  { id: "inventory", label: "Gifts", icon: Gift },
   { id: "leaderboard", label: "Top", icon: Trophy },
 ];
 
@@ -61,7 +62,7 @@ export default function WalletPage() {
   const { data: me } = useGetMe();
   const { toast } = useToast();
 
-  const [tab, setTab] = useState<"wallet" | "history" | "gifts" | "leaderboard">("wallet");
+  const [tab, setTab] = useState<"wallet" | "history" | "shop" | "inventory" | "leaderboard">("wallet");
   const [wallet, setWallet] = useState<WalletData | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
@@ -339,19 +340,50 @@ export default function WalletPage() {
           </div>
         )}
 
-        {/* GIFTS TAB */}
-        {tab === "gifts" && (
-          <div className="px-4 pt-4 space-y-6">
-            {/* My Gifts */}
+        {/* SHOP TAB */}
+        {tab === "shop" && (
+          <div className="px-4 pt-4 space-y-4">
+            <div className="space-y-3">
+              <p className="text-sm font-semibold">Gift Shop</p>
+              <p className="text-xs text-muted-foreground">Balance: {wallet?.balance ?? "—"} ⚡</p>
+              <div className="grid grid-cols-3 gap-2">
+                {GIFTS_CATALOG.map(gift => {
+                  const canAfford = wallet ? wallet.balance >= gift.price : false;
+                  const isUltra = gift.price === 10000;
+                  const Icon = gift.icon;
+                  return (
+                    <motion.button key={gift.id}
+                      whileHover={canAfford ? { scale: 1.05 } : {}}
+                      onClick={() => canAfford && setGiftAction({ type: "buy", giftId: gift.id })}
+                      disabled={!canAfford}
+                      className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border transition-all ${
+                        isUltra ? "border-yellow-500/50 bg-gradient-to-br from-yellow-500/10 to-pink-500/10" :
+                        canAfford ? "border-primary/30 bg-primary/5 hover:border-primary/50 cursor-pointer" : "border-border/50 opacity-40 cursor-not-allowed"
+                      }`}>
+                      <Icon size={24} className={isUltra ? "gift-supreme" : ""} />
+                      <p className="text-[10px] font-semibold leading-none text-center text-muted-foreground">{gift.name}</p>
+                      <p className={`text-[10px] font-bold ${isUltra ? "text-yellow-400" : "text-primary"}`}>⚡{gift.price}</p>
+                      {isUltra && <span className="text-[7px] text-yellow-400 font-bold">ULTRA RARE</span>}
+                    </motion.button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* INVENTORY TAB */}
+        {tab === "inventory" && (
+          <div className="px-4 pt-4 space-y-4">
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <p className="text-sm font-semibold">My Gifts</p>
                 <p className="text-xs text-muted-foreground">{gifts.length} gift{gifts.length !== 1 ? "s" : ""}</p>
               </div>
               {gifts.length === 0 ? (
-                <p className="text-xs text-muted-foreground text-center py-6">No gifts yet. Buy some!</p>
+                <p className="text-xs text-muted-foreground text-center py-12">No gifts yet. Visit the Shop to buy!</p>
               ) : (
-                <div className="space-y-2 max-h-48 overflow-y-auto">
+                <div className="space-y-2 max-h-96 overflow-y-auto">
                   {gifts.map(gift => {
                     const giftInfo = GIFTS_CATALOG.find(g => g.id === gift.giftId);
                     const sellPrice = Math.floor((giftInfo?.price || 0) * 0.5);
@@ -381,36 +413,6 @@ export default function WalletPage() {
                   })}
                 </div>
               )}
-            </div>
-
-            <div className="h-px bg-border/40" />
-
-            {/* Shop */}
-            <div className="space-y-3">
-              <p className="text-sm font-semibold">Shop</p>
-              <p className="text-xs text-muted-foreground">Balance: {wallet?.balance ?? "—"} ⚡</p>
-              <div className="grid grid-cols-3 gap-2">
-                {GIFTS_CATALOG.map(gift => {
-                  const canAfford = wallet ? wallet.balance >= gift.price : false;
-                  const isUltra = gift.price === 10000;
-                  const Icon = gift.icon;
-                  return (
-                    <motion.button key={gift.id}
-                      whileHover={canAfford ? { scale: 1.05 } : {}}
-                      onClick={() => canAfford && setGiftAction({ type: "buy", giftId: gift.id })}
-                      disabled={!canAfford}
-                      className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border transition-all ${
-                        isUltra ? "border-yellow-500/50 bg-gradient-to-br from-yellow-500/10 to-pink-500/10" :
-                        canAfford ? "border-primary/30 bg-primary/5 hover:border-primary/50 cursor-pointer" : "border-border/50 opacity-40 cursor-not-allowed"
-                      }`}>
-                      <Icon size={24} className={isUltra ? "gift-supreme" : ""} />
-                      <p className="text-[10px] font-semibold leading-none text-center text-muted-foreground">{gift.name}</p>
-                      <p className={`text-[10px] font-bold ${isUltra ? "text-yellow-400" : "text-primary"}`}>⚡{gift.price}</p>
-                      {isUltra && <span className="text-[7px] text-yellow-400 font-bold">ULTRA RARE</span>}
-                    </motion.button>
-                  );
-                })}
-              </div>
             </div>
           </div>
         )}
