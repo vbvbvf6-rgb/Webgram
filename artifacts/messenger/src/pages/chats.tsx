@@ -10,7 +10,7 @@ import {
   Copy, MoreHorizontal, Pin, PinOff, ImageIcon, Play, Pause,
   Star, StopCircle, ExternalLink, Keyboard, Hash,
   BarChart2, Zap, Sparkles, Palette, UserCircle2,
-  Slash, ChevronUp, Bookmark, Trophy, CornerUpLeft, Lock,
+  Slash, ChevronUp, Bookmark, Trophy, CornerUpLeft, Lock, LogOut as LogOutIcon, Bell, BellOff,
 } from "lucide-react";
 import {
   getOrCreateKeyPair, importPublicKey, deriveSharedKey, deriveGroupKey,
@@ -864,6 +864,7 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
   const [pollsData, setPollsData] = useState<Map<number, any>>(new Map());
   const [cmdSuggestions, setCmdSuggestions] = useState<typeof BOT_COMMANDS>([]);
   const [walletBal, setWalletBal] = useState<number | null>(null);
+  const [chatMuted, setChatMuted] = useState(false);
   const [coinModal, setCoinModal] = useState<{
     step: "select_user" | "enter_amount";
     search: string;
@@ -1054,6 +1055,31 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
         .then(r => r.json()).then(d => setWalletBal(d.balance ?? null)).catch(() => {});
     });
   }, []);
+
+  // Request notification permission
+  useEffect(() => {
+    if ("Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission();
+    }
+  }, []);
+
+  // Show notifications for new messages
+  useEffect(() => {
+    if (!messages || messages.length === 0) return;
+    const lastMsg = messages[messages.length - 1];
+    if (lastMsg.senderId === myId || chatMuted) return; // Don't notify for own messages or muted chats
+    
+    if ("Notification" in window && Notification.permission === "granted" && document.hidden) {
+      const sender = lastMsg.sender?.displayName || "Someone";
+      const preview = lastMsg.content?.startsWith("[") ? "Sent a message" : (lastMsg.content?.slice(0, 50) || "Message");
+      new Notification(`${sender} in ${chatName}`, {
+        body: preview,
+        icon: lastMsg.sender?.avatarUrl || "/default-avatar.png",
+        tag: `chat-${chatId}`,
+        badge: "⚡",
+      });
+    }
+  }, [messages?.length]);
 
   // Theme persistence
   useEffect(() => {
@@ -1686,9 +1712,57 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
               <Search size={15} />
             </button>
             {chat?.type === "group" && (
-              <button onClick={() => setShowMembersPanel(!showMembersPanel)} className="w-8 h-8 flex items-center justify-center rounded-xl hover:bg-accent text-muted-foreground" title="Members">
-                <Users size={15} />
-              </button>
+              <>
+                <button onClick={() => setShowMembersPanel(!showMembersPanel)} className="w-8 h-8 flex items-center justify-center rounded-xl hover:bg-accent text-muted-foreground" title="Members">
+                  <Users size={15} />
+                </button>
+                <button 
+                  onClick={async () => {
+                    const token = await getToken();
+                    try {
+                      const res = await fetch(`/api/chats/${chatId}/members/me/mute`, {
+                        method: "PATCH",
+                        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+                        body: JSON.stringify({ isMuted: !chatMuted }),
+                      });
+                      if (res.ok) {
+                        setChatMuted(!chatMuted);
+                        toast({ title: chatMuted ? "Notifications on" : "Notifications muted" });
+                      }
+                    } catch (e) { toast({ title: "Failed to toggle mute", variant: "destructive" }); }
+                  }}
+                  className={`w-8 h-8 flex items-center justify-center rounded-xl transition-colors ${chatMuted ? "bg-primary/20 text-primary" : "hover:bg-accent text-muted-foreground"}`} 
+                  title={chatMuted ? "Unmute notifications" : "Mute notifications"}
+                >
+                  {chatMuted ? <BellOff size={15} /> : <Bell size={15} />}
+                </button>
+                <button 
+                  onClick={async () => {
+                    if (!confirm("Leave this group? You can rejoin later.")) return;
+                    const token = await getToken();
+                    try {
+                      const res = await fetch(`/api/chats/${chatId}/members/me`, {
+                        method: "DELETE",
+                        headers: { Authorization: `Bearer ${token}` },
+                      });
+                      if (res.ok) {
+                        qc.invalidateQueries({ queryKey: getGetChatsQueryKey() });
+                        toast({ title: "Left group" });
+                        onBack();
+                      }
+                    } catch (e) { toast({ title: "Failed to leave group", variant: "destructive" }); }
+                  }}
+                  className="w-8 h-8 flex items-center justify-center rounded-xl hover:bg-red-500/10 text-muted-foreground hover:text-red-400 transition-colors" 
+                  title="Leave group"
+                >
+                  <LogOutIcon size={15} />
+                </button>
+              </>
+            )}
+            {walletBal !== null && (
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-fuchsia-500/10 border border-fuchsia-500/20 shrink-0">
+                <span className="text-sm font-bold text-fuchsia-400">⚡{walletBal}</span>
+              </div>
             )}
           </div>
         </div>

@@ -20,6 +20,7 @@ export const chatMembersTable = pgTable("chat_members", {
   id: serial("id").primaryKey(),
   chatId: integer("chat_id").notNull().references(() => chatsTable.id),
   userId: integer("user_id").notNull().references(() => usersTable.id),
+  isMuted: boolean("is_muted").notNull().default(false),
   joinedAt: timestamp("joined_at").notNull().defaultNow(),
 });
 

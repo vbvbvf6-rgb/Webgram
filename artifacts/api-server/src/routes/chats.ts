@@ -176,6 +176,37 @@ router.post("/:chatId/members", requireAuth, async (req: AuthenticatedRequest, r
   } catch (err) { req.log.error({ err }, "Failed to add member"); res.status(500).json({ error: "Internal server error" }); }
 });
 
+// ── Leave group ────────────────────────────────────────────────────────────────
+router.delete("/:chatId/members/me", requireAuth, async (req: AuthenticatedRequest, res) => {
+  try {
+    const chatId = Number(req.params.chatId);
+    const [dbUser] = await db.select().from(usersTable).where(eq(usersTable.clerkId, req.userId!)).limit(1);
+    if (!dbUser) { res.status(404).json({ error: "User not found" }); return; }
+    
+    const chat = await db.query.chatsTable.findFirst({ where: eq(chatsTable.id, chatId) });
+    if (!chat) { res.status(404).json({ error: "Chat not found" }); return; }
+    if (chat.type === "direct") { res.status(400).json({ error: "Cannot leave direct chats" }); return; }
+    
+    await db.delete(chatMembersTable).where(and(eq(chatMembersTable.chatId, chatId), eq(chatMembersTable.userId, dbUser.id)));
+    res.json({ success: true });
+  } catch (err) { req.log.error({ err }, "Failed to leave group"); res.status(500).json({ error: "Internal server error" }); }
+});
+
+// ── Toggle mute ────────────────────────────────────────────────────────────────
+router.patch("/:chatId/members/me/mute", requireAuth, async (req: AuthenticatedRequest, res) => {
+  try {
+    const chatId = Number(req.params.chatId);
+    const { isMuted } = req.body as { isMuted: boolean };
+    const [dbUser] = await db.select().from(usersTable).where(eq(usersTable.clerkId, req.userId!)).limit(1);
+    if (!dbUser) { res.status(404).json({ error: "User not found" }); return; }
+    
+    await db.update(chatMembersTable)
+      .set({ isMuted })
+      .where(and(eq(chatMembersTable.chatId, chatId), eq(chatMembersTable.userId, dbUser.id)));
+    res.json({ success: true, isMuted });
+  } catch (err) { req.log.error({ err }, "Failed to toggle mute"); res.status(500).json({ error: "Internal server error" }); }
+});
+
 // ── Typing indicators ─────────────────────────────────────────────────────────
 router.post("/:chatId/typing", requireAuth, async (req: AuthenticatedRequest, res) => {
   try {
