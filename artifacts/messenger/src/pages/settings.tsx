@@ -480,12 +480,13 @@ export default function SettingsPage() {
                     {m?.id && (
                       <button
                         onClick={() => {
-                          navigator.clipboard.writeText(String(m.id));
-                          toast({ title: `Copied User ID: ${m.id}` });
+                          const userId = String(m.id).padStart(6, "0");
+                          navigator.clipboard.writeText(userId);
+                          toast({ title: `Copied User ID: ${userId}` });
                         }}
                         className="text-xs text-slate-500 hover:text-slate-300 mt-2 flex items-center gap-1 justify-center transition-colors"
                       >
-                        <span>ID: {m.id}</span>
+                        <span>ID: {String(m.id).padStart(6, "0")}</span>
                         <Copy size={12} />
                       </button>
                     )}
