@@ -98,11 +98,11 @@ router.post("/chat", requireAuth, async (req: AuthenticatedRequest, res) => {
       [conv] = await db.insert(aiConversationsTable).values({ userId: dbUser.id }).returning();
     }
 
-    // Load last 20 messages for context
+    // Load last 50 messages for context (memory)
     const history = await db.select().from(aiMessagesTable)
       .where(eq(aiMessagesTable.conversationId, conv.id))
       .orderBy(asc(aiMessagesTable.createdAt));
-    const recentHistory = history.slice(-20);
+    const recentHistory = history.slice(-50);
 
     // Save user message
     await db.insert(aiMessagesTable).values({
