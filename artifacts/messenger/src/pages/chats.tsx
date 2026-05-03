@@ -2795,23 +2795,28 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
                     disabled={!coinModal.amount || parseInt(coinModal.amount) <= 0 || coinModal.loading}
                     onClick={async () => {
                       const amt = parseInt(coinModal.amount);
-                      if (!amt || amt <= 0) return;
+                      if (!amt || amt <= 0 || !coinModal.recipient) return;
                       setCoinModal(m => m ? { ...m, loading: true } : null);
                       const token = await getToken();
-                      const wr = await fetch("/api/wallet/send", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-                        body: JSON.stringify({ toUserId: coinModal.recipient!.id, amount: amt, chatId }),
-                      });
-                      if (wr.ok) {
-                        await sendMessage.mutateAsync({ chatId, data: { content: `⚡ Sent **${amt} Droidgram coins** to ${coinModal.recipient!.displayName}!`, replyToId: null } });
-                        setWalletBal(prev => prev !== null ? prev - amt : null);
-                        toast({ title: `⚡ ${amt} coins sent to ${coinModal.recipient!.displayName}!` });
-                        setCoinModal(null);
-                        qc.invalidateQueries({ queryKey: getGetMessagesQueryKey(chatId, {}) });
-                      } else {
-                        const err = await wr.json().catch(() => ({}));
-                        toast({ title: err.error || "Failed to send coins", variant: "destructive" });
+                      try {
+                        const wr = await fetch("/api/wallet/send", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+                          body: JSON.stringify({ toUserId: coinModal.recipient.id, amount: amt, chatId }),
+                        });
+                        if (wr.ok) {
+                          await sendMessage.mutateAsync({ chatId, data: { content: `⚡ Sent **${amt} Droidgram coins** to ${coinModal.recipient.displayName}!`, replyToId: null } });
+                          setWalletBal(prev => prev !== null ? prev - amt : null);
+                          toast({ title: `⚡ ${amt} coins sent to ${coinModal.recipient.displayName}!` });
+                          setCoinModal(null);
+                          qc.invalidateQueries({ queryKey: getGetMessagesQueryKey(chatId, {}) });
+                        } else {
+                          const err = await wr.json().catch(() => ({}));
+                          toast({ title: err.error || "Failed to send coins", variant: "destructive" });
+                          setCoinModal(m => m ? { ...m, loading: false } : null);
+                        }
+                      } catch (e) {
+                        toast({ title: "Network error", variant: "destructive" });
                         setCoinModal(m => m ? { ...m, loading: false } : null);
                       }
                     }}
