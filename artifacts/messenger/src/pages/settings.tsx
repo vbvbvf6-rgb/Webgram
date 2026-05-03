@@ -3,7 +3,7 @@ import { useLocation } from "wouter";
 import { useClerk, useUser } from "@clerk/react";
 import { setTabLoggedOut } from "@/App";
 import {
-  ArrowLeft, Save, LogOut, Camera, User, AtSign, FileText, Link,
+  ArrowLeft, Save, LogOut, Camera, User, AtSign, FileText, Upload,
   Bell, BellOff, Shield, Palette, Volume2, VolumeX, Eye, EyeOff,
   Trash2, HardDrive, Info, ChevronRight, Check, Moon, Sun,
   Smartphone, Globe, Lock, Download, Star, MessageSquare, Bug, LifeBuoy,
@@ -560,8 +560,23 @@ export default function SettingsPage() {
                     <p className="text-[10px] text-slate-500 text-right mt-1">{bio.length}/200</p>
                   </div>
                   <div>
-                    <label className="flex items-center gap-2 text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5"><Link size={11} />Avatar URL</label>
-                    <input value={avatarUrl} onChange={e => mark(setAvatarUrl)(e.target.value)} placeholder="https://..." className="w-full bg-white/6 border border-white/10 rounded-xl px-4 py-3 text-sm text-slate-100 outline-none focus:ring-2 ring-fuchsia-400/40 transition-all placeholder:text-slate-500" />
+                    <label className="flex items-center gap-2 text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5"><Upload size={11} />Avatar</label>
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      onChange={e => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onload = (ev) => {
+                            const result = ev.target?.result as string;
+                            mark(setAvatarUrl)(result);
+                          };
+                          reader.readAsDataURL(file);
+                        }
+                      }} 
+                      className="w-full bg-white/6 border border-white/10 rounded-xl px-4 py-3 text-sm text-slate-100 outline-none focus:ring-2 ring-fuchsia-400/40 transition-all file:mr-3 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-primary/20 file:text-primary hover:file:bg-primary/30"
+                    />
                     {avatarUrl && (
                       <div className="flex items-center gap-3 mt-2 bg-white/6 rounded-xl p-2.5">
                         <img src={avatarUrl} alt="" className="w-10 h-10 rounded-full object-cover" onError={e => (e.currentTarget.style.display = "none")} />
