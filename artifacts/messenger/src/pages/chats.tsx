@@ -740,6 +740,8 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
   const [atBottom, setAtBottom] = useState(true);
   const [searchMode, setSearchMode] = useState(false);
   const [msgSearch, setMsgSearch] = useState("");
+  const [contextMenu, setContextMenu] = useState<{ msg: Message; x: number; y: number } | null>(null);
+  const longPressRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [, setLocation] = useLocation();
 
   // ── Call state ──────────────────────────────────────────────────────────────
@@ -1354,6 +1356,26 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
     return `${m}:${(s % 60).toString().padStart(2, "0")}`;
   }
 
+  function openContextMenu(e: React.MouseEvent | React.TouchEvent, msg: Message) {
+    e.preventDefault();
+    e.stopPropagation();
+    let x: number, y: number;
+    if ("touches" in e) {
+      x = e.touches[0]?.clientX ?? (e as any).changedTouches?.[0]?.clientX ?? 0;
+      y = e.touches[0]?.clientY ?? (e as any).changedTouches?.[0]?.clientY ?? 0;
+    } else {
+      x = (e as React.MouseEvent).clientX;
+      y = (e as React.MouseEvent).clientY;
+    }
+    setContextMenu({ msg, x, y });
+    setShowEmojiFor(null);
+    setHoveredMsgId(null);
+  }
+
+  function closeContextMenu() {
+    setContextMenu(null);
+  }
+
   function startEdit(msg: Message) {
     setEditingMsg(msg);
     setInput(msg.content || "");
@@ -1572,6 +1594,10 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
                       className={`flex ${isOwn ? "justify-end" : "justify-start"} group relative ${isGrouped ? "mt-0.5" : "mt-3"}`}
                       onMouseEnter={() => setHoveredMsgId(msg.id)}
                       onMouseLeave={() => { setHoveredMsgId(null); }}
+                      onContextMenu={e => openContextMenu(e, msg)}
+                      onTouchStart={e => { longPressRef.current = setTimeout(() => openContextMenu(e, msg), 500); }}
+                      onTouchEnd={() => { if (longPressRef.current) { clearTimeout(longPressRef.current); longPressRef.current = null; } }}
+                      onTouchMove={() => { if (longPressRef.current) { clearTimeout(longPressRef.current); longPressRef.current = null; } }}
                     >
                       {/* Avatar spacer/avatar */}
                       {!isOwn && (
@@ -1738,6 +1764,100 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
             </div>
           )}
         </div>
+
+        {/* Context menu */}
+        <AnimatePresence>
+          {contextMenu && (
+            <>
+              <div className="fixed inset-0 z-40" onClick={closeContextMenu} onContextMenu={e => { e.preventDefault(); closeContextMenu(); }} />
+              <motion.div
+                initial={{ opacity: 0, scale: 0.88, y: -6 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.88, y: -6 }}
+                transition={{ type: "spring", stiffness: 400, damping: 28 }}
+                className="fixed z-50 w-60 bg-card border border-border/80 rounded-2xl shadow-2xl overflow-hidden"
+                style={{
+                  left: Math.min(contextMenu.x, window.innerWidth - 252),
+                  top: Math.min(contextMenu.y, window.innerHeight - 340),
+                }}
+              >
+                {/* Quick reactions row */}
+                {!contextMenu.msg.isDeleted && (
+                  <div className="flex items-center justify-around px-3 py-3 border-b border-border/50 bg-accent/30">
+                    {["❤️","😂","😮","😢","👍","🔥","👎"].map(emoji => (
+                      <motion.button
+                        key={emoji}
+                        whileHover={{ scale: 1.35 }}
+                        whileTap={{ scale: 0.85 }}
+                        onClick={() => { handleReact(contextMenu.msg.id, emoji); closeContextMenu(); }}
+                        className={`text-xl w-8 h-8 flex items-center justify-center rounded-xl transition-colors ${(contextMenu.msg.reactions?.[emoji] as number[] | undefined)?.includes(myId) ? "bg-primary/20" : "hover:bg-accent"}`}
+                      >
+                        {emoji}
+                      </motion.button>
+                    ))}
+                    <motion.button
+                      whileHover={{ scale: 1.2 }}
+                      whileTap={{ scale: 0.85 }}
+                      onClick={() => { setShowEmojiFor(contextMenu.msg.id); closeContextMenu(); setHoveredMsgId(contextMenu.msg.id); }}
+                      className="w-8 h-8 flex items-center justify-center rounded-xl hover:bg-accent text-muted-foreground"
+                    >
+                      <Smile size={15} />
+                    </motion.button>
+                  </div>
+                )}
+                {/* Actions */}
+                <div className="py-1">
+                  {!contextMenu.msg.isDeleted && (
+                    <button onClick={() => { setReplyTo(contextMenu.msg); closeContextMenu(); setTimeout(() => inputRef.current?.focus(), 50); }}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-accent/70 transition-colors text-sm text-left">
+                      <Reply size={15} className="text-primary shrink-0" />Reply
+                    </button>
+                  )}
+                  {!contextMenu.msg.isDeleted && (contextMenu.msg.content?.match(/^[^\[]/)) && (
+                    <button onClick={() => { navigator.clipboard.writeText(contextMenu.msg.content || ""); toast({ title: "Copied ✓" }); closeContextMenu(); }}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-accent/70 transition-colors text-sm text-left">
+                      <Copy size={15} className="text-primary shrink-0" />Copy text
+                    </button>
+                  )}
+                  <button onClick={() => { toggleStar(contextMenu.msg.id, contextMenu.msg); closeContextMenu(); }}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-accent/70 transition-colors text-sm text-left">
+                    <Star size={15} className={starredMsgs.has(contextMenu.msg.id) ? "text-yellow-400 fill-yellow-400" : "text-primary"} />
+                    {starredMsgs.has(contextMenu.msg.id) ? "Unsave" : "Save message"}
+                  </button>
+                  <button onClick={() => { setForwardingMsg(contextMenu.msg); closeContextMenu(); }}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-accent/70 transition-colors text-sm text-left">
+                    <Hash size={15} className="text-primary shrink-0" />Forward
+                  </button>
+                  <button onClick={() => { handlePin(contextMenu.msg.id); closeContextMenu(); }}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-accent/70 transition-colors text-sm text-left">
+                    {pinnedMsg?.id === contextMenu.msg.id ? <PinOff size={15} className="text-primary shrink-0" /> : <Pin size={15} className="text-primary shrink-0" />}
+                    {pinnedMsg?.id === contextMenu.msg.id ? "Unpin" : "Pin message"}
+                  </button>
+                  {!contextMenu.msg.isDeleted && contextMenu.msg.readBy.length > 1 && (
+                    <button onClick={closeContextMenu}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-accent/70 transition-colors text-sm text-left">
+                      <CheckCheck size={15} className="text-blue-400 shrink-0" />
+                      <span>Read by {contextMenu.msg.readBy.length - 1}</span>
+                    </button>
+                  )}
+                  {contextMenu.msg.senderId === myId && !contextMenu.msg.isDeleted && (
+                    <>
+                      <div className="h-px bg-border/50 mx-3 my-1" />
+                      <button onClick={() => { startEdit(contextMenu.msg); closeContextMenu(); }}
+                        className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-accent/70 transition-colors text-sm text-left">
+                        <Edit2 size={15} className="text-primary shrink-0" />Edit
+                      </button>
+                      <button onClick={() => { handleDelete(contextMenu.msg); closeContextMenu(); }}
+                        className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-red-500/10 transition-colors text-sm text-left text-red-400">
+                        <Trash2 size={15} className="shrink-0" />Delete
+                      </button>
+                    </>
+                  )}
+                </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
 
         {/* Scroll to bottom */}
         <AnimatePresence>

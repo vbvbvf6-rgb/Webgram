@@ -231,11 +231,21 @@ export default function SettingsPage() {
     setShowAvatars(localStorage.getItem("pulse_show_avatars") !== "false");
     setCompactMode(localStorage.getItem("pulse_compact") === "true");
     setAnimationsEnabled(localStorage.getItem("pulse_animations") !== "false");
+    // Notifications
+    setNotifMessages(localStorage.getItem("pulse_notif_messages") !== "false");
+    setNotifSounds(localStorage.getItem("pulse_notif_sounds") !== "false");
+    setDoNotDisturb(localStorage.getItem("pulse_dnd") === "true");
+    setNotifReactions(localStorage.getItem("pulse_notif_reactions") !== "false");
+    setNotifGroupMentions(localStorage.getItem("pulse_notif_mentions") !== "false");
+    setNotifNewChats(localStorage.getItem("pulse_notif_new_chats") === "true");
+    setNotifCalls(localStorage.getItem("pulse_notif_calls") !== "false");
+    // Privacy
     setReadReceipts(localStorage.getItem("pulse_read_receipts") !== "false");
     const savedSeen = localStorage.getItem("pulse_last_seen");
     if (savedSeen === "everyone" || savedSeen === "contacts" || savedSeen === "nobody") setLastSeen(savedSeen);
     setOnlineStatus(localStorage.getItem("pulse_online_status") !== "false");
     setScreenshotAlerts(localStorage.getItem("pulse_screenshot_alerts") === "true");
+    // Calls
     setNoiseCancellation(localStorage.getItem("pulse_noise_cancel") !== "false");
     const savedAuto = localStorage.getItem("pulse_auto_answer");
     setAutoAnswerAfterSecs(savedAuto ? Number(savedAuto) : null);
@@ -452,28 +462,30 @@ export default function SettingsPage() {
                 </div>
                 <div className="bg-card border border-border/80 rounded-2xl overflow-hidden divide-y divide-border/50 p-0">
                   <SettingRow icon={BellOff} label="Do Not Disturb" description="Silence all notifications">
-                    <Toggle value={doNotDisturb} onChange={setDoNotDisturb} />
+                    <Toggle value={doNotDisturb} onChange={v => { setDoNotDisturb(v); localStorage.setItem("pulse_dnd", String(v)); }} />
                   </SettingRow>
                   <SettingRow icon={MessageSquare} label="Message notifications" description="New messages from chats">
-                    <Toggle value={notifMessages} onChange={setNotifMessages} />
+                    <Toggle value={notifMessages} onChange={v => { setNotifMessages(v); localStorage.setItem("pulse_notif_messages", String(v)); }} />
                   </SettingRow>
                   <SettingRow icon={Volume2} label="Notification sounds" description="Play sounds for notifications">
-                    <Toggle value={notifSounds} onChange={setNotifSounds} />
+                    <Toggle value={notifSounds} onChange={v => { setNotifSounds(v); localStorage.setItem("pulse_notif_sounds", String(v)); }} />
                   </SettingRow>
                   <SettingRow icon={Star} label="Reactions" description="When someone reacts to your message">
-                    <Toggle value={notifReactions} onChange={setNotifReactions} />
+                    <Toggle value={notifReactions} onChange={v => { setNotifReactions(v); localStorage.setItem("pulse_notif_reactions", String(v)); }} />
                   </SettingRow>
                   <SettingRow icon={Bell} label="Group mentions" description="When someone @mentions you">
-                    <Toggle value={notifGroupMentions} onChange={setNotifGroupMentions} />
+                    <Toggle value={notifGroupMentions} onChange={v => { setNotifGroupMentions(v); localStorage.setItem("pulse_notif_mentions", String(v)); }} />
                   </SettingRow>
                   <SettingRow icon={MessageSquare} label="New conversations" description="When someone starts a new chat">
-                    <Toggle value={notifNewChats} onChange={setNotifNewChats} />
+                    <Toggle value={notifNewChats} onChange={v => { setNotifNewChats(v); localStorage.setItem("pulse_notif_new_chats", String(v)); }} />
                   </SettingRow>
                   <SettingRow icon={Bell} label="Calls" description="Incoming call notifications">
-                    <Toggle value={notifCalls} onChange={setNotifCalls} />
+                    <Toggle value={notifCalls} onChange={v => { setNotifCalls(v); localStorage.setItem("pulse_notif_calls", String(v)); }} />
                   </SettingRow>
                 </div>
-                <button onClick={() => applyTab("notifications")} className="w-full bg-primary text-primary-foreground rounded-xl py-3 font-semibold text-sm hover:bg-primary/90 transition-colors">Apply notifications</button>
+                <div className="flex items-center gap-2 text-xs text-green-400 bg-green-500/10 border border-green-500/20 rounded-xl px-4 py-2.5">
+                  <Check size={13} />Changes save automatically
+                </div>
 
                 <div className="bg-primary/5 border border-primary/20 rounded-2xl p-4 text-sm text-muted-foreground">
                   <p className="font-medium text-foreground mb-1">📱 Push notifications</p>
@@ -536,13 +548,13 @@ export default function SettingsPage() {
 
                 <div className="bg-card border border-border/80 rounded-2xl overflow-hidden divide-y divide-border/50">
                   <SettingRow icon={User} label="Show avatars" description="Display profile pictures in chat">
-                    <Toggle value={showAvatars} onChange={setShowAvatars} />
+                    <Toggle value={showAvatars} onChange={v => { setShowAvatars(v); localStorage.setItem("pulse_show_avatars", String(v)); }} />
                   </SettingRow>
                   <SettingRow icon={Smartphone} label="Compact mode" description="Reduce spacing between messages">
-                    <Toggle value={compactMode} onChange={setCompactMode} />
+                    <Toggle value={compactMode} onChange={v => { setCompactMode(v); localStorage.setItem("pulse_compact", String(v)); }} />
                   </SettingRow>
                   <SettingRow icon={Star} label="Animations" description="Enable message enter animations">
-                    <Toggle value={animationsEnabled} onChange={setAnimationsEnabled} />
+                    <Toggle value={animationsEnabled} onChange={v => { setAnimationsEnabled(v); localStorage.setItem("pulse_animations", String(v)); }} />
                   </SettingRow>
                 </div>
                 <button onClick={() => applyTab("appearance")} className="w-full bg-primary text-primary-foreground rounded-xl py-3 font-semibold text-sm hover:bg-primary/90 transition-colors">Apply appearance</button>
@@ -558,13 +570,13 @@ export default function SettingsPage() {
 
                 <div className="bg-card border border-border/80 rounded-2xl overflow-hidden divide-y divide-border/50">
                   <SettingRow icon={Check} label="Read receipts" description="Show when you've read messages">
-                    <Toggle value={readReceipts} onChange={setReadReceipts} />
+                    <Toggle value={readReceipts} onChange={v => { setReadReceipts(v); localStorage.setItem("pulse_read_receipts", String(v)); }} />
                   </SettingRow>
                   <SettingRow icon={Eye} label="Online status" description="Show when you're active">
-                    <Toggle value={onlineStatus} onChange={setOnlineStatus} />
+                    <Toggle value={onlineStatus} onChange={v => { setOnlineStatus(v); localStorage.setItem("pulse_online_status", String(v)); }} />
                   </SettingRow>
                   <SettingRow icon={EyeOff} label="Screenshot alerts" description="Notify when someone screenshots">
-                    <Toggle value={screenshotAlerts} onChange={setScreenshotAlerts} />
+                    <Toggle value={screenshotAlerts} onChange={v => { setScreenshotAlerts(v); localStorage.setItem("pulse_screenshot_alerts", String(v)); }} />
                   </SettingRow>
                 </div>
 
@@ -572,7 +584,7 @@ export default function SettingsPage() {
                   <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Last seen</p>
                   <div className="bg-card border border-border/80 rounded-2xl overflow-hidden divide-y divide-border/50">
                     {(["everyone", "contacts", "nobody"] as const).map(opt => (
-                      <button key={opt} onClick={() => setLastSeen(opt)} className="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-accent/50 transition-colors">
+                      <button key={opt} onClick={() => { setLastSeen(opt); localStorage.setItem("pulse_last_seen", opt); }} className="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-accent/50 transition-colors">
                         <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${lastSeen === opt ? "border-primary" : "border-muted-foreground/40"}`}>
                           {lastSeen === opt && <div className="w-2 h-2 rounded-full bg-primary" />}
                         </div>
@@ -599,19 +611,27 @@ export default function SettingsPage() {
                 </div>
                 <div className="bg-card border border-border/80 rounded-2xl overflow-hidden divide-y divide-border/50">
                   <SettingRow icon={Volume2} label="Noise cancellation" description="Reduce background noise during calls">
-                    <Toggle value={noiseCancellation} onChange={setNoiseCancellation} />
+                    <Toggle value={noiseCancellation} onChange={v => { setNoiseCancellation(v); localStorage.setItem("pulse_noise_cancel", String(v)); }} />
                   </SettingRow>
                   <SettingRow icon={MessageSquare} label="Call ringtone" description={`Current: ${ringtone}`} onClick={() => {
                     const opts = ["default", "subtle", "classic", "pulse"];
                     const next = opts[(opts.indexOf(ringtone) + 1) % opts.length];
                     setRingtone(next);
+                    localStorage.setItem("pulse_ringtone", next);
                     toast({ title: `Ringtone: ${next}` });
                   }} />
                   <SettingRow icon={Bell} label="Auto-answer" description="Auto-answer calls after 10 seconds">
-                    <Toggle value={autoAnswerAfterSecs !== null} onChange={v => setAutoAnswerAfterSecs(v ? 10 : null)} />
+                    <Toggle value={autoAnswerAfterSecs !== null} onChange={v => {
+                      const val = v ? 10 : null;
+                      setAutoAnswerAfterSecs(val);
+                      if (val !== null) localStorage.setItem("pulse_auto_answer", String(val));
+                      else localStorage.removeItem("pulse_auto_answer");
+                    }} />
                   </SettingRow>
                 </div>
-                <button onClick={() => applyTab("calls")} className="w-full bg-primary text-primary-foreground rounded-xl py-3 font-semibold text-sm hover:bg-primary/90 transition-colors">Apply calls</button>
+                <div className="flex items-center gap-2 text-xs text-green-400 bg-green-500/10 border border-green-500/20 rounded-xl px-4 py-2.5">
+                  <Check size={13} />Changes save automatically
+                </div>
                 <div className="bg-accent/30 border border-border rounded-2xl p-4 text-sm">
                   <p className="font-semibold mb-2 flex items-center gap-2"><Info size={14} className="text-primary" />Permissions</p>
                   <p className="text-xs text-muted-foreground mb-3">Droidgram needs camera and microphone access for calls.</p>
