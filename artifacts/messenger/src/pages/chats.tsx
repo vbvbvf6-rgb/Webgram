@@ -1963,6 +1963,10 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
                   className="w-8 h-8 flex items-center justify-center rounded-xl transition-all shrink-0 text-muted-foreground hover:text-foreground" title="Create poll">
                   <BarChart2 size={15} />
                 </motion.button>
+                <motion.button whileTap={{ scale: 0.9 }} onClick={startVoiceRecording}
+                  className="w-8 h-8 flex items-center justify-center rounded-xl transition-all shrink-0 text-muted-foreground hover:text-foreground" title="Record voice message">
+                  <Mic size={15} />
+                </motion.button>
                 <div
                   ref={inputRef}
                   contentEditable
@@ -1989,18 +1993,11 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
                   }}
                 />
               </div>
-              {input.trim() ? (
-                <motion.button whileTap={{ scale: 0.9 }} onClick={handleSend}
-                  disabled={sendMessage.isPending || editMessage.isPending}
-                  className="w-10 h-10 flex items-center justify-center rounded-xl shrink-0 bg-primary text-primary-foreground shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all">
-                  <Send size={16} />
-                </motion.button>
-              ) : (
-                <motion.button whileTap={{ scale: 0.9 }} onClick={startVoiceRecording}
-                  className="w-10 h-10 flex items-center justify-center rounded-xl shrink-0 bg-accent text-muted-foreground hover:text-foreground hover:bg-accent/80 transition-all" title="Record voice message">
-                  <Mic size={16} />
-                </motion.button>
-              )}
+              <motion.button whileTap={{ scale: 0.9 }} onClick={handleSend}
+                disabled={(sendMessage.isPending || editMessage.isPending) && !!input.trim()}
+                className={`w-10 h-10 flex items-center justify-center rounded-xl shrink-0 transition-all ${input.trim() ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20 hover:bg-primary/90" : "bg-accent text-muted-foreground hover:text-foreground hover:bg-accent/80"}`}>
+                <Send size={16} />
+              </motion.button>
             </div>
           )}
         </div>
