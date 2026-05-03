@@ -149,9 +149,9 @@ function AuthBackground({ children }: { children: React.ReactNode }) {
             <p className="mt-1 text-sm text-slate-400">Мессенджер будущего</p>
           </div>
           <div className="mt-6 flex justify-center">
-            <Link href="/chats" className="inline-flex items-center justify-center rounded-xl bg-fuchsia-500 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-fuchsia-400">
+            <button onClick={() => setLocation("/chats")} className="inline-flex items-center justify-center rounded-xl bg-fuchsia-500 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-fuchsia-400">
               Войти в мессенджер
-            </Link>
+            </button>
           </div>
           {children}
         </div>
