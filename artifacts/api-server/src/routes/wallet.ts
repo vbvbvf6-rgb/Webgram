@@ -146,7 +146,6 @@ router.post("/gift", requireAuth, async (req: AuthenticatedRequest, res): Promis
       giftId,
       fromUserId: me.id,
       toUserId,
-      currentOwnerId: toUserId,
       chatId: chatId ?? null,
       message: message?.trim() ?? null,
     });
@@ -170,7 +169,7 @@ router.get("/gifts", requireAuth, async (req: AuthenticatedRequest, res) => {
       fromUser: usersTable,
     }).from(giftsTable)
       .innerJoin(usersTable, eq(giftsTable.fromUserId, usersTable.id))
-      .where(eq(giftsTable.currentOwnerId, me.id))
+      .where(eq(giftsTable.toUserId, me.id))
       .orderBy(desc(giftsTable.createdAt))
       .limit(100);
     res.json(gifts);
@@ -189,7 +188,7 @@ router.post("/gift/:id/sell", requireAuth, async (req: AuthenticatedRequest, res
     
     const gift = await db.select().from(giftsTable).where(eq(giftsTable.id, giftId)).limit(1);
     if (!gift.length) { res.status(404).json({ error: "Gift not found" }); return; }
-    if (gift[0].currentOwnerId !== me.id) { res.status(403).json({ error: "You don't own this gift" }); return; }
+    if (gift[0].toUserId !== me.id) { res.status(403).json({ error: "You don't own this gift" }); return; }
     
     const SELL_GIFT_PRICES: Record<string, { price: number }> = {
       "rose": { price: 25 }, "star": { price: 30 }, "fire": { price: 50 },
@@ -231,13 +230,13 @@ router.post("/gift/:id/transfer", requireAuth, async (req: AuthenticatedRequest,
     
     const gift = await db.select().from(giftsTable).where(eq(giftsTable.id, giftId)).limit(1);
     if (!gift.length) { res.status(404).json({ error: "Gift not found" }); return; }
-    if (gift[0].currentOwnerId !== me.id) { res.status(403).json({ error: "You don't own this gift" }); return; }
+    if (gift[0].toUserId !== me.id) { res.status(403).json({ error: "You don't own this gift" }); return; }
     
     const recipient = await db.select().from(usersTable).where(eq(usersTable.id, toUserId)).limit(1);
     if (!recipient.length) { res.status(404).json({ error: "User not found" }); return; }
     
     const [updated] = await db.update(giftsTable)
-      .set({ currentOwnerId: toUserId, updatedAt: new Date() })
+      .set({ toUserId: toUserId, updatedAt: new Date() })
       .where(eq(giftsTable.id, giftId))
       .returning();
     

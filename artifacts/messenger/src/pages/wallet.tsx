@@ -119,9 +119,14 @@ export default function WalletPage() {
   }, [getToken]);
 
   const fetchGifts = useCallback(async () => {
-    const token = await getToken();
-    const r = await fetch("/api/wallet/gifts", { headers: { Authorization: `Bearer ${token}` } });
-    if (r.ok) setGifts(await r.json());
+    try {
+      const token = await getToken();
+      const r = await fetch("/api/wallet/gifts", { headers: { Authorization: `Bearer ${token}` } });
+      if (r.ok) setGifts(await r.json());
+      else setGifts([]);
+    } catch (e) {
+      setGifts([]);
+    }
   }, [getToken]);
 
   useEffect(() => { fetchWallet(); fetchTransactions(); fetchLeaderboard(); fetchGifts(); }, []);
