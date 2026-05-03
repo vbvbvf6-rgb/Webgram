@@ -232,27 +232,29 @@ router.post("/admin/grant", requireAuth, async (req: AuthenticatedRequest, res) 
       return;
     }
     
-    const { toUserId, amount, description } = req.body as { toUserId: number; amount: number; description?: string };
+    const { toUserId, amount, description } = req.body as { toUserId: string | number; amount: number; description?: string };
     if (!toUserId || !amount || amount < 1 || amount > 10000) {
       res.status(400).json({ error: "Invalid amount (1-10000)" });
       return;
     }
     
-    const target = await db.select().from(usersTable).where(eq(usersTable.id, toUserId)).limit(1);
+    // Search by randomId (from admin panel)
+    const target = await db.select().from(usersTable).where(eq(usersTable.randomId, String(toUserId))).limit(1);
     if (!target.length) {
       res.status(404).json({ error: "User not found" });
       return;
     }
     
-    const targetWallet = await ensureWallet(toUserId);
+    const targetUserId = target[0].id;
+    const targetWallet = await ensureWallet(targetUserId);
     const now = new Date();
     const [updated] = await db.update(walletsTable)
       .set({ balance: targetWallet.balance + amount, updatedAt: now })
-      .where(eq(walletsTable.userId, toUserId))
+      .where(eq(walletsTable.userId, targetUserId))
       .returning();
     
     await db.insert(transactionsTable).values({
-      toUserId,
+      toUserId: targetUserId,
       amount,
       type: "bonus",
       description: description || `Admin grant by ${admin.displayName}`,
