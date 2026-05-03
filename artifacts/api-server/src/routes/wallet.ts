@@ -116,17 +116,15 @@ const GIFT_CATALOG: Record<string, { name: string; price: number }> = {
 router.post("/gift", requireAuth, async (req: AuthenticatedRequest, res): Promise<void> => {
   try {
     const me = await ensureUser(req.userId!);
-    const myWallet = await ensureWallet(me.id);
     const { toUserId, giftId, chatId, message } = req.body as { toUserId: number; giftId: string; chatId?: number; message?: string };
     const gift = GIFT_CATALOG[giftId];
     if (!gift) { res.status(400).json({ error: "Invalid gift" }); return; }
     if (!toUserId) { res.status(400).json({ error: "Invalid request" }); return; }
-    if (gift.price > myWallet.balance) { res.status(400).json({ error: "Insufficient balance" }); return; }
     const recipient = await db.select().from(usersTable).where(eq(usersTable.id, toUserId)).limit(1);
     if (!recipient.length) { res.status(404).json({ error: "User not found" }); return; }
     
     const now = new Date();
-    // Re-fetch fresh wallet to avoid race condition
+    // Fetch fresh wallet to check balance and avoid race condition
     const [freshWallet] = await db.select().from(walletsTable).where(eq(walletsTable.userId, me.id)).limit(1);
     if (!freshWallet || freshWallet.balance < gift.price) {
       res.status(400).json({ error: "Insufficient balance" });
@@ -148,6 +146,7 @@ router.post("/gift", requireAuth, async (req: AuthenticatedRequest, res): Promis
       giftId,
       fromUserId: me.id,
       toUserId,
+      currentOwnerId: toUserId,
       chatId: chatId ?? null,
       message: message?.trim() ?? null,
     });

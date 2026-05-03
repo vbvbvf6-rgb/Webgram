@@ -435,6 +435,17 @@ export default function WalletPage() {
                       setActionLoading(true);
                       try {
                         const token = await getToken();
+                        // Refresh wallet balance before purchase
+                        const walletRes = await fetch("/api/wallet", { headers: { Authorization: `Bearer ${token}` } });
+                        if (walletRes.ok) {
+                          const freshWallet = await walletRes.json();
+                          if (freshWallet.balance < gift.price) {
+                            toast({ title: "Insufficient balance", variant: "destructive" });
+                            setActionLoading(false);
+                            return;
+                          }
+                        }
+                        
                         const res = await fetch("/api/wallet/gift", {
                           method: "POST",
                           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
