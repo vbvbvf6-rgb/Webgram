@@ -127,14 +127,14 @@ function ClerkQueryClientCacheInvalidator() {
 
 function AuthBackground({ children }: { children: React.ReactNode }) {
   return (
-    <div className="relative min-h-[100dvh] overflow-hidden bg-black">
+    <div className="relative min-h-[100dvh] overflow-hidden bg-[#f4edf9]">
       <div className="absolute inset-0">
         <div className="absolute -left-16 top-24 h-56 w-56 rounded-full bg-violet-500/8 blur-3xl" />
         <div className="absolute left-0 bottom-10 h-44 w-44 rounded-full bg-fuchsia-500/8 blur-3xl" />
         <div className="absolute right-10 bottom-0 h-52 w-52 rounded-full bg-indigo-500/8 blur-3xl" />
       </div>
       <div className="relative z-10 flex min-h-[100dvh] items-center justify-center px-5 py-10">
-        <div className="relative w-full max-w-[430px] rounded-[34px] bg-[#0b1020]/95 p-8 shadow-[0_30px_100px_rgba(0,0,0,0.72)] backdrop-blur-sm border border-white/8">
+        <div className="relative w-full max-w-[430px] rounded-[34px] bg-white/92 p-8 shadow-[0_30px_80px_rgba(124,58,237,0.15)] backdrop-blur-sm border border-white/70">
           <div className="flex flex-col items-center text-center">
             <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500 to-pink-500 text-white shadow-lg shadow-violet-200/60">
               <svg width="30" height="30" viewBox="0 0 32 32" fill="none" aria-hidden="true">
@@ -144,8 +144,8 @@ function AuthBackground({ children }: { children: React.ReactNode }) {
                 <circle cx="21" cy="13" r="1.5" fill="#7C3AED" />
               </svg>
             </div>
-            <h1 className="text-3xl font-black text-white">Droidgram</h1>
-            <p className="mt-1 text-sm text-white/60">Мессенджер будущего</p>
+            <h1 className="text-3xl font-black text-zinc-900">Droidgram</h1>
+            <p className="mt-1 text-sm text-zinc-500">Мессенджер будущего</p>
           </div>
           {children}
         </div>
