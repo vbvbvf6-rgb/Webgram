@@ -83,6 +83,9 @@ export default function WalletPage() {
   const [transferSearch, setTransferSearch] = useState("");
   const [transferUser, setTransferUser] = useState<any>(null);
   const [actionLoading, setActionLoading] = useState(false);
+  const [giftRecipientSearch, setGiftRecipientSearch] = useState("");
+  const [giftRecipientResults, setGiftRecipientResults] = useState<any[]>([]);
+  const [giftRecipient, setGiftRecipient] = useState<any>(null);
 
   const fetchWallet = useCallback(async () => {
     try {
@@ -156,6 +159,14 @@ export default function WalletPage() {
     const token = await getToken();
     const r = await fetch(`/api/users/search?q=${encodeURIComponent(q)}`, { headers: { Authorization: `Bearer ${token}` } });
     if (r.ok) setUserSearch(await r.json());
+  }
+
+  async function searchGiftRecipients(q: string) {
+    setGiftRecipientSearch(q);
+    if (!q.trim()) { setGiftRecipientResults([]); return; }
+    const token = await getToken();
+    const r = await fetch(`/api/users/search?q=${encodeURIComponent(q)}`, { headers: { Authorization: `Bearer ${token}` } });
+    if (r.ok) setGiftRecipientResults(await r.json());
   }
 
   async function doSend() {
@@ -434,11 +445,34 @@ export default function WalletPage() {
 
               {giftAction.type === "buy" ? (
                 <div className="p-4 space-y-4">
-                  <p className="text-xs text-muted-foreground">Buy this beautiful gift for your friends!</p>
+                  <p className="text-xs text-muted-foreground">Send this gift to a friend!</p>
+                  <input type="text" placeholder="Search recipient…" value={giftRecipientSearch}
+                    onChange={e => searchGiftRecipients(e.target.value)}
+                    className="w-full bg-background border border-border rounded-xl px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-primary/60" />
+                  {giftRecipientResults.length > 0 && (
+                    <div className="max-h-40 overflow-y-auto space-y-1 border border-border rounded-xl p-2">
+                      {giftRecipientResults.map((user: any) => (
+                        <motion.button key={user.id} whileTap={{ scale: 0.97 }}
+                          onClick={() => setGiftRecipient(user)}
+                          className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
+                            giftRecipient?.id === user.id 
+                              ? "bg-primary/20 text-primary font-semibold" 
+                              : "hover:bg-accent text-foreground"
+                          }`}>
+                          {user.displayName}
+                        </motion.button>
+                      ))}
+                    </div>
+                  )}
+                  {giftRecipient && (
+                    <div className="p-2 rounded-lg bg-primary/10 border border-primary/20 text-xs">
+                      Sending to: <span className="font-semibold text-primary">{giftRecipient.displayName}</span>
+                    </div>
+                  )}
                   <motion.button whileTap={{ scale: 0.97 }} 
                     onClick={async () => {
                       const gift = GIFTS_CATALOG.find(g => g.id === giftAction.giftId);
-                      if (!gift) return;
+                      if (!gift || !giftRecipient) return;
                       setActionLoading(true);
                       try {
                         const token = await getToken();
@@ -456,15 +490,18 @@ export default function WalletPage() {
                         const res = await fetch("/api/wallet/gift", {
                           method: "POST",
                           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-                          body: JSON.stringify({ toUserId: (me as any)?.id, giftId: gift.id, message: null }),
+                          body: JSON.stringify({ toUserId: giftRecipient.id, giftId: gift.id, message: null }),
                         });
                         if (res.ok) {
                           const data = await res.json();
                           setWallet(w => w ? { ...w, balance: data.newBalance } : null);
                           setGiftAction(null);
+                          setGiftRecipient(null);
+                          setGiftRecipientSearch("");
+                          setGiftRecipientResults([]);
                           fetchWallet();
                           fetchGifts();
-                          toast({ title: `Bought ${gift.name}! 🎁` });
+                          toast({ title: `Sent ${gift.name} to ${giftRecipient.displayName}! 🎁` });
                         } else {
                           const err = await res.json().catch(() => ({}));
                           toast({ title: err.error || "Failed to buy gift", variant: "destructive" });
@@ -473,9 +510,9 @@ export default function WalletPage() {
                         setActionLoading(false);
                       }
                     }}
-                    disabled={actionLoading}
+                    disabled={actionLoading || !giftRecipient}
                     className="w-full py-2 bg-primary/20 text-primary rounded-xl font-semibold text-sm hover:bg-primary/30 transition-colors disabled:opacity-50">
-                    {actionLoading ? "Buying…" : `Buy for ⚡${GIFTS_CATALOG.find(g => g.id === giftAction.giftId)?.price || 0}`}
+                    {actionLoading ? "Sending…" : `Send for ⚡${GIFTS_CATALOG.find(g => g.id === giftAction.giftId)?.price || 0}`}
                   </motion.button>
                 </div>
               ) : giftAction.type === "sell" ? (

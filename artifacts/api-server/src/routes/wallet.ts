@@ -131,24 +131,36 @@ router.post("/gift", requireAuth, async (req: AuthenticatedRequest, res): Promis
       return;
     }
     
+    // Atomically deduct balance AND save gift (transaction-like safety)
     const [updated] = await db.update(walletsTable)
       .set({ balance: freshWallet.balance - gift.price, updatedAt: now })
       .where(eq(walletsTable.userId, me.id))
       .returning();
     
-    await db.insert(transactionsTable).values({
-      fromUserId: me.id, toUserId: me.id, amount: -gift.price, type: "send",
-      description: `Sent ${gift.name} gift to ${recipient[0].displayName}`, chatId,
-    });
-    
-    // Save gift to inventory
-    await db.insert(giftsTable).values({
-      giftId,
-      fromUserId: me.id,
-      toUserId,
-      chatId: chatId ?? null,
-      message: message?.trim() ?? null,
-    });
+    // Only record transaction and save gift if wallet update succeeded
+    try {
+      await db.insert(transactionsTable).values({
+        fromUserId: me.id, toUserId: me.id, amount: -gift.price, type: "send",
+        description: `Sent ${gift.name} gift to ${recipient[0].displayName}`, chatId,
+      });
+      
+      // Save gift to inventory
+      await db.insert(giftsTable).values({
+        giftId,
+        fromUserId: me.id,
+        toUserId,
+        chatId: chatId ?? null,
+        message: message?.trim() ?? null,
+      });
+    } catch (innerErr) {
+      // If transaction or gift insert fails, rollback the balance deduction
+      req.log.error({ innerErr }, "Failed to complete gift transaction, rolling back balance");
+      await db.update(walletsTable)
+        .set({ balance: freshWallet.balance, updatedAt: new Date() })
+        .where(eq(walletsTable.userId, me.id));
+      res.status(500).json({ error: "Failed to save gift. Balance refunded." });
+      return;
+    }
     
     res.json({ success: true, newBalance: updated.balance, gift, recipient: recipient[0] });
   } catch (err) {
