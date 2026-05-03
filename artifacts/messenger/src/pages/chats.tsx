@@ -9,6 +9,8 @@ import {
   PhoneOff, VideoOff, MicOff, Mic, Volume2, VolumeX,
   Copy, MoreHorizontal, Pin, PinOff, ImageIcon, Play, Pause,
   Star, StopCircle, ExternalLink, Keyboard, Hash,
+  BarChart2, Zap, Sparkles, Film, Palette, UserCircle2,
+  Slash, ChevronUp, Bookmark, Trophy,
 } from "lucide-react";
 import {
   useGetMe, useGetChats, useGetMessages, useSendMessage,
@@ -21,6 +23,50 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 
 const EMOJIS = ["👍", "❤️", "😂", "😮", "😢", "🔥", "👏", "✅", "🎉", "💯"];
+
+const STICKER_PACKS: Record<string, string[]> = {
+  "❤️ Love":   ["❤️‍🔥","💕","🥰","😘","💝","🫀","😻","💌","🫦","💖","💗","🌹"],
+  "😂 Funny":  ["🤣","😭","💀","🤦","🙈","🫡","🤡","🫠","💩","🤪","😜","🙃"],
+  "🎉 Hype":   ["🎉","🥳","🎊","🔥","💯","⚡","🚀","🏆","👑","💫","✨","🎯"],
+  "😤 Vibes":  ["😤","💪","🫶","✌️","🤙","😎","🤝","💥","🎯","🫸","🦾","⚔️"],
+  "🐱 Cute":   ["🐱","🐶","🦊","🐻","🐼","🐨","🦋","🌸","🌟","✨","🌈","🍀"],
+};
+
+const CURATED_GIFS = [
+  { url: "https://media.giphy.com/media/JIX9t2j0ZTN9S/giphy.gif", label: "Cat typing" },
+  { url: "https://media.giphy.com/media/ICOgUNjpvO0PC/giphy.gif", label: "Thumbs up" },
+  { url: "https://media.giphy.com/media/3oEjI6SIIHBdRxXI40/giphy.gif", label: "Yes!" },
+  { url: "https://media.giphy.com/media/26ufdipQqU2lhNA4g/giphy.gif", label: "Party" },
+  { url: "https://media.giphy.com/media/l0HlvtIPzPdt2usKs/giphy.gif", label: "Nope" },
+  { url: "https://media.giphy.com/media/5GoVLqeAOo6PK/giphy.gif", label: "Hi!" },
+  { url: "https://media.giphy.com/media/1BXa2alBjrCXC/giphy.gif", label: "Run!" },
+  { url: "https://media.giphy.com/media/iFmwm4Y8TKkMU/giphy.gif", label: "Shocked" },
+  { url: "https://media.giphy.com/media/blSTtZehjAZ8I/giphy.gif", label: "LOL" },
+  { url: "https://media.giphy.com/media/3o6ZtaO9BZHcOjmErm/giphy.gif", label: "Magic" },
+  { url: "https://media.giphy.com/media/8Iv5lqKwKsZ2g/giphy.gif", label: "Mind blown" },
+  { url: "https://media.giphy.com/media/11sBLVxNs7v6WA/giphy.gif", label: "Wow" },
+];
+
+const CHAT_THEMES: { id: string; label: string; gradient: string; msgBg: string }[] = [
+  { id: "default", label: "Default", gradient: "", msgBg: "" },
+  { id: "ocean",   label: "🌊 Ocean",   gradient: "bg-gradient-to-b from-blue-950/40 to-cyan-950/20",   msgBg: "bg-blue-600" },
+  { id: "sunset",  label: "🌅 Sunset",  gradient: "bg-gradient-to-b from-orange-950/40 to-rose-950/20", msgBg: "bg-orange-600" },
+  { id: "forest",  label: "🌿 Forest",  gradient: "bg-gradient-to-b from-green-950/40 to-emerald-950/20", msgBg: "bg-green-700" },
+  { id: "galaxy",  label: "🌌 Galaxy",  gradient: "bg-gradient-to-b from-purple-950/40 to-indigo-950/20", msgBg: "bg-purple-600" },
+  { id: "cherry",  label: "🌸 Cherry",  gradient: "bg-gradient-to-b from-pink-950/40 to-rose-950/20",   msgBg: "bg-pink-600" },
+  { id: "midnight",label: "🌙 Midnight",gradient: "bg-gradient-to-b from-slate-900 to-slate-950",      msgBg: "bg-slate-700" },
+  { id: "aurora",  label: "🌈 Aurora",  gradient: "bg-gradient-to-b from-teal-950/40 to-purple-950/20", msgBg: "bg-teal-600" },
+];
+
+const BOT_COMMANDS = [
+  { cmd: "/poll",  desc: "Create a poll",              icon: "📊" },
+  { cmd: "/gif",   desc: "Send a GIF",                 icon: "🎬" },
+  { cmd: "/coin",  desc: "/coin @user 10 — send ⚡",   icon: "⚡" },
+  { cmd: "/me",    desc: "Describe what you're doing", icon: "✍️" },
+  { cmd: "/shrug", desc: "¯\\_(ツ)_/¯",               icon: "🤷" },
+  { cmd: "/flip",  desc: "Flip a coin",                icon: "🪙" },
+  { cmd: "/roll",  desc: "Roll a dice 1-6",            icon: "🎲" },
+];
 
 const EMOJI_CATEGORIES: Record<string, string[]> = {
   "😀 Smileys": ["😀","😂","😍","🥰","😎","😭","😤","🤔","😴","🥳","😱","🤩","😅","🫡","🥲","😇"],
@@ -69,6 +115,46 @@ function formatTime(dateStr: string) {
   if (diffDays === 1) return "Yesterday";
   if (diffDays < 7) return d.toLocaleDateString([], { weekday: "short" });
   return d.toLocaleDateString([], { day: "2-digit", month: "short" });
+}
+
+// ─── PollMessage renderer ─────────────────────────────────────────────────────
+function PollMessage({ pollId, pollsData, onVote, myId }: { pollId: number; pollsData: Map<number, any>; onVote: (id: number, choices: number[]) => void; myId: number }) {
+  const poll = pollsData.get(pollId);
+  if (!poll) return (
+    <div className="flex items-center gap-2 text-xs text-muted-foreground py-1">
+      <BarChart2 size={13} /> Loading poll…
+    </div>
+  );
+  const totalVotes = (poll.options || []).reduce((sum: number, o: any) => sum + (o.voterIds?.length || 0), 0);
+  const myVotes: number[] = (poll.options || []).reduce((acc: number[], o: any, i: number) => { if ((o.voterIds || []).includes(myId)) acc.push(i); return acc; }, []);
+  const hasVoted = myVotes.length > 0;
+  return (
+    <div className="min-w-[200px] max-w-[280px]">
+      <div className="flex items-center gap-1.5 mb-2">
+        <BarChart2 size={12} className="opacity-70 shrink-0" />
+        <p className="text-sm font-semibold leading-tight">{poll.question}</p>
+      </div>
+      <div className="space-y-1.5">
+        {(poll.options || []).map((opt: any, i: number) => {
+          const votes = opt.voterIds?.length || 0;
+          const pct = totalVotes > 0 ? Math.round((votes / totalVotes) * 100) : 0;
+          const isMyVote = myVotes.includes(i);
+          return (
+            <button key={i} onClick={() => !hasVoted && onVote(pollId, [i])}
+              disabled={hasVoted}
+              className={`w-full text-left rounded-xl overflow-hidden relative transition-all ${hasVoted ? "cursor-default" : "hover:opacity-90 active:scale-[0.98]"}`}>
+              {hasVoted && <div className="absolute inset-y-0 left-0 bg-primary/20 rounded-xl transition-all" style={{ width: `${pct}%` }} />}
+              <div className={`relative flex items-center justify-between px-3 py-2 rounded-xl border ${isMyVote ? "border-primary/50 bg-primary/10" : "border-border/50 bg-accent/40"}`}>
+                <span className="text-xs font-medium truncate">{opt.text}</span>
+                {hasVoted && <span className="text-[10px] text-muted-foreground ml-2 shrink-0">{pct}%</span>}
+              </div>
+            </button>
+          );
+        })}
+      </div>
+      <p className="text-[10px] text-muted-foreground mt-1.5">{totalVotes} vote{totalVotes !== 1 ? "s" : ""}{poll.allowMultiple ? " · Multi-choice" : ""}</p>
+    </div>
+  );
 }
 
 function formatDate(dateStr: string) {
@@ -322,6 +408,12 @@ export default function ChatsPage({ activeChatId }: { activeChatId?: number }) {
             </div>
           </button>
           <div className="flex items-center gap-0.5">
+            <button onClick={() => setLocation("/saved")} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-accent transition-colors" title="Saved messages">
+              <Bookmark size={15} className="text-muted-foreground" />
+            </button>
+            <button onClick={() => setLocation("/wallet")} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-accent transition-colors" title="Pulsecoins wallet">
+              <Zap size={15} className="text-muted-foreground" />
+            </button>
             <button onClick={() => setLocation("/search")} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-accent transition-colors" title="Search users">
               <Search size={15} className="text-muted-foreground" />
             </button>
@@ -656,9 +748,27 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
   const voiceTimerRef2 = useRef<ReturnType<typeof setInterval> | null>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // ── Extra features state ─────────────────────────────────────────────────────
+  const [showStickers, setShowStickers] = useState(false);
+  const [stickerPack, setStickerPack] = useState(Object.keys(STICKER_PACKS)[0]);
+  const [showGifs, setShowGifs] = useState(false);
+  const [chatTheme, setChatTheme] = useState<string>(() => {
+    try { return localStorage.getItem(`pulse_theme_${chatId}`) || "default"; } catch { return "default"; }
+  });
+  const [showThemePicker, setShowThemePicker] = useState(false);
+  const [profileViewer, setProfileViewer] = useState<any>(null);
+  const [showPollCreate, setShowPollCreate] = useState(false);
+  const [pollQuestion, setPollQuestion] = useState("");
+  const [pollOptions, setPollOptions] = useState(["", ""]);
+  const [pollMultiple, setPollMultiple] = useState(false);
+  const [pollsData, setPollsData] = useState<Map<number, any>>(new Map());
+  const [cmdSuggestions, setCmdSuggestions] = useState<typeof BOT_COMMANDS>([]);
+  const [walletBal, setWalletBal] = useState<number | null>(null);
+
   const chat = (chats || []).find((c: any) => c.id === chatId);
   const chatName = chat ? (chat.type === "group" ? chat.name || "Group" : chat.members?.find((m: any) => m.id !== myId)?.displayName || "Chat") : "";
   const chatAvatar = chat?.type === "direct" ? chat.members?.find((m: any) => m.id !== myId)?.avatarUrl : null;
+  const activeTheme = CHAT_THEMES.find(t => t.id === chatTheme) || CHAT_THEMES[0];
   const chatOnline = chat?.type === "direct" ? chat.members?.find((m: any) => m.id !== myId)?.isOnline : false;
   const msgList = messages || [];
 
@@ -734,6 +844,117 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
     fetchPin();
   }, [chatId]);
 
+  // Wallet balance
+  useEffect(() => {
+    getToken().then(token => {
+      fetch("/api/wallet", { headers: { Authorization: `Bearer ${token}` } })
+        .then(r => r.json()).then(d => setWalletBal(d.balance ?? null)).catch(() => {});
+    });
+  }, []);
+
+  // Theme persistence
+  useEffect(() => {
+    localStorage.setItem(`pulse_theme_${chatId}`, chatTheme);
+  }, [chatTheme, chatId]);
+
+  // Fetch poll data for [poll:ID] messages
+  useEffect(() => {
+    if (!messages) return;
+    (messages as Message[]).forEach((m: Message) => {
+      const match = m.content?.match(/^\[poll:(\d+)\]$/);
+      if (match) {
+        const pollId = Number(match[1]);
+        if (!pollsData.has(pollId)) {
+          getToken().then(token => {
+            fetch(`/api/chats/${chatId}/polls/${pollId}`, { headers: { Authorization: `Bearer ${token}` } })
+              .then(r => r.ok ? r.json() : null)
+              .then(data => { if (data) setPollsData(prev => new Map(prev).set(pollId, data)); })
+              .catch(() => {});
+          });
+        }
+      }
+    });
+  }, [messages]);
+
+  async function votePoll(pollId: number, choices: number[]) {
+    const token = await getToken();
+    const r = await fetch(`/api/chats/${chatId}/polls/${pollId}/vote`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ choices }),
+    });
+    if (r.ok) {
+      const upd = await fetch(`/api/chats/${chatId}/polls/${pollId}`, { headers: { Authorization: `Bearer ${token}` } });
+      if (upd.ok) { const d = await upd.json(); setPollsData(prev => new Map(prev).set(pollId, d)); }
+      toast({ title: "✅ Voted!" });
+    }
+  }
+
+  async function handleCreatePoll() {
+    const opts = pollOptions.filter(o => o.trim());
+    if (!pollQuestion.trim() || opts.length < 2) {
+      toast({ title: "Need a question and at least 2 options", variant: "destructive" }); return;
+    }
+    const token = await getToken();
+    const r = await fetch(`/api/chats/${chatId}/polls`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ question: pollQuestion.trim(), options: opts, allowMultiple: pollMultiple }),
+    });
+    if (r.ok) {
+      const poll = await r.json();
+      await sendMessage.mutateAsync({ chatId, data: { content: `[poll:${poll.id}]`, replyToId: null } });
+      qc.invalidateQueries({ queryKey: getGetMessagesQueryKey(chatId, {}) });
+      setShowPollCreate(false); setPollQuestion(""); setPollOptions(["", ""]); setPollMultiple(false);
+      toast({ title: "📊 Poll created!" });
+    }
+  }
+
+  async function handleBotCommand(cmd: string, fullText: string): Promise<void> {
+    clearInput(); setCmdSuggestions([]);
+    if (cmd === "/shrug") {
+      await sendMessage.mutateAsync({ chatId, data: { content: "¯\\_(ツ)_/¯", replyToId: null } });
+    } else if (cmd === "/flip") {
+      await sendMessage.mutateAsync({ chatId, data: { content: Math.random() > 0.5 ? "🪙 Heads!" : "🪙 Tails!", replyToId: null } });
+    } else if (cmd === "/roll") {
+      await sendMessage.mutateAsync({ chatId, data: { content: `🎲 Rolled a ${Math.floor(Math.random() * 6) + 1}!`, replyToId: null } });
+    } else if (cmd === "/poll") {
+      setShowPollCreate(true); return;
+    } else if (cmd === "/gif") {
+      setShowGifs(true); return;
+    } else if (cmd === "/me") {
+      const action = fullText.slice(3).trim();
+      if (action) await sendMessage.mutateAsync({ chatId, data: { content: `_${action}_`, replyToId: null } });
+      return;
+    } else if (cmd === "/coin") {
+      const parts = fullText.split(/\s+/);
+      const user = parts[1]; const amt = parseInt(parts[2] || "");
+      if (!user || isNaN(amt)) { toast({ title: "Usage: /coin @username 10", variant: "destructive" }); return; }
+      toast({ title: `⚡ Searching user…` });
+      const token = await getToken();
+      const sr = await fetch(`/api/users/search?q=${encodeURIComponent(user.replace("@",""))}`, { headers: { Authorization: `Bearer ${token}` } });
+      if (sr.ok) {
+        const users = await sr.json();
+        if (!users.length) { toast({ title: "User not found", variant: "destructive" }); return; }
+        const target = users[0];
+        const wr = await fetch("/api/wallet/send", {
+          method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ toUserId: target.id, amount: amt, chatId }),
+        });
+        if (wr.ok) {
+          await sendMessage.mutateAsync({ chatId, data: { content: `⚡ Sent **${amt} Pulsecoins** to ${target.displayName}!`, replyToId: null } });
+          setWalletBal(prev => prev !== null ? prev - amt : null);
+          toast({ title: `⚡ ${amt} Pulsecoins sent!` });
+        } else {
+          const e = await wr.json();
+          toast({ title: e.error || "Failed to send coins", variant: "destructive" });
+        }
+      }
+      return;
+    }
+    qc.invalidateQueries({ queryKey: getGetMessagesQueryKey(chatId, {}) });
+  }
+
   const clearInput = useCallback(() => {
     setInput("");
     if (inputRef.current) {
@@ -744,6 +965,14 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
   async function handleSend() {
     const text = input.trim();
     if (!text) return;
+    // Bot command interception
+    if (text.startsWith("/")) {
+      const cmd = text.split(/\s+/)[0].toLowerCase();
+      if (BOT_COMMANDS.find(c => c.cmd === cmd)) {
+        await handleBotCommand(cmd, text);
+        return;
+      }
+    }
     const rId = replyTo?.id ?? null;
     const wasEditing = editingMsg;
     clearInput();
@@ -826,10 +1055,27 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
     } catch { toast({ title: "Failed to send image", variant: "destructive" }); }
   }
 
-  function toggleStar(msgId: number) {
+  function toggleStar(msgId: number, msg?: Message) {
     setStarredMsgs(prev => {
       const next = new Set(prev);
-      if (next.has(msgId)) next.delete(msgId); else next.add(msgId);
+      if (next.has(msgId)) {
+        next.delete(msgId);
+        try {
+          const saved = JSON.parse(localStorage.getItem("pulse_saved_messages") || "[]");
+          localStorage.setItem("pulse_saved_messages", JSON.stringify(saved.filter((m: any) => m.id !== msgId)));
+        } catch {}
+      } else {
+        next.add(msgId);
+        if (msg) {
+          try {
+            const saved = JSON.parse(localStorage.getItem("pulse_saved_messages") || "[]");
+            if (!saved.find((m: any) => m.id === msgId)) {
+              saved.unshift({ id: msgId, content: msg.content || "", senderName: msg.sender?.displayName, chatName, savedAt: new Date().toISOString() });
+              localStorage.setItem("pulse_saved_messages", JSON.stringify(saved.slice(0, 200)));
+            }
+          } catch {}
+        }
+      }
       localStorage.setItem("pulse_starred", JSON.stringify([...next]));
       return next;
     });
@@ -966,6 +1212,9 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
             <button onClick={() => startCall("video")} className="w-8 h-8 flex items-center justify-center rounded-xl hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors" title="Video call">
               <Video size={15} />
             </button>
+            <button onClick={() => setShowThemePicker(!showThemePicker)} className={`w-8 h-8 flex items-center justify-center rounded-xl hover:bg-accent transition-colors ${showThemePicker ? "bg-primary/20 text-primary" : "text-muted-foreground"}`} title="Chat theme">
+              <Palette size={15} />
+            </button>
             <button onClick={() => { setSearchMode(!searchMode); setMsgSearch(""); }} className={`w-8 h-8 flex items-center justify-center rounded-xl hover:bg-accent transition-colors ${searchMode ? "bg-primary/20 text-primary" : "text-muted-foreground"}`} title="Search messages">
               <Search size={15} />
             </button>
@@ -1019,11 +1268,34 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
           )}
         </AnimatePresence>
 
+        {/* Theme picker */}
+        <AnimatePresence>
+          {showThemePicker && (
+            <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden shrink-0">
+              <div className="px-4 py-3 border-b border-border bg-sidebar/80 backdrop-blur-sm">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-xs font-semibold text-muted-foreground">Chat Theme</p>
+                  <button onClick={() => setShowThemePicker(false)} className="text-muted-foreground hover:text-foreground"><X size={13}/></button>
+                </div>
+                <div className="flex gap-2 flex-wrap">
+                  {CHAT_THEMES.map(t => (
+                    <button key={t.id} onClick={() => { setChatTheme(t.id); setShowThemePicker(false); }}
+                      className={`flex flex-col items-center gap-1 px-3 py-2 rounded-xl text-xs font-medium transition-all border ${chatTheme === t.id ? "border-primary bg-primary/10 text-primary" : "border-border hover:border-primary/40 text-muted-foreground"}`}>
+                      <div className={`w-8 h-5 rounded-md ${t.gradient || "bg-accent"}`} />
+                      <span className="whitespace-nowrap">{t.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* Messages */}
         <div
           ref={containerRef}
           onScroll={handleScroll}
-          className="flex-1 overflow-y-auto px-3 sm:px-4 py-4"
+          className={`flex-1 overflow-y-auto px-3 sm:px-4 py-4 ${activeTheme.gradient}`}
         >
           {msgsLoading ? (
             <div className="space-y-4">
@@ -1090,7 +1362,9 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
                       {!isOwn && (
                         <div className="w-8 mr-2 mt-auto shrink-0">
                           {showAvatar ? (
-                            <Avatar src={msg.sender?.avatarUrl} name={msg.sender?.displayName || "?"} size={28} />
+                            <button onClick={() => msg.sender && setProfileViewer(msg.sender)} className="hover:opacity-80 transition-opacity cursor-pointer">
+                              <Avatar src={msg.sender?.avatarUrl} name={msg.sender?.displayName || "?"} size={28} />
+                            </button>
                           ) : null}
                         </div>
                       )}
@@ -1124,6 +1398,8 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
                             <span className="italic text-xs opacity-70">Message was deleted</span>
                           ) : msg.content?.startsWith("[voice:") ? (
                             <VoiceMessage content={msg.content} isOwn={isOwn} />
+                          ) : msg.content?.match(/^\[poll:(\d+)\]$/) ? (
+                            <PollMessage pollId={Number(msg.content.match(/^\[poll:(\d+)\]$/)![1])} pollsData={pollsData} onVote={votePoll} myId={myId} />
                           ) : (
                             renderRichText(msg.content || "")
                           )}
@@ -1212,7 +1488,7 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
                             <button onClick={() => { navigator.clipboard.writeText(msg.content || ""); toast({ title: "Copied to clipboard" }); }} className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-accent text-muted-foreground hover:text-foreground transition-colors" title="Copy">
                               <Copy size={13} />
                             </button>
-                            <button onClick={() => toggleStar(msg.id)} className={`w-7 h-7 flex items-center justify-center rounded-lg hover:bg-accent transition-colors ${starredMsgs.has(msg.id) ? "text-yellow-400" : "text-muted-foreground hover:text-foreground"}`} title="Star">
+                            <button onClick={() => toggleStar(msg.id, msg)} className={`w-7 h-7 flex items-center justify-center rounded-lg hover:bg-accent transition-colors ${starredMsgs.has(msg.id) ? "text-yellow-400" : "text-muted-foreground hover:text-foreground"}`} title={starredMsgs.has(msg.id) ? "Unsave" : "Save message"}>
                               <Star size={13} />
                             </button>
                             <button onClick={() => setForwardingMsg(msg)} className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-accent text-muted-foreground hover:text-foreground transition-colors" title="Forward">
@@ -1356,12 +1632,97 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
             )}
           </AnimatePresence>
 
+          {/* Bot command suggestions */}
+          <AnimatePresence>
+            {cmdSuggestions.length > 0 && (
+              <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 4 }} className="mb-2">
+                <div className="bg-card border border-border rounded-xl overflow-hidden shadow-xl">
+                  {cmdSuggestions.map(c => (
+                    <button key={c.cmd} onClick={() => { if (inputRef.current) { inputRef.current.textContent = c.cmd + " "; inputRef.current.focus(); setInput(c.cmd + " "); const r = document.createRange(); r.selectNodeContents(inputRef.current); r.collapse(false); window.getSelection()?.removeAllRanges(); window.getSelection()?.addRange(r); } setCmdSuggestions([]); }}
+                      className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-accent transition-colors text-left">
+                      <span className="text-base">{c.icon}</span>
+                      <div>
+                        <p className="text-xs font-semibold text-primary">{c.cmd}</p>
+                        <p className="text-[11px] text-muted-foreground">{c.desc}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Sticker picker */}
+          <AnimatePresence>
+            {showStickers && (
+              <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 4 }} className="mb-2">
+                <div className="bg-card border border-border rounded-xl overflow-hidden shadow-xl">
+                  <div className="flex items-center justify-between px-3 pt-2.5 pb-1">
+                    <p className="text-xs font-semibold text-muted-foreground">Stickers</p>
+                    <button onClick={() => setShowStickers(false)} className="text-muted-foreground hover:text-foreground"><X size={13}/></button>
+                  </div>
+                  <div className="flex gap-1 px-3 pb-2 overflow-x-auto">
+                    {Object.keys(STICKER_PACKS).map(pack => (
+                      <button key={pack} onClick={() => setStickerPack(pack)}
+                        className={`text-xs px-2 py-1 rounded-lg whitespace-nowrap shrink-0 transition-colors ${stickerPack === pack ? "bg-primary/20 text-primary" : "hover:bg-accent text-muted-foreground"}`}>
+                        {pack}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="grid grid-cols-6 gap-1 px-3 pb-3">
+                    {(STICKER_PACKS[stickerPack] || []).map(s => (
+                      <button key={s} onClick={async () => { setShowStickers(false); await sendMessage.mutateAsync({ chatId, data: { content: s, replyToId: null } }); qc.invalidateQueries({ queryKey: getGetMessagesQueryKey(chatId, {}) }); }}
+                        className="text-2xl flex items-center justify-center h-10 rounded-xl hover:bg-accent transition-colors">{s}</button>
+                    ))}
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* GIF picker */}
+          <AnimatePresence>
+            {showGifs && (
+              <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 4 }} className="mb-2">
+                <div className="bg-card border border-border rounded-xl overflow-hidden shadow-xl">
+                  <div className="flex items-center justify-between px-3 pt-2.5 pb-2">
+                    <p className="text-xs font-semibold text-muted-foreground">🎬 GIFs</p>
+                    <button onClick={() => setShowGifs(false)} className="text-muted-foreground hover:text-foreground"><X size={13}/></button>
+                  </div>
+                  <div className="grid grid-cols-3 gap-1.5 px-3 pb-3 max-h-52 overflow-y-auto">
+                    {CURATED_GIFS.map(g => (
+                      <button key={g.url} onClick={async () => { setShowGifs(false); await sendMessage.mutateAsync({ chatId, data: { content: g.url, replyToId: null } }); qc.invalidateQueries({ queryKey: getGetMessagesQueryKey(chatId, {}) }); }}
+                        className="rounded-xl overflow-hidden hover:ring-2 hover:ring-primary transition-all aspect-video bg-accent relative group">
+                        <img src={g.url} alt={g.label} className="w-full h-full object-cover" loading="lazy" />
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-1">
+                          <span className="text-[9px] text-white font-medium">{g.label}</span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           {voiceRecState === "idle" && (
             <div className="flex items-end gap-2">
               <div className="flex items-center gap-1 shrink-0">
                 <motion.button whileTap={{ scale: 0.9 }} onClick={() => setShowImageInput(!showImageInput)}
                   className={`w-8 h-8 flex items-center justify-center rounded-xl transition-all ${showImageInput ? "bg-primary/20 text-primary" : "hover:bg-accent text-muted-foreground"}`} title="Share image">
                   <ImageIcon size={15} />
+                </motion.button>
+                <motion.button whileTap={{ scale: 0.9 }} onClick={() => { setShowStickers(!showStickers); setShowGifs(false); }}
+                  className={`w-8 h-8 flex items-center justify-center rounded-xl transition-all ${showStickers ? "bg-primary/20 text-primary" : "hover:bg-accent text-muted-foreground"}`} title="Stickers">
+                  <Sparkles size={15} />
+                </motion.button>
+                <motion.button whileTap={{ scale: 0.9 }} onClick={() => { setShowGifs(!showGifs); setShowStickers(false); }}
+                  className={`w-8 h-8 flex items-center justify-center rounded-xl transition-all ${showGifs ? "bg-primary/20 text-primary" : "hover:bg-accent text-muted-foreground"}`} title="GIFs">
+                  <Film size={15} />
+                </motion.button>
+                <motion.button whileTap={{ scale: 0.9 }} onClick={() => setShowPollCreate(true)}
+                  className="w-8 h-8 flex items-center justify-center rounded-xl hover:bg-accent text-muted-foreground transition-all" title="Create poll">
+                  <BarChart2 size={15} />
                 </motion.button>
               </div>
               <div className={`flex-1 flex items-end gap-2 rounded-2xl px-3.5 py-2.5 transition-all ${editingMsg ? "bg-yellow-500/10 border border-yellow-500/30" : "bg-accent border border-transparent focus-within:border-primary/30"}`}>
@@ -1371,13 +1732,23 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
                   suppressContentEditableWarning
                   role="textbox"
                   aria-multiline="true"
-                  data-placeholder={editingMsg ? "Edit message..." : `Message ${chatName || "..."}…`}
+                  data-placeholder={editingMsg ? "Edit message..." : `Message ${chatName || "..."}… (/ for commands)`}
                   className={`flex-1 outline-none text-sm max-h-32 overflow-y-auto py-0.5 break-words min-h-[20px] leading-relaxed
                     empty:before:content-[attr(data-placeholder)] empty:before:text-muted-foreground empty:before:pointer-events-none`}
-                  onInput={e => { setInput(e.currentTarget.textContent || ""); notifyTyping(); }}
+                  onInput={e => {
+                    const val = e.currentTarget.textContent || "";
+                    setInput(val);
+                    notifyTyping();
+                    if (val.startsWith("/")) {
+                      const q = val.toLowerCase();
+                      setCmdSuggestions(BOT_COMMANDS.filter(c => c.cmd.startsWith(q) || q === "/"));
+                    } else {
+                      setCmdSuggestions([]);
+                    }
+                  }}
                   onKeyDown={e => {
                     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); }
-                    if (e.key === "Escape") { setReplyTo(null); setEditingMsg(null); clearInput(); }
+                    if (e.key === "Escape") { setReplyTo(null); setEditingMsg(null); clearInput(); setCmdSuggestions([]); }
                   }}
                 />
               </div>
@@ -1531,6 +1902,96 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
                 </div>
               ))}
             </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Poll creation modal */}
+      <AnimatePresence>
+        {showPollCreate && (
+          <motion.div key="poll-modal" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="absolute inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4"
+            onClick={() => setShowPollCreate(false)}>
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-card border border-border rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden"
+              onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between p-4 border-b border-border">
+                <div className="flex items-center gap-2">
+                  <BarChart2 size={16} className="text-primary" />
+                  <h3 className="font-bold text-sm">Create Poll</h3>
+                </div>
+                <button onClick={() => setShowPollCreate(false)} className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-accent text-muted-foreground"><X size={14}/></button>
+              </div>
+              <div className="p-4 space-y-3">
+                <div>
+                  <label className="text-xs font-semibold text-muted-foreground block mb-1.5">Question</label>
+                  <input value={pollQuestion} onChange={e => setPollQuestion(e.target.value)} placeholder="Ask a question…"
+                    className="w-full bg-accent border border-border/50 focus:border-primary/50 rounded-xl px-3 py-2 text-sm outline-none transition-colors" />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-muted-foreground block mb-1.5">Options</label>
+                  <div className="space-y-2">
+                    {pollOptions.map((opt, i) => (
+                      <div key={i} className="flex items-center gap-2">
+                        <input value={opt} onChange={e => { const n = [...pollOptions]; n[i] = e.target.value; setPollOptions(n); }} placeholder={`Option ${i + 1}`}
+                          className="flex-1 bg-accent border border-border/50 focus:border-primary/50 rounded-xl px-3 py-2 text-sm outline-none transition-colors" />
+                        {pollOptions.length > 2 && (
+                          <button onClick={() => setPollOptions(prev => prev.filter((_, j) => j !== i))} className="text-muted-foreground hover:text-destructive transition-colors"><X size={14}/></button>
+                        )}
+                      </div>
+                    ))}
+                    {pollOptions.length < 8 && (
+                      <button onClick={() => setPollOptions(prev => [...prev, ""])} className="text-xs text-primary hover:text-primary/80 transition-colors font-medium">+ Add option</button>
+                    )}
+                  </div>
+                </div>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <div onClick={() => setPollMultiple(!pollMultiple)} className={`w-9 h-5 rounded-full transition-colors relative ${pollMultiple ? "bg-primary" : "bg-muted"}`}>
+                    <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${pollMultiple ? "translate-x-4" : "translate-x-0.5"}`} />
+                  </div>
+                  <span className="text-xs text-muted-foreground">Allow multiple choices</span>
+                </label>
+              </div>
+              <div className="flex items-center gap-2 p-4 border-t border-border">
+                <button onClick={() => setShowPollCreate(false)} className="flex-1 py-2 rounded-xl border border-border text-sm font-medium hover:bg-accent transition-colors">Cancel</button>
+                <button onClick={handleCreatePoll} className="flex-1 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-colors">Create Poll</button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Profile viewer modal */}
+      <AnimatePresence>
+        {profileViewer && (
+          <motion.div key="profile-modal" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="absolute inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-end justify-center sm:items-center p-4"
+            onClick={() => setProfileViewer(null)}>
+            <motion.div initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className="bg-card border border-border rounded-2xl shadow-2xl w-full max-w-xs overflow-hidden"
+              onClick={e => e.stopPropagation()}>
+              <div className="relative">
+                <div className={`h-24 bg-gradient-to-br from-primary/30 to-purple-900/40`} />
+                <button onClick={() => setProfileViewer(null)} className="absolute top-3 right-3 w-7 h-7 flex items-center justify-center rounded-lg bg-black/30 text-white/80 hover:text-white">
+                  <X size={14}/>
+                </button>
+                <div className="absolute -bottom-7 left-1/2 -translate-x-1/2">
+                  <Avatar src={profileViewer.avatarUrl} name={profileViewer.displayName} size={56} online={profileViewer.isOnline} />
+                </div>
+              </div>
+              <div className="pt-10 pb-5 px-5 text-center">
+                <h3 className="font-bold text-base">{profileViewer.displayName}</h3>
+                <p className="text-xs text-muted-foreground mt-0.5">{profileViewer.isOnline ? "🟢 Active now" : "Last seen recently"}</p>
+                {profileViewer.bio && <p className="text-xs text-muted-foreground mt-3 leading-relaxed">{profileViewer.bio}</p>}
+                {walletBal !== null && profileViewer.id !== myId && (
+                  <button onClick={() => { setProfileViewer(null); setShowPollCreate(false); if (inputRef.current) { inputRef.current.textContent = `/coin @${profileViewer.displayName} `; inputRef.current.focus(); setInput(`/coin @${profileViewer.displayName} `); } }}
+                    className="mt-4 flex items-center gap-1.5 mx-auto px-4 py-2 rounded-xl bg-primary/10 text-primary text-xs font-semibold hover:bg-primary/20 transition-colors">
+                    <Zap size={12} />
+                    Send Pulsecoins
+                  </button>
+                )}
+              </div>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>

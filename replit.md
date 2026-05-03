@@ -40,9 +40,17 @@ A Telegram-inspired real-time messaging app with:
 - Online presence indicators
 - Unread message tracking
 - Chat stats in sidebar
-- Mobile bottom navigation (fixed, spring animation)
+- Mobile bottom navigation (5 tabs: Chats, Search, Calls, Wallet ⚡, Settings)
 - 7-tab settings page
 - Calls history page
+- **Pulsecoins ⚡** in-app currency (wallet, daily bonus, send to users, leaderboard)
+- **Polls** (create via /poll or toolbar, vote inline in chat)
+- **Stickers** (3 packs: Classic, Animals, Food — emoji-based)
+- **GIFs** (curated picker with 12 GIF categories)
+- **Chat themes** (7 color themes, per-chat, localStorage persisted)
+- **Profile viewer modal** (click any avatar to see full profile)
+- **Saved messages** (star any message, view at /saved)
+- **Bot commands**: /poll /gif /coin /flip /roll /shrug /me
 
 ## Artifacts
 
@@ -51,6 +59,8 @@ React+Vite frontend. Pages:
 - `/` → Landing (or redirect to `/chats` if signed in)
 - `/sign-in`, `/sign-up` → Clerk auth pages
 - `/chats/:chatId?` → Main chat UI (sidebar + chat window)
+- `/wallet` → Pulsecoins wallet (balance, transactions, send, leaderboard)
+- `/saved` → Saved/starred messages
 - `/settings` → Profile settings (7 tabs)
 - `/search` → User discovery
 - `/calls` → Call history
@@ -73,6 +83,27 @@ Express backend. Routes:
 - `DELETE /api/chats/:chatId/messages/:messageId`
 - `POST /api/chats/:chatId/messages/:messageId/react`
 - `POST /api/chats/:chatId/messages/:messageId/read`
+- `GET /api/wallet` — get wallet balance (auto-creates with 100 PC welcome bonus)
+- `POST /api/wallet/daily` — claim 50 PC daily bonus
+- `POST /api/wallet/send` — send Pulsecoins to another user
+- `GET /api/wallet/transactions` — transaction history
+- `GET /api/wallet/leaderboard` — top Pulsecoin holders
+- `GET /api/chats/:chatId/polls` — list polls in chat
+- `POST /api/chats/:chatId/polls` — create poll
+- `GET /api/chats/:chatId/polls/:pollId` — get poll with results
+- `POST /api/chats/:chatId/polls/:pollId/vote` — vote on poll
+
+## Database Tables
+
+- `users` — Clerk user profiles
+- `chats` — chat rooms (DM or group)
+- `chat_members` — chat membership
+- `messages` — chat messages
+- `reactions` — message emoji reactions
+- `wallets` — Pulsecoin balances per user
+- `transactions` — Pulsecoin transfer history
+- `polls` — poll questions and options
+- `poll_votes` — per-user poll votes
 
 ## Key Commands
 
@@ -89,8 +120,11 @@ Express backend. Routes:
 - Messages poll every 3 seconds for real-time feel (`refetchInterval: 3000`)
 - Typing indicators poll every 2s via direct fetch with Clerk token
 - Voice messages stored as `[voice:DURATION_SECS:base64_dataurl]` in message content
+- Poll messages stored as `[poll:ID]` in message content; frontend fetches and renders inline
 - Image URL messages auto-render inline if content matches image URL pattern
-- Starred messages stored in `localStorage` under `pulse_starred`
+- Starred/saved messages stored in `localStorage` under `pulse_starred` and `pulse_saved_messages`
+- Chat themes stored in `localStorage` under `pulse_theme_${chatId}`
+- Pulsecoins: welcome bonus 100 PC on first wallet access, 50 PC daily via POST /api/wallet/daily
 - `lib/api-zod/src/index.ts` only exports `./generated/api` (not types or schemas)
 - Tailwind uses `tailwindcss({ optimize: false })` in vite.config.ts for Clerk CSS layer compatibility
 - CSS starts with `@layer theme, base, clerk, components, utilities;`

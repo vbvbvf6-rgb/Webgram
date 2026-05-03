@@ -12,6 +12,8 @@ import ChatsPage from "@/pages/chats";
 import SettingsPage from "@/pages/settings";
 import SearchPage from "@/pages/search";
 import CallsPage from "@/pages/calls";
+import WalletPage from "@/pages/wallet";
+import SavedPage from "@/pages/saved";
 import NotFound from "@/pages/not-found";
 import { BottomNav } from "@/components/BottomNav";
 
@@ -195,6 +197,12 @@ function AppRoutes() {
           </Route>
           <Route path="/calls">
             <ProtectedRoute><CallsPage /></ProtectedRoute>
+          </Route>
+          <Route path="/wallet">
+            <ProtectedRoute><WalletPage /></ProtectedRoute>
+          </Route>
+          <Route path="/saved">
+            <ProtectedRoute><SavedPage /></ProtectedRoute>
           </Route>
           <Route component={NotFound} />
         </Switch>
