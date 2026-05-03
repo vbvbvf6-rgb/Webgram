@@ -35,9 +35,22 @@ function Avatar({ src, name, size = 40 }: { src?: string | null; name: string; s
   );
 }
 
+const GIFTS_CATALOG = [
+  { id: "rose", name: "Rose", emoji: "🌹", price: 25 },
+  { id: "star", name: "Star", emoji: "⭐", price: 30 },
+  { id: "fire", name: "Fire Heart", emoji: "❤️‍🔥", price: 50 },
+  { id: "rocket", name: "Rocket", emoji: "🚀", price: 75 },
+  { id: "crown", name: "Crown", emoji: "👑", price: 100 },
+  { id: "rainbow", name: "Rainbow", emoji: "🌈", price: 150 },
+  { id: "diamond", name: "Diamond", emoji: "💎", price: 200 },
+  { id: "trophy", name: "Trophy", emoji: "🏆", price: 500 },
+  { id: "crown-jewel", name: "Crown Jewel", emoji: "👑✨", price: 10000 },
+];
+
 const TABS = [
   { id: "wallet", label: "Wallet", icon: Zap },
   { id: "history", label: "History", icon: History },
+  { id: "gifts", label: "Gifts", icon: Gift },
   { id: "leaderboard", label: "Top", icon: Trophy },
 ];
 
@@ -47,10 +60,11 @@ export default function WalletPage() {
   const { data: me } = useGetMe();
   const { toast } = useToast();
 
-  const [tab, setTab] = useState<"wallet" | "history" | "leaderboard">("wallet");
+  const [tab, setTab] = useState<"wallet" | "history" | "gifts" | "leaderboard">("wallet");
   const [wallet, setWallet] = useState<WalletData | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+  const [gifts, setGifts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [claimLoading, setClaimLoading] = useState(false);
   const [canClaim, setCanClaim] = useState(false);
@@ -99,7 +113,13 @@ export default function WalletPage() {
     if (r.ok) setLeaderboard(await r.json());
   }, [getToken]);
 
-  useEffect(() => { fetchWallet(); fetchTransactions(); fetchLeaderboard(); }, []);
+  const fetchGifts = useCallback(async () => {
+    const token = await getToken();
+    const r = await fetch("/api/wallet/gifts", { headers: { Authorization: `Bearer ${token}` } });
+    if (r.ok) setGifts(await r.json());
+  }, [getToken]);
+
+  useEffect(() => { fetchWallet(); fetchTransactions(); fetchLeaderboard(); fetchGifts(); }, []);
 
   async function claimDaily() {
     setClaimLoading(true);
@@ -306,6 +326,44 @@ export default function WalletPage() {
                 </span>
               </motion.div>
             ))}
+          </div>
+        )}
+
+        {/* GIFTS TAB */}
+        {tab === "gifts" && (
+          <div className="px-4 pt-4 space-y-4">
+            <div className="space-y-2">
+              <p className="text-sm font-semibold">Available Gifts</p>
+              <p className="text-xs text-muted-foreground">Send gifts to your friends! Maximum support from your balance: {wallet?.balance ?? "—"} ⚡</p>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              {GIFTS_CATALOG.map(gift => {
+                const canAfford = wallet ? wallet.balance >= gift.price : false;
+                const isUltra = gift.price === 10000;
+                return (
+                  <motion.div key={gift.id}
+                    whileHover={canAfford ? { scale: 1.05 } : {}}
+                    className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border transition-all ${
+                      isUltra ? "border-yellow-500/50 bg-gradient-to-br from-yellow-500/10 to-pink-500/10" :
+                      canAfford ? "border-primary/30 bg-primary/5 hover:border-primary/50" : "border-border/50 opacity-40"
+                    } ${!canAfford ? "cursor-not-allowed" : "cursor-pointer"}`}>
+                    <span className={`text-2xl ${isUltra ? "gift-supreme" : ""}`}>{gift.emoji}</span>
+                    <p className="text-[10px] font-semibold leading-none text-center text-muted-foreground">{gift.name}</p>
+                    <p className={`text-[10px] font-bold ${isUltra ? "text-yellow-400" : "text-primary"}`}>⚡{gift.price}</p>
+                    {isUltra && <span className="text-[7px] text-yellow-400 font-bold">ULTRA RARE</span>}
+                  </motion.div>
+                );
+              })}
+            </div>
+            <div className="bg-card border border-border/80 rounded-2xl p-4 mt-6">
+              <p className="text-xs font-semibold mb-2">💎 Crown Jewel</p>
+              <p className="text-xs text-muted-foreground mb-3">The rarest gift in Droidgram! 👑✨ Shows your ultimate appreciation. Perfect for special moments and milestones.</p>
+              <div className="text-[11px] text-muted-foreground space-y-1">
+                <p>• Only 10,000 coins</p>
+                <p>• Premium animation</p>
+                <p>• Ultra rare status</p>
+              </div>
+            </div>
           </div>
         )}
 

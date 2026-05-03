@@ -28,7 +28,7 @@ import { useToast } from "@/hooks/use-toast";
 
 const EMOJIS = ["👍", "❤️", "😂", "😮", "😢", "🔥", "👏", "✅", "🎉", "💯"];
 
-const GIFTS: { id: string; name: string; emoji: string; price: number; animation: string; gradient: string; color: string; rare?: boolean }[] = [
+const GIFTS: { id: string; name: string; emoji: string; price: number; animation: string; gradient: string; color: string; rare?: boolean; ultra?: boolean }[] = [
   { id: "rose",    name: "Rose",       emoji: "🌹",  price: 25,  animation: "gift-float",   gradient: "from-rose-500/30 to-pink-600/20",     color: "text-rose-300" },
   { id: "star",    name: "Star",       emoji: "⭐",  price: 30,  animation: "gift-twinkle", gradient: "from-yellow-400/30 to-orange-500/20", color: "text-yellow-200" },
   { id: "fire",    name: "Fire Heart", emoji: "❤️‍🔥", price: 50,  animation: "gift-pulse",   gradient: "from-orange-500/30 to-red-600/20",   color: "text-orange-300" },
@@ -37,6 +37,7 @@ const GIFTS: { id: string; name: string; emoji: string; price: number; animation
   { id: "rainbow", name: "Rainbow",    emoji: "🌈",  price: 150, animation: "gift-sway",    gradient: "from-pink-500/30 to-fuchsia-600/20",  color: "text-pink-300" },
   { id: "diamond", name: "Diamond",    emoji: "💎",  price: 200, animation: "gift-spin",    gradient: "from-cyan-500/30 to-blue-600/20",     color: "text-cyan-300",  rare: true },
   { id: "trophy",  name: "Trophy",     emoji: "🏆",  price: 500, animation: "gift-shine",   gradient: "from-yellow-500/40 to-amber-700/30",  color: "text-yellow-300", rare: true },
+  { id: "crown-jewel", name: "Crown Jewel", emoji: "👑✨", price: 10000, animation: "gift-supreme", gradient: "from-yellow-400/50 via-pink-500/40 to-purple-600/50", color: "text-yellow-100", rare: true, ultra: true },
 ];
 
 const STICKER_PACKS: Record<string, string[]> = {

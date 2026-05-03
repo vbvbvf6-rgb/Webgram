@@ -987,12 +987,11 @@ export default function SettingsPage() {
                 </div>
                 <div className="bg-card border border-border/80 rounded-2xl overflow-hidden divide-y divide-border/50">
                   <SettingRow icon={Star} label="Rate Droidgram" description="Leave a review" onClick={() => toast({ title: "Thanks for rating! ⭐" })} />
-                  <SettingRow icon={Globe} label="Website" description="pulse.app" onClick={() => {}} />
-                  <SettingRow icon={Shield} label="Privacy Policy" onClick={() => {}} />
-                  <SettingRow icon={FileText} label="Terms of Service" onClick={() => {}} />
-                  <SettingRow icon={Info} label="Open source licenses" onClick={() => {}} />
+                  <SettingRow icon={Globe} label="Website" description="pulse.app" onClick={() => window.open("https://pulse.app", "_blank")} />
+                  <SettingRow icon={Shield} label="Privacy Policy" onClick={() => window.open("https://pulse.app/privacy", "_blank")} />
+                  <SettingRow icon={FileText} label="Terms of Service" onClick={() => window.open("https://pulse.app/terms", "_blank")} />
+                  <SettingRow icon={Info} label="Open source licenses" onClick={() => toast({ title: "Droidgram is open source! 🎉" })} />
                 </div>
-                <button onClick={() => applyTab("about")} className="w-full bg-primary text-primary-foreground rounded-xl py-3 font-semibold text-sm hover:bg-primary/90 transition-colors">Apply about</button>
                 <div className="grid gap-4">
                   <div className="bg-card border border-border rounded-2xl p-4 space-y-3">
                     <div className="flex items-center gap-2">
