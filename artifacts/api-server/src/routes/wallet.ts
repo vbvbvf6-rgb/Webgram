@@ -102,15 +102,33 @@ router.post("/send", requireAuth, async (req: AuthenticatedRequest, res): Promis
 });
 
 const GIFT_CATALOG: Record<string, { name: string; price: number }> = {
-  rose:         { name: "Rose",        price: 25   },
-  star:         { name: "Star",        price: 30   },
-  fire:         { name: "Fire Heart",  price: 50   },
-  rocket:       { name: "Rocket",      price: 75   },
-  crown:        { name: "Crown",       price: 100  },
-  magic:        { name: "Magic",       price: 150  },
-  diamond:      { name: "Diamond",     price: 200  },
-  trophy:       { name: "Trophy",      price: 500  },
-  "crown-jewel": { name: "Crown Jewel", price: 10000 },
+  heart:        { name: "Heart",         price: 15    },
+  candy:        { name: "Candy",         price: 20    },
+  rose:         { name: "Rose",          price: 25    },
+  star:         { name: "Star",          price: 30    },
+  cake:         { name: "Cake",          price: 35    },
+  teddy:        { name: "Teddy Bear",    price: 45    },
+  fire:         { name: "Fire Heart",    price: 50    },
+  butterfly:    { name: "Butterfly",     price: 60    },
+  bear:         { name: "Bear",          price: 70    },
+  rocket:       { name: "Rocket",        price: 75    },
+  snowflake:    { name: "Snowflake",     price: 80    },
+  unicorn:      { name: "Unicorn",       price: 90    },
+  crown:        { name: "Crown",         price: 100   },
+  rainbow:      { name: "Rainbow",       price: 120   },
+  magic:        { name: "Magic",         price: 150   },
+  ninja:        { name: "Ninja",         price: 175   },
+  diamond:      { name: "Diamond",       price: 200   },
+  crystal:      { name: "Crystal Ball",  price: 250   },
+  dragon:       { name: "Dragon",        price: 350   },
+  galaxy:       { name: "Galaxy",        price: 450   },
+  trophy:       { name: "Trophy",        price: 500   },
+  alien:        { name: "Alien",         price: 700   },
+  nazar:        { name: "Nazar Amulet",  price: 1000  },
+  infinity:     { name: "Infinity",      price: 2500  },
+  universe:     { name: "Universe",      price: 5000  },
+  "crown-jewel": { name: "Crown Jewel",  price: 10000 },
+  godmode:      { name: "God Mode",      price: 25000 },
 };
 
 router.post("/gift", requireAuth, async (req: AuthenticatedRequest, res): Promise<void> => {
@@ -208,9 +226,15 @@ router.post("/gift/:id/sell", requireAuth, async (req: AuthenticatedRequest, res
     if (gift[0].toUserId !== me.id) { res.status(403).json({ error: "You don't own this gift" }); return; }
     
     const SELL_GIFT_PRICES: Record<string, { price: number }> = {
-      "rose": { price: 25 }, "star": { price: 30 }, "fire": { price: 50 },
-      "rocket": { price: 75 }, "crown": { price: 100 }, "magic": { price: 150 },
-      "diamond": { price: 200 }, "trophy": { price: 500 }, "crown-jewel": { price: 10000 },
+      heart: { price: 15 }, candy: { price: 20 }, rose: { price: 25 },
+      star: { price: 30 }, cake: { price: 35 }, teddy: { price: 45 },
+      fire: { price: 50 }, butterfly: { price: 60 }, bear: { price: 70 },
+      rocket: { price: 75 }, snowflake: { price: 80 }, unicorn: { price: 90 },
+      crown: { price: 100 }, rainbow: { price: 120 }, magic: { price: 150 },
+      ninja: { price: 175 }, diamond: { price: 200 }, crystal: { price: 250 },
+      dragon: { price: 350 }, galaxy: { price: 450 }, trophy: { price: 500 },
+      alien: { price: 700 }, nazar: { price: 1000 }, infinity: { price: 2500 },
+      universe: { price: 5000 }, "crown-jewel": { price: 10000 }, godmode: { price: 25000 },
     };
     const giftInfo = SELL_GIFT_PRICES[gift[0].giftId];
     const sellPrice = Math.floor((giftInfo?.price || 0) * 0.5);

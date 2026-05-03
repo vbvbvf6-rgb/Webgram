@@ -29,16 +29,34 @@ import { useToast } from "@/hooks/use-toast";
 
 const EMOJIS = ["👍", "❤️", "😂", "😮", "😢", "🔥", "👏", "✅", "🎉", "💯"];
 
-const GIFTS: { id: string; name: string; icon: any; price: number; animation: string; gradient: string; color: string; emoji?: string; rare?: boolean; ultra?: boolean }[] = [
-  { id: "rose",      name: "Rose",       icon: Flower2,  price: 25,   animation: "gift-float",   gradient: "from-rose-500/30 to-pink-600/20",     color: "text-rose-400", emoji: "🌹" },
-  { id: "star",      name: "Star",       icon: Star,     price: 30,   animation: "gift-twinkle", gradient: "from-yellow-400/30 to-orange-500/20", color: "text-yellow-300", emoji: "⭐" },
-  { id: "fire",      name: "Fire Heart", icon: Flame,    price: 50,   animation: "gift-pulse",   gradient: "from-orange-500/30 to-red-600/20",   color: "text-orange-400", emoji: "🔥" },
-  { id: "rocket",    name: "Rocket",     icon: Rocket,   price: 75,   animation: "gift-launch",  gradient: "from-violet-500/30 to-purple-600/20", color: "text-violet-400", emoji: "🚀" },
-  { id: "crown",     name: "Crown",      icon: Crown,    price: 100,  animation: "gift-bounce",  gradient: "from-yellow-500/30 to-amber-600/20",  color: "text-yellow-400", emoji: "👑" },
-  { id: "magic",     name: "Magic",      icon: Wand2,    price: 150,  animation: "gift-sway",    gradient: "from-pink-500/30 to-fuchsia-600/20",  color: "text-pink-400", emoji: "✨" },
-  { id: "diamond",   name: "Diamond",    icon: Gem,      price: 200,  animation: "gift-spin",    gradient: "from-cyan-500/30 to-blue-600/20",     color: "text-cyan-400",  emoji: "💎", rare: true },
-  { id: "trophy",    name: "Trophy",     icon: Trophy,   price: 500,  animation: "gift-shine",   gradient: "from-yellow-500/40 to-amber-700/30",  color: "text-yellow-400", emoji: "🏆", rare: true },
-  { id: "crown-jewel", name: "Crown Jewel", icon: Crown, price: 10000, animation: "gift-supreme", gradient: "from-yellow-400/50 via-pink-500/40 to-purple-600/50", color: "text-yellow-300", emoji: "👑💎", rare: true, ultra: true },
+const GIFTS: { id: string; name: string; icon: any; price: number; animation: string; gradient: string; color: string; emoji: string; category: string; rare?: boolean; ultra?: boolean }[] = [
+  { id: "heart",      name: "Heart",        icon: Heart,    price: 15,    emoji: "❤️",   animation: "gift-pulse",   gradient: "from-rose-500/30 to-pink-600/20",                             color: "text-rose-400",    category: "love" },
+  { id: "candy",      name: "Candy",        icon: Sparkles, price: 20,    emoji: "🍬",   animation: "gift-bounce",  gradient: "from-pink-500/30 to-red-500/20",                              color: "text-pink-400",    category: "love" },
+  { id: "rose",       name: "Rose",         icon: Flower2,  price: 25,    emoji: "🌹",   animation: "gift-float",   gradient: "from-rose-500/30 to-pink-600/20",                             color: "text-rose-400",    category: "love" },
+  { id: "star",       name: "Star",         icon: Star,     price: 30,    emoji: "⭐",   animation: "gift-twinkle", gradient: "from-yellow-400/30 to-orange-500/20",                         color: "text-yellow-300",  category: "fun" },
+  { id: "cake",       name: "Cake",         icon: Sparkles, price: 35,    emoji: "🎂",   animation: "gift-pulse",   gradient: "from-pink-500/30 to-orange-500/20",                           color: "text-pink-300",    category: "love" },
+  { id: "teddy",      name: "Teddy Bear",   icon: Heart,    price: 45,    emoji: "🧸",   animation: "gift-sway",    gradient: "from-amber-500/30 to-yellow-600/20",                          color: "text-amber-400",   category: "love" },
+  { id: "fire",       name: "Fire Heart",   icon: Flame,    price: 50,    emoji: "🔥",   animation: "gift-pulse",   gradient: "from-orange-500/30 to-red-600/20",                            color: "text-orange-400",  category: "fun" },
+  { id: "butterfly",  name: "Butterfly",    icon: Sparkles, price: 60,    emoji: "🦋",   animation: "gift-sway",    gradient: "from-purple-500/30 to-pink-600/20",                           color: "text-purple-400",  category: "nature" },
+  { id: "bear",       name: "Bear",         icon: Heart,    price: 70,    emoji: "🐻",   animation: "gift-bounce",  gradient: "from-amber-600/30 to-yellow-700/20",                          color: "text-amber-500",   category: "nature" },
+  { id: "rocket",     name: "Rocket",       icon: Rocket,   price: 75,    emoji: "🚀",   animation: "gift-launch",  gradient: "from-violet-500/30 to-purple-600/20",                         color: "text-violet-400",  category: "fun" },
+  { id: "snowflake",  name: "Snowflake",    icon: Sparkles, price: 80,    emoji: "❄️",   animation: "gift-twinkle", gradient: "from-sky-500/30 to-blue-600/20",                              color: "text-sky-400",     category: "nature" },
+  { id: "unicorn",    name: "Unicorn",      icon: Wand2,    price: 90,    emoji: "🦄",   animation: "gift-float",   gradient: "from-pink-500/30 to-violet-500/20",                           color: "text-pink-300",    category: "nature" },
+  { id: "crown",      name: "Crown",        icon: Crown,    price: 100,   emoji: "👑",   animation: "gift-bounce",  gradient: "from-yellow-500/30 to-amber-600/20",                          color: "text-yellow-400",  category: "power" },
+  { id: "rainbow",    name: "Rainbow",      icon: Wand2,    price: 120,   emoji: "🌈",   animation: "gift-sway",    gradient: "from-pink-500/30 to-blue-500/20",                             color: "text-pink-300",    category: "nature" },
+  { id: "magic",      name: "Magic",        icon: Wand2,    price: 150,   emoji: "✨",   animation: "gift-sway",    gradient: "from-pink-500/30 to-fuchsia-600/20",                          color: "text-pink-400",    category: "power" },
+  { id: "ninja",      name: "Ninja",        icon: Award,    price: 175,   emoji: "🥷",   animation: "gift-spin",    gradient: "from-slate-500/30 to-gray-700/20",                            color: "text-slate-300",   category: "power" },
+  { id: "diamond",    name: "Diamond",      icon: Gem,      price: 200,   emoji: "💎",   animation: "gift-spin",    gradient: "from-cyan-500/30 to-blue-600/20",                             color: "text-cyan-400",    category: "power",  rare: true },
+  { id: "crystal",    name: "Crystal Ball", icon: Gem,      price: 250,   emoji: "🔮",   animation: "gift-float",   gradient: "from-violet-500/30 to-indigo-600/20",                         color: "text-violet-300",  category: "power",  rare: true },
+  { id: "dragon",     name: "Dragon",       icon: Flame,    price: 350,   emoji: "🐉",   animation: "gift-pulse",   gradient: "from-green-600/30 to-emerald-700/20",                         color: "text-green-400",   category: "power",  rare: true },
+  { id: "galaxy",     name: "Galaxy",       icon: Star,     price: 450,   emoji: "🌌",   animation: "gift-shine",   gradient: "from-indigo-600/30 to-violet-800/20",                         color: "text-indigo-300",  category: "ultra",  rare: true },
+  { id: "trophy",     name: "Trophy",       icon: Trophy,   price: 500,   emoji: "🏆",   animation: "gift-shine",   gradient: "from-yellow-500/40 to-amber-700/30",                          color: "text-yellow-400",  category: "ultra",  rare: true },
+  { id: "alien",      name: "Alien",        icon: Star,     price: 700,   emoji: "👽",   animation: "gift-float",   gradient: "from-green-500/30 to-teal-700/20",                            color: "text-green-400",   category: "ultra",  rare: true },
+  { id: "nazar",      name: "Nazar Amulet", icon: Gem,      price: 1000,  emoji: "🧿",   animation: "gift-spin",    gradient: "from-blue-600/30 to-cyan-800/20",                             color: "text-blue-300",    category: "ultra",  rare: true },
+  { id: "infinity",   name: "Infinity",     icon: Wand2,    price: 2500,  emoji: "♾️",   animation: "gift-supreme", gradient: "from-white/10 via-slate-500/20 to-indigo-800/30",             color: "text-white",       category: "ultra",  rare: true, ultra: true },
+  { id: "universe",   name: "Universe",     icon: Star,     price: 5000,  emoji: "🌟",   animation: "gift-supreme", gradient: "from-indigo-600/50 via-violet-600/40 to-pink-600/50",         color: "text-white",       category: "ultra",  rare: true, ultra: true },
+  { id: "crown-jewel",name: "Crown Jewel",  icon: Crown,    price: 10000, emoji: "👑💎", animation: "gift-supreme", gradient: "from-yellow-400/50 via-pink-500/40 to-purple-600/50",         color: "text-yellow-300",  category: "ultra",  rare: true, ultra: true },
+  { id: "godmode",    name: "God Mode",     icon: Crown,    price: 25000, emoji: "⚡👑⚡",animation: "gift-supreme", gradient: "from-white/20 via-yellow-400/30 to-violet-600/50",            color: "text-white",       category: "ultra",  rare: true, ultra: true },
 ];
 
 const STICKER_PACKS: Record<string, string[]> = {
@@ -882,6 +900,9 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
     selectedGift: typeof GIFTS[0] | null;
     loading: boolean;
     message: string;
+    tab: "gifts" | "stickers";
+    category: string;
+    stickerPack: string;
   } | null>(null);
 
   const chat = (chats || []).find((c: any) => c.id === chatId);
@@ -1997,13 +2018,12 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
                             if (displayContent?.match(/^\[poll:(\d+)\]$/)) {
                               return <PollMessage pollId={Number(displayContent.match(/^\[poll:(\d+)\]$/)![1])} pollsData={pollsData} onVote={votePoll} myId={myId} />;
                             }
-                            if (displayContent?.match(/^\[gift:[a-z]+:.+\]$/)) {
-                              const m = displayContent.match(/^\[gift:([a-z]+):(.+)\]$/);
+                            if (displayContent?.match(/^\[gift:[a-z-]+:.+\]$/)) {
+                              const m = displayContent.match(/^\[gift:([a-z-]+):(.+)\]$/);
                               if (m) {
                                 const gift = GIFTS.find(g => g.id === m[1]);
                                 const senderName = m[2];
                                 if (gift) {
-                                  const Icon = gift.icon;
                                   return (
                                     <div className={`gift-appear flex flex-col items-center gap-2 py-3 px-4 bg-gradient-to-br ${gift.gradient} rounded-xl min-w-[130px] relative overflow-hidden`}>
                                       {gift.rare && (
@@ -2016,7 +2036,7 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
                                           ))}
                                         </div>
                                       )}
-                                      <Icon size={56} className={`${gift.animation} ${gift.color}`} />
+                                      <span className={`text-5xl ${gift.animation}`}>{gift.emoji}</span>
                                       <div className="text-center">
                                         <p className={`text-xs font-bold ${gift.color}`}>{gift.name}</p>
                                         <p className="text-[10px] text-white/60 mt-0.5">from {senderName}</p>
@@ -2487,9 +2507,9 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
                   onClick={() => {
                     const otherUser = chat?.type === "direct" ? chat.members?.find((m: any) => m.id !== myId) : null;
                     if (otherUser) {
-                      setGiftModal({ step: "pick_gift", search: "", recipient: otherUser, selectedGift: null, loading: false, message: "" });
+                      setGiftModal({ step: "pick_gift", search: "", recipient: otherUser, selectedGift: null, loading: false, message: "", tab: "gifts", category: "all", stickerPack: "❤️ Love" });
                     } else {
-                      setGiftModal({ step: "pick_gift", search: "", recipient: null, selectedGift: null, loading: false, message: "" });
+                      setGiftModal({ step: "pick_gift", search: "", recipient: null, selectedGift: null, loading: false, message: "", tab: "gifts", category: "all", stickerPack: "❤️ Love" });
                     }
                   }}
                   className={`w-8 h-8 flex items-center justify-center rounded-xl transition-all shrink-0 ${giftModal ? "bg-fuchsia-500/20 text-fuchsia-400" : "text-muted-foreground hover:text-foreground"}`} title="Send a gift">
@@ -3082,33 +3102,99 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
               })()}
 
               {/* Step 1: pick gift */}
-              {giftModal.step === "pick_gift" && giftModal.recipient && (
-                <div className="p-3">
-                  {walletBal !== null && (
-                    <p className="text-[11px] text-muted-foreground mb-2 text-center">
-                      Your balance: <span className="text-fuchsia-400 font-bold">⚡ {walletBal}</span>
-                    </p>
-                  )}
-                  <div className="grid grid-cols-4 gap-2">
-                    {GIFTS.map(gift => {
-                      const canAfford = walletBal === null || walletBal >= gift.price;
-                      const Icon = gift.icon;
-                      return (
-                        <motion.button key={gift.id} whileTap={{ scale: 0.92 }} whileHover={{ scale: 1.05 }}
-                          onClick={() => canAfford && setGiftModal(m => m ? { ...m, step: "confirm", selectedGift: gift, message: "" } : null)}
-                          className={`flex flex-col items-center gap-1.5 p-2.5 rounded-xl border transition-all relative
-                            ${canAfford ? "hover:border-fuchsia-500/50 hover:bg-fuchsia-500/10 cursor-pointer" : "opacity-40 cursor-not-allowed"}
-                            ${gift.rare ? "border-yellow-500/40 bg-yellow-500/5" : "border-border bg-accent/30"}`}>
-                          {gift.rare && <span className="absolute top-0.5 right-0.5 text-[8px]">✨</span>}
-                          <Icon size={28} className={`${gift.animation} ${gift.color}`} />
-                          <p className="text-[9px] font-semibold leading-none text-muted-foreground">{gift.name}</p>
-                          <p className="text-[9px] font-bold text-fuchsia-400">⚡{gift.price}</p>
-                        </motion.button>
-                      );
-                    })}
+              {giftModal.step === "pick_gift" && giftModal.recipient && (() => {
+                const GIFT_CATEGORIES = [
+                  { id: "all", label: "All" },
+                  { id: "love", label: "🩷 Love" },
+                  { id: "nature", label: "🌿 Nature" },
+                  { id: "fun", label: "🎉 Fun" },
+                  { id: "power", label: "💪 Power" },
+                  { id: "ultra", label: "🌟 Ultra" },
+                ];
+                const stickerPackNames = Object.keys(STICKER_PACKS);
+                const filteredGifts = giftModal.category === "all" ? GIFTS : GIFTS.filter(g => g.category === giftModal.category);
+                return (
+                  <div>
+                    {/* Gifts / Stickers tab toggle */}
+                    <div className="flex border-b border-border">
+                      {(["gifts", "stickers"] as const).map(t => (
+                        <button key={t} onClick={() => setGiftModal(m => m ? { ...m, tab: t } : null)}
+                          className={`flex-1 py-2.5 text-xs font-semibold transition-colors ${giftModal.tab === t ? "text-fuchsia-400 border-b-2 border-fuchsia-400" : "text-muted-foreground hover:text-foreground"}`}>
+                          {t === "gifts" ? "🎁 Gifts" : "😊 Stickers"}
+                        </button>
+                      ))}
+                    </div>
+
+                    {giftModal.tab === "gifts" && (
+                      <>
+                        {/* Category filter */}
+                        <div className="flex gap-1 px-3 pt-2.5 pb-1 overflow-x-auto scrollbar-none">
+                          {GIFT_CATEGORIES.map(cat => (
+                            <button key={cat.id} onClick={() => setGiftModal(m => m ? { ...m, category: cat.id } : null)}
+                              className={`shrink-0 px-2.5 py-1 rounded-full text-[10px] font-semibold transition-all ${giftModal.category === cat.id ? "bg-fuchsia-500 text-white" : "bg-accent text-muted-foreground hover:bg-accent/80"}`}>
+                              {cat.label}
+                            </button>
+                          ))}
+                        </div>
+                        {/* Balance */}
+                        {walletBal !== null && (
+                          <p className="text-[10px] text-muted-foreground px-3 pb-1">
+                            Balance: <span className="text-fuchsia-400 font-bold">⚡ {walletBal}</span>
+                          </p>
+                        )}
+                        {/* Gift grid */}
+                        <div className="grid grid-cols-5 gap-1.5 p-3 pt-1 max-h-64 overflow-y-auto">
+                          {filteredGifts.map(gift => {
+                            const canAfford = walletBal === null || walletBal >= gift.price;
+                            return (
+                              <motion.button key={gift.id} whileTap={{ scale: 0.88 }} whileHover={{ scale: 1.08 }}
+                                onClick={() => canAfford && setGiftModal(m => m ? { ...m, step: "confirm", selectedGift: gift, message: "" } : null)}
+                                className={`flex flex-col items-center gap-1 p-2 rounded-xl border transition-all relative
+                                  ${canAfford ? "cursor-pointer" : "opacity-35 cursor-not-allowed"}
+                                  ${gift.ultra ? "border-yellow-400/50 bg-gradient-to-br from-yellow-500/10 to-violet-500/10" :
+                                    gift.rare ? "border-yellow-500/30 bg-yellow-500/5" :
+                                    "border-border/60 bg-accent/20 hover:border-fuchsia-500/40 hover:bg-fuchsia-500/8"}`}>
+                                {gift.ultra && <span className="absolute -top-1 -right-1 text-[8px] bg-yellow-400 text-black rounded-full w-3.5 h-3.5 flex items-center justify-center font-bold">★</span>}
+                                <span className={`text-2xl leading-none ${gift.animation}`}>{gift.emoji}</span>
+                                <p className="text-[8px] font-medium leading-none text-center text-muted-foreground truncate w-full">{gift.name}</p>
+                                <p className="text-[8px] font-bold text-fuchsia-400">⚡{gift.price}</p>
+                              </motion.button>
+                            );
+                          })}
+                        </div>
+                      </>
+                    )}
+
+                    {giftModal.tab === "stickers" && (
+                      <>
+                        {/* Sticker pack selector */}
+                        <div className="flex gap-1 px-3 pt-2.5 pb-1 overflow-x-auto scrollbar-none">
+                          {stickerPackNames.map(pack => (
+                            <button key={pack} onClick={() => setGiftModal(m => m ? { ...m, stickerPack: pack } : null)}
+                              className={`shrink-0 px-2.5 py-1 rounded-full text-[10px] font-semibold transition-all ${giftModal.stickerPack === pack ? "bg-fuchsia-500 text-white" : "bg-accent text-muted-foreground hover:bg-accent/80"}`}>
+                              {pack}
+                            </button>
+                          ))}
+                        </div>
+                        {/* Sticker grid */}
+                        <div className="grid grid-cols-6 gap-1 p-3 pt-2 max-h-64 overflow-y-auto">
+                          {(STICKER_PACKS[giftModal.stickerPack] || []).map((emoji, i) => (
+                            <motion.button key={i} whileTap={{ scale: 0.8 }} whileHover={{ scale: 1.2 }}
+                              onClick={async () => {
+                                await sendMessage.mutateAsync({ chatId, data: { content: emoji, replyToId: null } });
+                                setGiftModal(null);
+                              }}
+                              className="flex items-center justify-center w-full aspect-square rounded-xl hover:bg-fuchsia-500/10 transition-colors text-2xl">
+                              {emoji}
+                            </motion.button>
+                          ))}
+                        </div>
+                        <p className="text-[9px] text-muted-foreground text-center pb-2">Tap a sticker to send it</p>
+                      </>
+                    )}
                   </div>
-                </div>
-              )}
+                );
+              })()}
 
               {/* Step 2: confirm */}
               {giftModal.step === "confirm" && giftModal.selectedGift && giftModal.recipient && (() => {
@@ -3151,7 +3237,7 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
                   <div className="p-4 space-y-4">
                     {/* Gift preview */}
                     <div className={`flex flex-col items-center gap-3 py-5 bg-gradient-to-br ${gift.gradient} rounded-xl border border-white/10`}>
-                      <Icon size={64} className={`${gift.animation} ${gift.color}`} />
+                      <span className={`text-7xl leading-none ${gift.animation}`}>{gift.emoji}</span>
                       <div className="text-center">
                         <p className={`font-bold ${gift.color}`}>{gift.name}</p>
                         <p className="text-xs text-white/60 mt-0.5">for {giftModal.recipient.displayName}</p>

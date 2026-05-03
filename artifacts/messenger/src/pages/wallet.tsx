@@ -7,8 +7,8 @@ import { useToast } from "@/hooks/use-toast";
 import {
   ArrowLeft, Zap, Send, Gift, Trophy, TrendingUp,
   History, ChevronRight, User, Check, X, RefreshCw,
-  Coins, Star, Crown, Award, Sparkles, Clock,
-  Flame, Rocket, Wand2, Gem, Flower2,
+  Star, Crown, Award, Sparkles, Clock, Coins,
+  Flame, Rocket, Wand2, Gem, Flower2, Heart,
 } from "lucide-react";
 
 interface WalletData {
@@ -37,15 +37,33 @@ function Avatar({ src, name, size = 40 }: { src?: string | null; name: string; s
 }
 
 const GIFTS_CATALOG = [
-  { id: "rose", name: "Rose", icon: Flower2, price: 25 },
-  { id: "star", name: "Star", icon: Star, price: 30 },
-  { id: "fire", name: "Fire Heart", icon: Flame, price: 50 },
-  { id: "rocket", name: "Rocket", icon: Rocket, price: 75 },
-  { id: "crown", name: "Crown", icon: Crown, price: 100 },
-  { id: "magic", name: "Magic", icon: Wand2, price: 150 },
-  { id: "diamond", name: "Diamond", icon: Gem, price: 200 },
-  { id: "trophy", name: "Trophy", icon: Trophy, price: 500 },
-  { id: "crown-jewel", name: "Crown Jewel", icon: Crown, price: 10000 },
+  { id: "heart",       name: "Heart",        icon: Heart,    emoji: "❤️",   price: 15    },
+  { id: "candy",       name: "Candy",        icon: Sparkles, emoji: "🍬",   price: 20    },
+  { id: "rose",        name: "Rose",         icon: Flower2,  emoji: "🌹",   price: 25    },
+  { id: "star",        name: "Star",         icon: Star,     emoji: "⭐",   price: 30    },
+  { id: "cake",        name: "Cake",         icon: Sparkles, emoji: "🎂",   price: 35    },
+  { id: "teddy",       name: "Teddy Bear",   icon: Heart,    emoji: "🧸",   price: 45    },
+  { id: "fire",        name: "Fire Heart",   icon: Flame,    emoji: "🔥",   price: 50    },
+  { id: "butterfly",   name: "Butterfly",    icon: Sparkles, emoji: "🦋",   price: 60    },
+  { id: "bear",        name: "Bear",         icon: Heart,    emoji: "🐻",   price: 70    },
+  { id: "rocket",      name: "Rocket",       icon: Rocket,   emoji: "🚀",   price: 75    },
+  { id: "snowflake",   name: "Snowflake",    icon: Sparkles, emoji: "❄️",   price: 80    },
+  { id: "unicorn",     name: "Unicorn",      icon: Wand2,    emoji: "🦄",   price: 90    },
+  { id: "crown",       name: "Crown",        icon: Crown,    emoji: "👑",   price: 100   },
+  { id: "rainbow",     name: "Rainbow",      icon: Wand2,    emoji: "🌈",   price: 120   },
+  { id: "magic",       name: "Magic",        icon: Wand2,    emoji: "✨",   price: 150   },
+  { id: "ninja",       name: "Ninja",        icon: Award,    emoji: "🥷",   price: 175   },
+  { id: "diamond",     name: "Diamond",      icon: Gem,      emoji: "💎",   price: 200   },
+  { id: "crystal",     name: "Crystal Ball", icon: Gem,      emoji: "🔮",   price: 250   },
+  { id: "dragon",      name: "Dragon",       icon: Flame,    emoji: "🐉",   price: 350   },
+  { id: "galaxy",      name: "Galaxy",       icon: Star,     emoji: "🌌",   price: 450   },
+  { id: "trophy",      name: "Trophy",       icon: Trophy,   emoji: "🏆",   price: 500   },
+  { id: "alien",       name: "Alien",        icon: Star,     emoji: "👽",   price: 700   },
+  { id: "nazar",       name: "Nazar Amulet", icon: Gem,      emoji: "🧿",   price: 1000  },
+  { id: "infinity",    name: "Infinity",     icon: Wand2,    emoji: "♾️",   price: 2500  },
+  { id: "universe",    name: "Universe",     icon: Star,     emoji: "🌟",   price: 5000  },
+  { id: "crown-jewel", name: "Crown Jewel",  icon: Crown,    emoji: "👑💎", price: 10000 },
+  { id: "godmode",     name: "God Mode",     icon: Crown,    emoji: "⚡👑⚡",price: 25000 },
 ];
 
 const TABS = [
@@ -357,24 +375,25 @@ export default function WalletPage() {
             <div className="space-y-3">
               <p className="text-sm font-semibold">Gift Shop</p>
               <p className="text-xs text-muted-foreground">Balance: {wallet?.balance ?? "—"} ⚡</p>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-4 gap-2">
                 {GIFTS_CATALOG.map(gift => {
                   const canAfford = wallet ? wallet.balance >= gift.price : false;
-                  const isUltra = gift.price === 10000;
-                  const Icon = gift.icon;
+                  const isUltra = gift.price >= 10000;
+                  const isRare = gift.price >= 450;
                   return (
                     <motion.button key={gift.id}
                       whileHover={canAfford ? { scale: 1.05 } : {}}
                       onClick={() => canAfford && setGiftAction({ type: "buy", giftId: gift.id })}
                       disabled={!canAfford}
-                      className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border transition-all ${
+                      className={`flex flex-col items-center gap-1 p-2.5 rounded-xl border transition-all relative ${
                         isUltra ? "border-yellow-500/50 bg-gradient-to-br from-yellow-500/10 to-pink-500/10" :
+                        isRare ? "border-yellow-500/30 bg-yellow-500/5" :
                         canAfford ? "border-primary/30 bg-primary/5 hover:border-primary/50 cursor-pointer" : "border-border/50 opacity-40 cursor-not-allowed"
                       }`}>
-                      <Icon size={24} className={isUltra ? "gift-supreme" : ""} />
-                      <p className="text-[10px] font-semibold leading-none text-center text-muted-foreground">{gift.name}</p>
-                      <p className={`text-[10px] font-bold ${isUltra ? "text-yellow-400" : "text-primary"}`}>⚡{gift.price}</p>
-                      {isUltra && <span className="text-[7px] text-yellow-400 font-bold">ULTRA RARE</span>}
+                      {isUltra && <span className="absolute -top-1 -right-1 text-[7px] bg-yellow-400 text-black rounded-full w-3 h-3 flex items-center justify-center font-bold">★</span>}
+                      <span className="text-2xl leading-none">{gift.emoji}</span>
+                      <p className="text-[9px] font-semibold leading-none text-center text-muted-foreground">{gift.name}</p>
+                      <p className={`text-[9px] font-bold ${isUltra ? "text-yellow-400" : "text-primary"}`}>⚡{gift.price}</p>
                     </motion.button>
                   );
                 })}
@@ -398,11 +417,10 @@ export default function WalletPage() {
                   {gifts.map(gift => {
                     const giftInfo = GIFTS_CATALOG.find(g => g.id === gift.giftId);
                     const sellPrice = Math.floor((giftInfo?.price || 0) * 0.5);
-                    const Icon = giftInfo?.icon;
                     return (
                       <motion.div key={gift.id} initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}
                         className="flex items-center gap-3 p-3 rounded-xl bg-card border border-border/60 hover:border-primary/30 transition-colors">
-                        {Icon && <Icon size={24} className="text-primary shrink-0" />}
+                        <span className="text-2xl shrink-0">{giftInfo?.emoji ?? "🎁"}</span>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-semibold">{giftInfo?.name || "Unknown"}</p>
                           <p className="text-[10px] text-muted-foreground">from {gift.fromUser.displayName}</p>
