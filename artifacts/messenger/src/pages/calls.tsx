@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { ArrowLeft, Phone, Video, PhoneIncoming, PhoneMissed, PhoneOff, Clock, Search } from "lucide-react";
+import { ArrowLeft, Phone, Video, PhoneIncoming, PhoneMissed, PhoneOff, Clock, Search, Mic, MicOff, Volume2, VolumeX, VideoOff } from "lucide-react";
 import { useGetChats, useGetMe } from "@workspace/api-client-react";
 import { motion, AnimatePresence } from "framer-motion";
 

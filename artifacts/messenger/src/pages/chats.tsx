@@ -1,25 +1,36 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useLocation } from "wouter";
-import { useUser, useClerk } from "@clerk/react";
+import { useUser, useClerk, useAuth } from "@clerk/react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Send, Search, Plus, LogOut, Reply,
   Edit2, Trash2, Smile, X, Check, CheckCheck, Users, MessageSquare,
-  ArrowLeft, ChevronDown, Hash, Phone, Video,
-  PhoneOff, VideoOff, MicOff, Mic, Volume2, VolumeX, PhoneCall,
-  Copy, Forward, MoreHorizontal,
+  ArrowLeft, ChevronDown, Phone, Video,
+  PhoneOff, VideoOff, MicOff, Mic, Volume2, VolumeX,
+  Copy, MoreHorizontal, Pin, PinOff, ImageIcon, Play, Pause,
+  Star, StopCircle, ExternalLink, Keyboard, Hash,
 } from "lucide-react";
 import {
   useGetMe, useGetChats, useGetMessages, useSendMessage,
   useEditMessage, useDeleteMessage, useReactToMessage, useMarkMessageRead,
   useCreateChat, getGetChatsQueryKey, getGetMessagesQueryKey,
   useSearchUsers, useGetChatStats, useGetOnlineUsers, useUpdateMe,
-  getGetMeQueryKey,
+  getGetMeQueryKey, getGetOnlineUsersQueryKey, getSearchUsersQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 
 const EMOJIS = ["👍", "❤️", "😂", "😮", "😢", "🔥", "👏", "✅", "🎉", "💯"];
+
+const EMOJI_CATEGORIES: Record<string, string[]> = {
+  "😀 Smileys": ["😀","😂","😍","🥰","😎","😭","😤","🤔","😴","🥳","😱","🤩","😅","🫡","🥲","😇"],
+  "👋 People":  ["👍","👎","🙌","👏","🤝","✌️","🤞","💪","🫶","🙏","✋","👌","🫂","🤜","💅","🤙"],
+  "❤️ Hearts":  ["❤️","🧡","💛","💚","💙","💜","🖤","🤍","💔","❣️","💕","💗","💓","💞","💖","🔥"],
+  "🐱 Animals": ["🐱","🐶","🐼","🦊","🐨","🦁","🐸","🦋","🐝","🌸","🍀","⭐","🌈","☀️","🌙","❄️"],
+  "🍕 Food":    ["🍕","🍔","🌮","🍜","🍣","🍰","🎂","🍺","☕","🧃","🍓","🍊","🥑","🌶️","🫙","🍫"],
+  "🎉 Fun":     ["🎉","🎊","🎈","🎁","🏆","🥇","🎮","🎸","🎵","✈️","🚀","⚽","🎯","💎","🪄","🔮"],
+  "💯 Symbols": ["💯","✅","❌","⚠️","💡","🔥","⚡","🌟","💫","🎯","🔑","💬","📱","💻","🖥️","🔔"],
+};
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -123,6 +134,78 @@ interface Message {
   updatedAt: string;
 }
 
+// ─── Rich text renderer ───────────────────────────────────────────────────────
+
+function renderRichText(content: string): React.ReactNode {
+  if (!content) return null;
+  const trimmed = content.trim();
+  // Big emoji if message is purely 1-3 emoji
+  if (/^(\p{Emoji_Presentation}|\p{Extended_Pictographic}){1,3}$/u.test(trimmed)) {
+    return <span className="text-4xl leading-snug">{trimmed}</span>;
+  }
+  // Image URL → inline image
+  if (/^https?:\/\/\S+\.(jpg|jpeg|png|gif|webp|svg|avif)(\?[^\s]*)?$/i.test(trimmed)) {
+    return (
+      <div className="space-y-1.5">
+        <img src={trimmed} alt="" className="max-w-full rounded-xl max-h-60 object-cover shadow-lg cursor-pointer" onClick={() => window.open(trimmed, "_blank")} onError={e => { (e.currentTarget as HTMLImageElement).style.display = "none"; }} />
+        <a href={trimmed} target="_blank" rel="noopener noreferrer" className="text-[10px] opacity-50 hover:opacity-70 flex items-center gap-1 underline">
+          <ExternalLink size={9} />Open image
+        </a>
+      </div>
+    );
+  }
+  // Tokenize for bold/italic/code/links
+  const tokens = content.split(/(\*\*[^*\n]+\*\*|_[^_\n]{1,80}_|`[^`\n]+`|https?:\/\/[^\s]+)/g);
+  return (
+    <p className="leading-relaxed whitespace-pre-wrap break-words">
+      {tokens.map((tok, i) => {
+        if (tok.startsWith("**") && tok.endsWith("**") && tok.length > 4)
+          return <strong key={i} className="font-semibold">{tok.slice(2,-2)}</strong>;
+        if (tok.startsWith("_") && tok.endsWith("_") && tok.length > 2)
+          return <em key={i} className="italic">{tok.slice(1,-1)}</em>;
+        if (tok.startsWith("`") && tok.endsWith("`") && tok.length > 2)
+          return <code key={i} className="bg-black/20 px-1.5 py-0.5 rounded-md text-[0.82em] font-mono border border-white/10">{tok.slice(1,-1)}</code>;
+        if (/^https?:\/\//.test(tok))
+          return <a key={i} href={tok} target="_blank" rel="noopener noreferrer" className="underline decoration-dotted underline-offset-2 opacity-80 hover:opacity-100 inline-flex items-center gap-0.5 break-all">{tok.length>45?tok.slice(0,45)+"…":tok}<ExternalLink size={9}/></a>;
+        return <span key={i}>{tok}</span>;
+      })}
+    </p>
+  );
+}
+
+// ─── Voice message player ─────────────────────────────────────────────────────
+
+function VoiceMessage({ content, isOwn }: { content: string; isOwn: boolean }) {
+  const [playing, setPlaying] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const match = content.match(/^\[voice:(\d+):(.+)\]$/s);
+  if (!match) return <p className="leading-relaxed whitespace-pre-wrap">{content}</p>;
+  const durationSecs = parseInt(match[1]);
+  const dataUrl = match[2];
+  const fmtDur = (s: number) => `${Math.floor(s/60).toString().padStart(2,"0")}:${(s%60).toString().padStart(2,"0")}`;
+  return (
+    <div className="flex items-center gap-3 min-w-[190px] max-w-[250px]">
+      <audio ref={audioRef} src={dataUrl} onEnded={() => { setPlaying(false); setProgress(0); }}
+        onTimeUpdate={() => { if (audioRef.current?.duration) setProgress(audioRef.current.currentTime/audioRef.current.duration); }} />
+      <motion.button whileTap={{ scale: 0.9 }} onClick={() => { const a = audioRef.current; if (!a) return; if (playing) { a.pause(); setPlaying(false); } else { a.play(); setPlaying(true); } }}
+        className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${isOwn?"bg-white/20 hover:bg-white/30":"bg-primary/20 hover:bg-primary/30"} transition-all`}>
+        {playing ? <Pause size={15}/> : <Play size={15}/>}
+      </motion.button>
+      <div className="flex-1 flex flex-col gap-1">
+        <div className="flex items-end gap-px h-6">
+          {[...Array(28)].map((_,i) => {
+            const h = 3 + Math.abs(Math.sin(i*1.3)*10 + Math.cos(i*0.6)*6);
+            const filled = progress>0 && i/28<=progress;
+            return <div key={i} className={`w-0.5 rounded-full flex-shrink-0 ${filled?(isOwn?"bg-white/80":"bg-primary"):(isOwn?"bg-white/25":"bg-primary/25")}`} style={{height:h}} />;
+          })}
+        </div>
+        <span className="text-[10px] opacity-50">{fmtDur(durationSecs)}</span>
+      </div>
+    </div>
+  );
+}
+
 // ─── ClerkSync ────────────────────────────────────────────────────────────────
 
 function ClerkProfileSync({ meId }: { meId?: number }) {
@@ -156,7 +239,7 @@ export default function ChatsPage({ activeChatId }: { activeChatId?: number }) {
   const { data: me } = useGetMe();
   const { data: chats, isLoading: chatsLoading } = useGetChats();
   const { data: stats } = useGetChatStats();
-  const { data: onlineUsers } = useGetOnlineUsers({ query: { refetchInterval: 30000 } });
+  const { data: onlineUsers } = useGetOnlineUsers({ query: { queryKey: getGetOnlineUsersQueryKey(), refetchInterval: 30000 } });
 
   const [searchQuery, setSearchQuery] = useState("");
   const [showNewChat, setShowNewChat] = useState(false);
@@ -168,7 +251,7 @@ export default function ChatsPage({ activeChatId }: { activeChatId?: number }) {
 
   const { data: searchResults } = useSearchUsers(
     { q: newChatSearch },
-    { query: { enabled: newChatSearch.length > 1 } }
+    { query: { queryKey: getSearchUsersQueryKey({ q: newChatSearch }), enabled: newChatSearch.length > 1 } }
   );
 
   const createChat = useCreateChat();
@@ -551,6 +634,26 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
   const localStreamRef = useRef<MediaStream | null>(null);
   const callTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // ── Extra feature state ──────────────────────────────────────────────────────
+  const { getToken } = useAuth();
+  const [typingUsers, setTypingUsers] = useState<{ userId: number; name: string }[]>([]);
+  const [pinnedMsg, setPinnedMsg] = useState<Message | null>(null);
+  const [forwardingMsg, setForwardingMsg] = useState<Message | null>(null);
+  const [showImageInput, setShowImageInput] = useState(false);
+  const [imageInputUrl, setImageInputUrl] = useState("");
+  const [voiceRecState, setVoiceRecState] = useState<"idle"|"recording"|"preview">("idle");
+  const [voiceDuration, setVoiceDuration] = useState(0);
+  const [voiceBlob, setVoiceBlob] = useState<Blob | null>(null);
+  const [voiceUrl, setVoiceUrl] = useState<string | null>(null);
+  const [starredMsgs, setStarredMsgs] = useState<Set<number>>(() => {
+    try { return new Set(JSON.parse(localStorage.getItem("pulse_starred") || "[]")); } catch { return new Set(); }
+  });
+  const [emojiCat, setEmojiCat] = useState(Object.keys(EMOJI_CATEGORIES)[0]);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const voiceChunksRef = useRef<Blob[]>([]);
+  const voiceTimerRef2 = useRef<ReturnType<typeof setInterval> | null>(null);
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const chat = (chats || []).find((c: any) => c.id === chatId);
   const chatName = chat ? (chat.type === "group" ? chat.name || "Group" : chat.members?.find((m: any) => m.id !== myId)?.displayName || "Chat") : "";
   const chatAvatar = chat?.type === "direct" ? chat.members?.find((m: any) => m.id !== myId)?.avatarUrl : null;
@@ -601,6 +704,34 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
     });
   }, [messages, chatId]);
 
+  // Typing indicator polling
+  useEffect(() => {
+    if (!chatId) return;
+    const poll = async () => {
+      try {
+        const token = await getToken();
+        const r = await fetch(`/api/chats/${chatId}/typing`, { headers: { Authorization: `Bearer ${token}` } });
+        if (r.ok) setTypingUsers((await r.json()).typing || []);
+      } catch {}
+    };
+    poll();
+    const id = setInterval(poll, 2000);
+    return () => clearInterval(id);
+  }, [chatId]);
+
+  // Pinned message
+  useEffect(() => {
+    if (!chatId) return;
+    const fetchPin = async () => {
+      try {
+        const token = await getToken();
+        const r = await fetch(`/api/chats/${chatId}/pin`, { headers: { Authorization: `Bearer ${token}` } });
+        if (r.ok) { const d = await r.json(); setPinnedMsg(d.pinnedMessage || null); }
+      } catch {}
+    };
+    fetchPin();
+  }, [chatId]);
+
   const clearInput = useCallback(() => {
     setInput("");
     if (inputRef.current) {
@@ -643,6 +774,113 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
       await reactToMessage.mutateAsync({ chatId, messageId: msgId, data: { emoji } });
       qc.invalidateQueries({ queryKey: getGetMessagesQueryKey(chatId, {}) });
     } catch {}
+  }
+
+  // ── Extra handlers ───────────────────────────────────────────────────────────
+  function notifyTyping() {
+    if (!chatId) return;
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    getToken().then(token => {
+      fetch(`/api/chats/${chatId}/typing`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ isTyping: true }) }).catch(() => {});
+    });
+    typingTimeoutRef.current = setTimeout(() => {
+      getToken().then(token => {
+        fetch(`/api/chats/${chatId}/typing`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ isTyping: false }) }).catch(() => {});
+      });
+    }, 3000);
+  }
+
+  async function handlePin(msgId: number) {
+    const isPinned = pinnedMsg?.id === msgId;
+    try {
+      const token = await getToken();
+      await fetch(`/api/chats/${chatId}/pin`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ messageId: isPinned ? null : msgId }) });
+      if (isPinned) { setPinnedMsg(null); }
+      else { const m = (msgList as Message[]).find(m => m.id === msgId); if (m) setPinnedMsg(m); }
+      toast({ title: isPinned ? "Message unpinned" : "📌 Message pinned" });
+    } catch { toast({ title: "Failed to pin", variant: "destructive" }); }
+  }
+
+  async function handleForwardTo(targetChatId: number) {
+    if (!forwardingMsg) return;
+    try {
+      const token = await getToken();
+      await fetch(`/api/chats/${targetChatId}/messages`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ content: forwardingMsg.content, replyToId: null }) });
+      qc.invalidateQueries({ queryKey: getGetMessagesQueryKey(targetChatId, {}) });
+      qc.invalidateQueries({ queryKey: getGetChatsQueryKey() });
+      setForwardingMsg(null);
+      toast({ title: "↩ Message forwarded" });
+    } catch { toast({ title: "Failed to forward", variant: "destructive" }); }
+  }
+
+  async function handleImageSend() {
+    const url = imageInputUrl.trim();
+    if (!url) return;
+    try {
+      await sendMessage.mutateAsync({ chatId, data: { content: url, replyToId: null } });
+      qc.invalidateQueries({ queryKey: getGetMessagesQueryKey(chatId, {}) });
+      qc.invalidateQueries({ queryKey: getGetChatsQueryKey() });
+      setShowImageInput(false); setImageInputUrl("");
+    } catch { toast({ title: "Failed to send image", variant: "destructive" }); }
+  }
+
+  function toggleStar(msgId: number) {
+    setStarredMsgs(prev => {
+      const next = new Set(prev);
+      if (next.has(msgId)) next.delete(msgId); else next.add(msgId);
+      localStorage.setItem("pulse_starred", JSON.stringify([...next]));
+      return next;
+    });
+  }
+
+  async function startVoiceRecording() {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus") ? "audio/webm;codecs=opus" : "audio/webm";
+      const rec = new MediaRecorder(stream, { mimeType });
+      mediaRecorderRef.current = rec;
+      voiceChunksRef.current = [];
+      rec.ondataavailable = (e) => { if (e.data.size > 0) voiceChunksRef.current.push(e.data); };
+      rec.onstop = () => {
+        const blob = new Blob(voiceChunksRef.current, { type: mimeType });
+        setVoiceBlob(blob);
+        setVoiceUrl(URL.createObjectURL(blob));
+        setVoiceRecState("preview");
+        stream.getTracks().forEach(t => t.stop());
+      };
+      rec.start(250);
+      setVoiceRecState("recording");
+      setVoiceDuration(0);
+      voiceTimerRef2.current = setInterval(() => setVoiceDuration(d => d + 1), 1000);
+    } catch { toast({ title: "Could not access microphone", variant: "destructive" }); }
+  }
+
+  function stopVoiceRecording() {
+    mediaRecorderRef.current?.stop();
+    if (voiceTimerRef2.current) { clearInterval(voiceTimerRef2.current); voiceTimerRef2.current = null; }
+  }
+
+  function cancelVoice() {
+    mediaRecorderRef.current?.stop();
+    if (voiceTimerRef2.current) clearInterval(voiceTimerRef2.current);
+    if (voiceUrl) URL.revokeObjectURL(voiceUrl);
+    setVoiceRecState("idle"); setVoiceBlob(null); setVoiceUrl(null); setVoiceDuration(0);
+  }
+
+  async function sendVoiceMsg() {
+    if (!voiceBlob) return;
+    const reader = new FileReader();
+    reader.readAsDataURL(voiceBlob);
+    reader.onload = async () => {
+      const dataUrl = reader.result as string;
+      const content = `[voice:${voiceDuration}:${dataUrl}]`;
+      try {
+        await sendMessage.mutateAsync({ chatId, data: { content, replyToId: null } });
+        qc.invalidateQueries({ queryKey: getGetMessagesQueryKey(chatId, {}) });
+        qc.invalidateQueries({ queryKey: getGetChatsQueryKey() });
+        cancelVoice();
+      } catch { toast({ title: "Failed to send voice message", variant: "destructive" }); }
+    };
   }
 
   // ── Call handlers ────────────────────────────────────────────────────────────
@@ -755,6 +993,25 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
           )}
         </AnimatePresence>
 
+        {/* Pinned message banner */}
+        <AnimatePresence>
+          {pinnedMsg && (
+            <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden border-b border-border/50 shrink-0">
+              <div className="flex items-center gap-3 px-4 py-2 bg-primary/5 hover:bg-primary/8 transition-colors cursor-pointer group"
+                onClick={() => document.getElementById(`msg-${pinnedMsg.id}`)?.scrollIntoView({ behavior: "smooth", block: "center" })}>
+                <Pin size={12} className="text-primary/60 shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-[10px] text-primary font-semibold leading-none mb-0.5">Pinned message</p>
+                  <p className="text-xs text-muted-foreground truncate">{pinnedMsg.content?.startsWith("[voice:") ? "🎤 Voice message" : pinnedMsg.content}</p>
+                </div>
+                <button onClick={e => { e.stopPropagation(); handlePin(pinnedMsg.id); }} className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-foreground transition-all">
+                  <X size={13} />
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* Messages */}
         <div
           ref={containerRef}
@@ -848,18 +1105,22 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
                         )}
 
                         {/* Message bubble */}
-                        <div className={`relative rounded-2xl px-3.5 py-2.5 text-sm break-words
+                        <div id={`msg-${msg.id}`} className={`relative rounded-2xl px-3.5 py-2.5 text-sm break-words
                           ${isOwn
                             ? "bg-primary text-primary-foreground rounded-br-md"
                             : "bg-card border border-border/60 text-foreground rounded-bl-md"
                           }
                           ${msg.isDeleted ? "opacity-50" : ""}
+                          ${pinnedMsg?.id === msg.id ? "ring-1 ring-primary/40" : ""}
                         `}>
                           {msg.isDeleted ? (
                             <span className="italic text-xs opacity-70">Message was deleted</span>
+                          ) : msg.content?.startsWith("[voice:") ? (
+                            <VoiceMessage content={msg.content} isOwn={isOwn} />
                           ) : (
-                            <p className="leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+                            renderRichText(msg.content || "")
                           )}
+                          {starredMsgs.has(msg.id) && <Star size={8} className={`absolute top-1 ${isOwn ? "right-1" : "left-1"} text-yellow-400 fill-yellow-400`} />}
 
                           {/* Timestamp + status */}
                           <div className={`flex items-center gap-1 mt-1 text-[10px] ${isOwn ? "text-primary-foreground/60 justify-end" : "text-muted-foreground"}`}>
@@ -918,20 +1179,44 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
                                     initial={{ opacity: 0, y: 4, scale: 0.9 }}
                                     animate={{ opacity: 1, y: 0, scale: 1 }}
                                     exit={{ opacity: 0, y: 4, scale: 0.9 }}
-                                    className={`absolute top-full mt-1 ${isOwn ? "right-0" : "left-0"} flex gap-0.5 bg-card border border-border rounded-2xl p-2 shadow-2xl z-30`}
+                                    className={`absolute top-full mt-1 ${isOwn ? "right-0" : "left-0"} bg-card border border-border rounded-2xl p-2.5 shadow-2xl z-30 w-64`}
                                     onMouseLeave={() => setShowEmojiFor(null)}
                                   >
-                                    {EMOJIS.map(emoji => (
-                                      <motion.button key={emoji} whileHover={{ scale: 1.3 }} whileTap={{ scale: 0.9 }} onClick={() => handleReact(msg.id, emoji)} className="text-base px-0.5">
-                                        {emoji}
-                                      </motion.button>
-                                    ))}
+                                    <div className="flex gap-0.5 mb-2 pb-2 border-b border-border overflow-x-auto">
+                                      {Object.keys(EMOJI_CATEGORIES).map(cat => (
+                                        <button key={cat} onClick={() => setEmojiCat(cat)} title={cat}
+                                          className={`text-sm px-1.5 py-0.5 rounded-lg shrink-0 transition-colors ${emojiCat === cat ? "bg-primary/20 text-primary" : "hover:bg-accent text-muted-foreground"}`}>
+                                          {cat.split(" ")[0]}
+                                        </button>
+                                      ))}
+                                    </div>
+                                    <div className="grid grid-cols-8 gap-0.5 max-h-20 overflow-y-auto">
+                                      {EMOJI_CATEGORIES[emojiCat]?.map(emoji => (
+                                        <motion.button key={emoji} whileHover={{ scale: 1.25 }} whileTap={{ scale: 0.9 }} onClick={() => handleReact(msg.id, emoji)}
+                                          className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-accent text-base">
+                                          {emoji}
+                                        </motion.button>
+                                      ))}
+                                    </div>
                                   </motion.div>
                                 )}
                               </AnimatePresence>
                             </div>
+                            <button onClick={() => { navigator.clipboard.writeText(msg.content || ""); toast({ title: "Copied to clipboard" }); }} className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-accent text-muted-foreground hover:text-foreground transition-colors" title="Copy">
+                              <Copy size={13} />
+                            </button>
+                            <button onClick={() => toggleStar(msg.id)} className={`w-7 h-7 flex items-center justify-center rounded-lg hover:bg-accent transition-colors ${starredMsgs.has(msg.id) ? "text-yellow-400" : "text-muted-foreground hover:text-foreground"}`} title="Star">
+                              <Star size={13} />
+                            </button>
+                            <button onClick={() => setForwardingMsg(msg)} className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-accent text-muted-foreground hover:text-foreground transition-colors" title="Forward">
+                              <Hash size={13} />
+                            </button>
+                            <button onClick={() => handlePin(msg.id)} className={`w-7 h-7 flex items-center justify-center rounded-lg hover:bg-accent transition-colors ${pinnedMsg?.id === msg.id ? "text-primary" : "text-muted-foreground hover:text-foreground"}`} title={pinnedMsg?.id === msg.id ? "Unpin" : "Pin"}>
+                              {pinnedMsg?.id === msg.id ? <PinOff size={13} /> : <Pin size={13} />}
+                            </button>
                             {isOwn && (
                               <>
+                                <div className="w-px h-5 bg-border mx-0.5" />
                                 <button onClick={() => startEdit(msg)} className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-accent text-muted-foreground hover:text-foreground transition-colors" title="Edit">
                                   <Edit2 size={13} />
                                 </button>
@@ -967,6 +1252,25 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
           )}
         </AnimatePresence>
 
+        {/* Typing indicator */}
+        <AnimatePresence>
+          {typingUsers.length > 0 && (
+            <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden shrink-0">
+              <div className="px-4 py-1.5 flex items-center gap-2.5">
+                <div className="flex gap-1 items-center">
+                  {[0, 1, 2].map(i => (
+                    <motion.span key={i} className="w-1.5 h-1.5 rounded-full bg-primary/50 block"
+                      animate={{ y: [0, -4, 0] }} transition={{ duration: 0.7, repeat: Infinity, delay: i * 0.12 }} />
+                  ))}
+                </div>
+                <span className="text-xs text-muted-foreground italic">
+                  {typingUsers.length === 1 ? `${typingUsers[0].name} is typing…` : `${typingUsers.map(u => u.name).join(", ")} are typing…`}
+                </span>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* Reply / Edit preview bar */}
         <AnimatePresence>
           {(replyTo || editingMsg) && (
@@ -994,33 +1298,96 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
 
         {/* Input area */}
         <div className="px-3 pb-3 pt-2 border-t border-border bg-sidebar/50 backdrop-blur-sm shrink-0">
-          <div className="flex items-end gap-2">
-            <div className={`flex-1 flex items-end gap-2 rounded-2xl px-3.5 py-2.5 transition-all ${editingMsg ? "bg-yellow-500/10 border border-yellow-500/30" : "bg-accent border border-transparent focus-within:border-primary/30"}`}>
-              <div
-                ref={inputRef}
-                contentEditable
-                suppressContentEditableWarning
-                role="textbox"
-                aria-multiline="true"
-                data-placeholder={editingMsg ? "Edit message..." : `Message ${chatName || "..."}…`}
-                className={`flex-1 outline-none text-sm max-h-32 overflow-y-auto py-0.5 break-words min-h-[20px] leading-relaxed
-                  empty:before:content-[attr(data-placeholder)] empty:before:text-muted-foreground empty:before:pointer-events-none`}
-                onInput={e => setInput(e.currentTarget.textContent || "")}
-                onKeyDown={e => {
-                  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); }
-                  if (e.key === "Escape") { setReplyTo(null); setEditingMsg(null); clearInput(); }
-                }}
-              />
+          {/* Image URL input */}
+          <AnimatePresence>
+            {showImageInput && (
+              <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden mb-2">
+                <div className="flex items-center gap-2 bg-accent/60 rounded-xl px-3 py-2 border border-border/50">
+                  <ImageIcon size={13} className="text-muted-foreground shrink-0" />
+                  <input autoFocus value={imageInputUrl} onChange={e => setImageInputUrl(e.target.value)}
+                    onKeyDown={e => { if (e.key === "Enter") handleImageSend(); if (e.key === "Escape") { setShowImageInput(false); setImageInputUrl(""); } }}
+                    placeholder="Paste image URL (https://...jpg)" className="flex-1 bg-transparent text-xs outline-none placeholder:text-muted-foreground" />
+                  <button onClick={handleImageSend} disabled={!imageInputUrl.trim()} className="text-primary hover:text-primary/80 disabled:opacity-40 transition-colors"><Send size={12} /></button>
+                  <button onClick={() => { setShowImageInput(false); setImageInputUrl(""); }} className="text-muted-foreground hover:text-foreground"><X size={13} /></button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Voice recorder */}
+          <AnimatePresence>
+            {voiceRecState !== "idle" && (
+              <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 8 }} className="mb-2">
+                <div className={`flex items-center gap-3 rounded-xl px-3.5 py-2.5 ${voiceRecState === "recording" ? "bg-red-500/10 border border-red-500/30" : "bg-accent border border-border/50"}`}>
+                  {voiceRecState === "recording" ? (
+                    <>
+                      <motion.div className="w-2 h-2 rounded-full bg-red-500" animate={{ opacity: [1, 0, 1] }} transition={{ duration: 1, repeat: Infinity }} />
+                      <div className="flex gap-0.5 flex-1 items-end h-5">
+                        {[...Array(20)].map((_,i) => (
+                          <motion.div key={i} className="w-0.5 rounded-full bg-red-400/70 flex-shrink-0"
+                            animate={{ height: [3, 3 + Math.random() * 12, 3] }}
+                            transition={{ duration: 0.4 + Math.random() * 0.4, repeat: Infinity, delay: i * 0.05 }} />
+                        ))}
+                      </div>
+                      <span className="text-xs font-mono text-red-400 tabular-nums">{Math.floor(voiceDuration/60).toString().padStart(2,"0")}:{(voiceDuration%60).toString().padStart(2,"0")}</span>
+                      <button onClick={stopVoiceRecording} className="w-7 h-7 rounded-full bg-red-500 text-white flex items-center justify-center hover:bg-red-600 transition-colors" title="Stop">
+                        <StopCircle size={14} />
+                      </button>
+                      <button onClick={cancelVoice} className="text-muted-foreground hover:text-foreground transition-colors" title="Cancel"><X size={14}/></button>
+                    </>
+                  ) : (
+                    <>
+                      {voiceUrl && <audio src={voiceUrl} controls className="h-7 flex-1 min-w-0" />}
+                      <motion.button whileTap={{ scale: 0.9 }} onClick={sendVoiceMsg} className="w-8 h-8 rounded-xl bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary/90 transition-colors shrink-0" title="Send">
+                        <Send size={14} />
+                      </motion.button>
+                      <button onClick={cancelVoice} className="text-muted-foreground hover:text-foreground transition-colors shrink-0"><X size={14}/></button>
+                    </>
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {voiceRecState === "idle" && (
+            <div className="flex items-end gap-2">
+              <div className="flex items-center gap-1 shrink-0">
+                <motion.button whileTap={{ scale: 0.9 }} onClick={() => setShowImageInput(!showImageInput)}
+                  className={`w-8 h-8 flex items-center justify-center rounded-xl transition-all ${showImageInput ? "bg-primary/20 text-primary" : "hover:bg-accent text-muted-foreground"}`} title="Share image">
+                  <ImageIcon size={15} />
+                </motion.button>
+              </div>
+              <div className={`flex-1 flex items-end gap-2 rounded-2xl px-3.5 py-2.5 transition-all ${editingMsg ? "bg-yellow-500/10 border border-yellow-500/30" : "bg-accent border border-transparent focus-within:border-primary/30"}`}>
+                <div
+                  ref={inputRef}
+                  contentEditable
+                  suppressContentEditableWarning
+                  role="textbox"
+                  aria-multiline="true"
+                  data-placeholder={editingMsg ? "Edit message..." : `Message ${chatName || "..."}…`}
+                  className={`flex-1 outline-none text-sm max-h-32 overflow-y-auto py-0.5 break-words min-h-[20px] leading-relaxed
+                    empty:before:content-[attr(data-placeholder)] empty:before:text-muted-foreground empty:before:pointer-events-none`}
+                  onInput={e => { setInput(e.currentTarget.textContent || ""); notifyTyping(); }}
+                  onKeyDown={e => {
+                    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); }
+                    if (e.key === "Escape") { setReplyTo(null); setEditingMsg(null); clearInput(); }
+                  }}
+                />
+              </div>
+              {input.trim() ? (
+                <motion.button whileTap={{ scale: 0.9 }} onClick={handleSend}
+                  disabled={sendMessage.isPending || editMessage.isPending}
+                  className="w-10 h-10 flex items-center justify-center rounded-xl shrink-0 bg-primary text-primary-foreground shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all">
+                  <Send size={16} />
+                </motion.button>
+              ) : (
+                <motion.button whileTap={{ scale: 0.9 }} onClick={startVoiceRecording}
+                  className="w-10 h-10 flex items-center justify-center rounded-xl shrink-0 bg-accent text-muted-foreground hover:text-foreground hover:bg-accent/80 transition-all" title="Record voice message">
+                  <Mic size={16} />
+                </motion.button>
+              )}
             </div>
-            <motion.button
-              whileTap={{ scale: 0.9 }}
-              onClick={handleSend}
-              disabled={!input.trim() || sendMessage.isPending || editMessage.isPending}
-              className={`w-10 h-10 flex items-center justify-center rounded-xl shrink-0 transition-all ${input.trim() ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20 hover:bg-primary/90" : "bg-accent text-muted-foreground"}`}
-            >
-              <Send size={16} />
-            </motion.button>
-          </div>
+          )}
         </div>
       </div>
 
@@ -1088,6 +1455,44 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
                 <span className="text-[10px] text-white/40">End call</span>
               </div>
             </div>
+          </motion.div>
+        )}
+
+        {/* Forward Message Modal */}
+        {forwardingMsg && (
+          <motion.div key="forward-modal" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="absolute inset-0 z-40 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4"
+            onClick={() => setForwardingMsg(null)}>
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-card border border-border rounded-2xl shadow-2xl w-full max-w-xs overflow-hidden"
+              onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between p-4 border-b border-border">
+                <div>
+                  <h3 className="font-bold text-sm">Forward Message</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5 truncate max-w-[200px]">{forwardingMsg.content?.startsWith("[voice:") ? "🎤 Voice message" : forwardingMsg.content?.slice(0, 50)}</p>
+                </div>
+                <button onClick={() => setForwardingMsg(null)} className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-accent text-muted-foreground"><X size={14}/></button>
+              </div>
+              <div className="max-h-64 overflow-y-auto p-2">
+                {(chats || []).filter((c: any) => c.id !== chatId).map((c: any) => {
+                  const name = c.type === "group" ? c.name || "Group" : c.members?.find((m: any) => m.id !== myId)?.displayName || "Chat";
+                  const avatar = c.type === "direct" ? c.members?.find((m: any) => m.id !== myId)?.avatarUrl : null;
+                  return (
+                    <motion.button key={c.id} whileTap={{ scale: 0.97 }} onClick={() => handleForwardTo(c.id)}
+                      className="w-full flex items-center gap-3 p-2.5 rounded-xl hover:bg-accent transition-colors text-left">
+                      <Avatar src={avatar} name={name} size={36} />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">{name}</p>
+                        <p className="text-xs text-muted-foreground">{c.type === "group" ? `${c.members?.length} members` : "Direct message"}</p>
+                      </div>
+                    </motion.button>
+                  );
+                })}
+                {(chats || []).filter((c: any) => c.id !== chatId).length === 0 && (
+                  <p className="text-xs text-muted-foreground text-center py-4">No other chats to forward to</p>
+                )}
+              </div>
+            </motion.div>
           </motion.div>
         )}
 

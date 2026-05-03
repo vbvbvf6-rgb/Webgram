@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useLocation } from "wouter";
 import { ArrowLeft, Search, MessageSquare, UserPlus, Users } from "lucide-react";
-import { useSearchUsers, useGetMe, useGetOnlineUsers, useCreateChat, getGetChatsQueryKey } from "@workspace/api-client-react";
+import { useSearchUsers, useGetMe, useGetOnlineUsers, useCreateChat, getGetChatsQueryKey, getGetOnlineUsersQueryKey, getSearchUsersQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
@@ -37,10 +37,10 @@ export default function SearchPage() {
 
   const { data: results, isLoading: searching } = useSearchUsers(
     { q: query },
-    { query: { enabled: query.length > 1 } }
+    { query: { queryKey: getSearchUsersQueryKey({ q: query }), enabled: query.length > 1 } }
   );
 
-  const { data: onlineUsers } = useGetOnlineUsers({ query: { refetchInterval: 20000 } });
+  const { data: onlineUsers } = useGetOnlineUsers({ query: { queryKey: getGetOnlineUsersQueryKey(), refetchInterval: 20000 } });
 
   const createChat = useCreateChat();
 
