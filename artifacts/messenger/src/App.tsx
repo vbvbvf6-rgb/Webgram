@@ -7,7 +7,6 @@ import { QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { queryClient } from "@/lib/queryClient";
 import { setAuthTokenGetter } from "@workspace/api-client-react";
-import LandingPage from "@/pages/landing";
 import ChatsPage from "@/pages/chats";
 import SettingsPage from "@/pages/settings";
 import SearchPage from "@/pages/search";
@@ -16,6 +15,7 @@ import WalletPage from "@/pages/wallet";
 import SavedPage from "@/pages/saved";
 import NotFound from "@/pages/not-found";
 import { BottomNav } from "@/components/BottomNav";
+import authPoster from "@assets/2026-05-03_09-18-39_1777791543692.png";
 
 function getTabSessionId() {
   const key = "pulse_tab_session_id";
@@ -128,35 +128,21 @@ function ClerkQueryClientCacheInvalidator() {
 
 function AuthBackground({ children }: { children: React.ReactNode }) {
   return (
-    <div className="relative flex min-h-[100dvh] items-center justify-center px-4 overflow-hidden bg-gradient-to-br from-purple-50 via-pink-50 to-indigo-50">
-      {/* Gradient orbs */}
-      <div className="pointer-events-none absolute -top-24 -left-24 w-80 h-80 rounded-full bg-gradient-to-br from-purple-300/50 to-pink-300/40 blur-3xl" />
-      <div className="pointer-events-none absolute -bottom-20 -right-20 w-72 h-72 rounded-full bg-gradient-to-br from-indigo-300/50 to-purple-300/40 blur-3xl" />
-      <div className="pointer-events-none absolute top-1/3 right-10 w-40 h-40 rounded-full bg-pink-200/40 blur-2xl" />
-
-      <div className="relative z-10 w-full max-w-[400px]">
-        {/* Custom header */}
-        <div className="flex flex-col items-center mb-6">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-500 to-indigo-500 flex items-center justify-center shadow-lg shadow-purple-200 mb-3">
-            <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-              <path d="M6 8C6 6.9 6.9 6 8 6h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2h-4l-4 4-4-4H8c-1.1 0-2-.9-2-2V8z" fill="white" opacity="0.95"/>
-              <circle cx="11" cy="13" r="1.5" fill="url(#g2)"/>
-              <circle cx="16" cy="13" r="1.5" fill="url(#g2)"/>
-              <circle cx="21" cy="13" r="1.5" fill="url(#g2)"/>
-              <defs>
-                <linearGradient id="g2" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
-                  <stop stopColor="#7C3AED"/>
-                  <stop offset="1" stopColor="#EC4899"/>
-                </linearGradient>
-              </defs>
-            </svg>
+    <div className="relative min-h-[100dvh] overflow-hidden bg-[#f4edf9]">
+      <div className="absolute inset-0">
+        <div className="absolute -left-10 top-28 h-44 w-44 rounded-full bg-violet-200/50 blur-3xl" />
+        <div className="absolute left-0 bottom-10 h-36 w-36 rounded-full bg-pink-200/40 blur-3xl" />
+        <div className="absolute right-10 bottom-0 h-40 w-40 rounded-full bg-violet-100/80 blur-3xl" />
+      </div>
+      <div className="relative z-10 flex min-h-[100dvh] items-center justify-center px-5 py-10">
+        <div className="relative w-full max-w-[430px] rounded-[34px] bg-white/90 p-8 shadow-[0_30px_80px_rgba(124,58,237,0.15)] backdrop-blur-sm">
+          <div className="flex flex-col items-center text-center">
+            <img src={authPoster} alt="Droidgram" className="mb-4 h-16 w-16 rounded-2xl object-cover shadow-lg shadow-violet-200/60" />
+            <h1 className="text-3xl font-black text-zinc-900">Vibe</h1>
+            <p className="mt-1 text-sm text-zinc-500">Мессенджер будущего</p>
           </div>
-          <h1 className="text-2xl font-extrabold text-gray-800 tracking-tight">Droidgram</h1>
-          <p className="text-sm text-gray-400 mt-0.5">Мессенджер будущего</p>
+          {children}
         </div>
-
-        {/* Clerk form card */}
-        {children}
       </div>
     </div>
   );
@@ -185,7 +171,7 @@ function HomeRedirect() {
         <Redirect to="/chats" />
       </Show>
       <Show when="signed-out">
-        <LandingPage />
+        <SignInPage />
       </Show>
     </>
   );
@@ -211,7 +197,6 @@ function AppRoutes() {
       publishableKey={clerkPubKey}
       proxyUrl={clerkProxyUrl}
       appearance={clerkAppearance}
-      sessionKey={getTabSessionId()}
       signInUrl={`${basePath}/sign-in`}
       signUpUrl={`${basePath}/sign-up`}
       localization={{
