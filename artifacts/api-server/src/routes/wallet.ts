@@ -143,6 +143,10 @@ router.post("/gift", requireAuth, async (req: AuthenticatedRequest, res): Promis
         fromUserId: me.id, toUserId: me.id, amount: -gift.price, type: "send",
         description: `Sent ${gift.name} gift to ${recipient[0].displayName}`, chatId,
       });
+      await db.insert(transactionsTable).values({
+        fromUserId: me.id, toUserId, amount: 0, type: "receive",
+        description: `Received ${gift.name} gift from ${me.displayName}`, chatId,
+      });
       
       // Save gift to inventory
       await db.insert(giftsTable).values({
