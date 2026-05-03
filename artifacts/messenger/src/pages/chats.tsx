@@ -9,7 +9,7 @@ import {
   PhoneOff, VideoOff, MicOff, Mic, Volume2, VolumeX,
   Copy, MoreHorizontal, Pin, PinOff, ImageIcon, Play, Pause,
   Star, StopCircle, ExternalLink, Keyboard, Hash,
-  BarChart2, Zap, Sparkles, Film, Palette, UserCircle2,
+  BarChart2, Zap, Sparkles, Palette, UserCircle2,
   Slash, ChevronUp, Bookmark, Trophy,
 } from "lucide-react";
 import {
@@ -32,20 +32,6 @@ const STICKER_PACKS: Record<string, string[]> = {
   "🐱 Cute":   ["🐱","🐶","🦊","🐻","🐼","🐨","🦋","🌸","🌟","✨","🌈","🍀"],
 };
 
-const CURATED_GIFS = [
-  { url: "https://media.giphy.com/media/VbnUQpnihPSIgIXuZv/giphy.gif", label: "Cat love" },
-  { url: "https://media.giphy.com/media/111ebonMs90YLu/giphy.gif", label: "Thumbs up" },
-  { url: "https://media.giphy.com/media/artj92V8o75HK/giphy.gif", label: "Party!" },
-  { url: "https://media.giphy.com/media/3oEjI6SIIHBdRxXI40/giphy.gif", label: "Yes!" },
-  { url: "https://media.giphy.com/media/ceeN6U57leAhi/giphy.gif", label: "Nope" },
-  { url: "https://media.giphy.com/media/ZqlvCTNHpqrio/giphy.gif", label: "LOL" },
-  { url: "https://media.giphy.com/media/13HgwGsXF0aiGY/giphy.gif", label: "Fire 🔥" },
-  { url: "https://media.giphy.com/media/5xaOcLGvzHxDKjufnLW/giphy.gif", label: "Dance" },
-  { url: "https://media.giphy.com/media/3o7527pa7qs9kCG78A/giphy.gif", label: "Wow" },
-  { url: "https://media.giphy.com/media/l3q2DbNaHBCFwKCMo/giphy.gif", label: "Think" },
-  { url: "https://media.giphy.com/media/TGcgrOq7K4P9gCLSbj/giphy.gif", label: "Clap" },
-  { url: "https://media.giphy.com/media/doPrWMkFHb3Pje7t9j/giphy.gif", label: "Cry" },
-];
 
 const CHAT_THEMES: { id: string; label: string; gradient: string; msgBg: string }[] = [
   { id: "default", label: "Default", gradient: "", msgBg: "" },
@@ -60,7 +46,6 @@ const CHAT_THEMES: { id: string; label: string; gradient: string; msgBg: string 
 
 const BOT_COMMANDS = [
   { cmd: "/poll",  desc: "Create a poll",              icon: "📊" },
-  { cmd: "/gif",   desc: "Send a GIF",                 icon: "🎬" },
   { cmd: "/coin",  desc: "/coin @user 10 — send ⚡",   icon: "⚡" },
   { cmd: "/me",    desc: "Describe what you're doing", icon: "✍️" },
   { cmd: "/shrug", desc: "¯\\_(ツ)_/¯",               icon: "🤷" },
@@ -768,7 +753,6 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
   // ── Extra features state ─────────────────────────────────────────────────────
   const [showStickers, setShowStickers] = useState(false);
   const [stickerPack, setStickerPack] = useState(Object.keys(STICKER_PACKS)[0]);
-  const [showGifs, setShowGifs] = useState(false);
   const [chatTheme, setChatTheme] = useState<string>(() => {
     try { return localStorage.getItem(`pulse_theme_${chatId}`) || "default"; } catch { return "default"; }
   });
@@ -937,8 +921,6 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
       await sendMessage.mutateAsync({ chatId, data: { content: `🎲 Rolled a ${Math.floor(Math.random() * 6) + 1}!`, replyToId: null } });
     } else if (cmd === "/poll") {
       setShowPollCreate(true); return;
-    } else if (cmd === "/gif") {
-      setShowGifs(true); return;
     } else if (cmd === "/me") {
       const action = fullText.slice(3).trim();
       if (action) await sendMessage.mutateAsync({ chatId, data: { content: `_${action}_`, replyToId: null } });
@@ -1904,58 +1886,22 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
             )}
           </AnimatePresence>
 
-          {/* GIF picker */}
-          <AnimatePresence>
-            {showGifs && (
-              <motion.div initial={{ opacity: 0, y: 6, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 6, scale: 0.98 }} transition={{ duration: 0.15 }} className="mb-2">
-                <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-2xl">
-                  <div className="flex items-center justify-between px-3.5 pt-3 pb-2">
-                    <div className="flex items-center gap-2">
-                      <Film size={13} className="text-primary" />
-                      <p className="text-xs font-bold text-foreground">GIFs</p>
-                    </div>
-                    <button onClick={() => setShowGifs(false)} className="w-6 h-6 flex items-center justify-center rounded-full bg-accent text-muted-foreground hover:text-foreground transition-colors">
-                      <X size={12}/>
-                    </button>
-                  </div>
-                  <div className="grid grid-cols-3 gap-1.5 px-3 pb-3 max-h-56 overflow-y-auto">
-                    {CURATED_GIFS.map(g => (
-                      <button key={g.url} onClick={async () => { setShowGifs(false); await sendMessage.mutateAsync({ chatId, data: { content: g.url, replyToId: null } }); qc.invalidateQueries({ queryKey: getGetMessagesQueryKey(chatId, {}) }); }}
-                        className="rounded-xl overflow-hidden hover:ring-2 hover:ring-primary/60 transition-all aspect-video bg-accent/80 relative group">
-                        <img src={g.url} alt={g.label} className="w-full h-full object-cover" loading="lazy"
-                          onError={e => { (e.currentTarget as HTMLImageElement).style.display = "none"; }} />
-                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-1.5">
-                          <span className="text-[9px] text-white font-semibold leading-tight">{g.label}</span>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
 
           {voiceRecState === "idle" && (
             <div className="flex items-end gap-2">
-              <div className="flex items-center gap-1 shrink-0">
+              <div className={`flex-1 flex items-end gap-1 rounded-2xl px-2 py-2 transition-all ${editingMsg ? "bg-yellow-500/10 border border-yellow-500/30" : "bg-accent border border-transparent focus-within:border-primary/30"}`}>
                 <motion.button whileTap={{ scale: 0.9 }} onClick={() => setShowImageInput(!showImageInput)}
-                  className={`w-8 h-8 flex items-center justify-center rounded-xl transition-all ${showImageInput ? "bg-primary/20 text-primary" : "hover:bg-accent text-muted-foreground"}`} title="Share image">
+                  className={`w-8 h-8 flex items-center justify-center rounded-xl transition-all shrink-0 ${showImageInput ? "bg-primary/20 text-primary" : "text-muted-foreground hover:text-foreground"}`} title="Share image">
                   <ImageIcon size={15} />
                 </motion.button>
-                <motion.button whileTap={{ scale: 0.9 }} onClick={() => { setShowStickers(!showStickers); setShowGifs(false); }}
-                  className={`w-8 h-8 flex items-center justify-center rounded-xl transition-all ${showStickers ? "bg-primary/20 text-primary" : "hover:bg-accent text-muted-foreground"}`} title="Stickers">
+                <motion.button whileTap={{ scale: 0.9 }} onClick={() => setShowStickers(!showStickers)}
+                  className={`w-8 h-8 flex items-center justify-center rounded-xl transition-all shrink-0 ${showStickers ? "bg-primary/20 text-primary" : "text-muted-foreground hover:text-foreground"}`} title="Stickers">
                   <Sparkles size={15} />
                 </motion.button>
-                <motion.button whileTap={{ scale: 0.9 }} onClick={() => { setShowGifs(!showGifs); setShowStickers(false); }}
-                  className={`w-8 h-8 flex items-center justify-center rounded-xl transition-all ${showGifs ? "bg-primary/20 text-primary" : "hover:bg-accent text-muted-foreground"}`} title="GIFs">
-                  <Film size={15} />
-                </motion.button>
                 <motion.button whileTap={{ scale: 0.9 }} onClick={() => setShowPollCreate(true)}
-                  className="w-8 h-8 flex items-center justify-center rounded-xl hover:bg-accent text-muted-foreground transition-all" title="Create poll">
+                  className="w-8 h-8 flex items-center justify-center rounded-xl transition-all shrink-0 text-muted-foreground hover:text-foreground" title="Create poll">
                   <BarChart2 size={15} />
                 </motion.button>
-              </div>
-              <div className={`flex-1 flex items-end gap-2 rounded-2xl px-3.5 py-2.5 transition-all ${editingMsg ? "bg-yellow-500/10 border border-yellow-500/30" : "bg-accent border border-transparent focus-within:border-primary/30"}`}>
                 <div
                   ref={inputRef}
                   contentEditable
@@ -1963,7 +1909,7 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
                   role="textbox"
                   aria-multiline="true"
                   data-placeholder={editingMsg ? "Edit message..." : `Message ${chatName || "..."}… (/ for commands)`}
-                  className={`flex-1 outline-none text-sm max-h-32 overflow-y-auto py-0.5 break-words min-h-[20px] leading-relaxed
+                  className={`flex-1 outline-none text-sm max-h-32 overflow-y-auto py-1.5 px-1.5 break-words min-h-[20px] leading-relaxed
                     empty:before:content-[attr(data-placeholder)] empty:before:text-muted-foreground empty:before:pointer-events-none`}
                   onInput={e => {
                     const val = e.currentTarget.textContent || "";
