@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db, walletsTable, transactionsTable, usersTable } from "@workspace/db";
+import { db, walletsTable, transactionsTable, usersTable, giftsTable } from "@workspace/db";
 import { eq, desc, or } from "drizzle-orm";
 import { requireAuth, type AuthenticatedRequest } from "../middlewares/auth";
 import { ensureUser } from "./users";
@@ -125,7 +125,7 @@ router.post("/gift", requireAuth, async (req: AuthenticatedRequest, res): Promis
   try {
     const me = await ensureUser(req.userId!);
     const myWallet = await ensureWallet(me.id);
-    const { toUserId, giftId, chatId } = req.body;
+    const { toUserId, giftId, chatId, message } = req.body as { toUserId: number; giftId: string; chatId?: number; message?: string };
     const gift = GIFT_CATALOG[giftId];
     if (!gift) { res.status(400).json({ error: "Invalid gift" }); return; }
     if (!toUserId) { res.status(400).json({ error: "Invalid request" }); return; }
@@ -151,9 +151,41 @@ router.post("/gift", requireAuth, async (req: AuthenticatedRequest, res): Promis
       fromUserId: me.id, toUserId: me.id, amount: -gift.price, type: "send",
       description: `Sent ${gift.name} gift to ${recipient[0].displayName}`, chatId,
     });
+    
+    // Save gift to inventory
+    await db.insert(giftsTable).values({
+      giftId,
+      fromUserId: me.id,
+      toUserId,
+      chatId: chatId ?? null,
+      message: message?.trim() ?? null,
+    });
+    
     res.json({ success: true, newBalance: updated.balance, gift, recipient: recipient[0] });
   } catch (err) {
     req.log.error({ err }, "Failed to send gift");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// ── Get gifts received ────────────────────────────────────────────────────────
+router.get("/gifts", requireAuth, async (req: AuthenticatedRequest, res) => {
+  try {
+    const me = await ensureUser(req.userId!);
+    const gifts = await db.select({
+      id: giftsTable.id,
+      giftId: giftsTable.giftId,
+      message: giftsTable.message,
+      createdAt: giftsTable.createdAt,
+      fromUser: usersTable,
+    }).from(giftsTable)
+      .innerJoin(usersTable, eq(giftsTable.fromUserId, usersTable.id))
+      .where(eq(giftsTable.toUserId, me.id))
+      .orderBy(desc(giftsTable.createdAt))
+      .limit(100);
+    res.json(gifts);
+  } catch (err) {
+    req.log.error({ err }, "Failed to get gifts");
     res.status(500).json({ error: "Internal server error" });
   }
 });

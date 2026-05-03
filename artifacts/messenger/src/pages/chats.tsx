@@ -872,6 +872,7 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
     recipient: { id: number; displayName: string; avatarUrl?: string | null; isOnline?: boolean } | null;
     selectedGift: typeof GIFTS[0] | null;
     loading: boolean;
+    message: string;
   } | null>(null);
 
   const chat = (chats || []).find((c: any) => c.id === chatId);
@@ -2403,9 +2404,9 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
                   onClick={() => {
                     const otherUser = chat?.type === "direct" ? chat.members?.find((m: any) => m.id !== myId) : null;
                     if (otherUser) {
-                      setGiftModal({ step: "pick_gift", search: "", recipient: otherUser, selectedGift: null, loading: false });
+                      setGiftModal({ step: "pick_gift", search: "", recipient: otherUser, selectedGift: null, loading: false, message: "" });
                     } else {
-                      setGiftModal({ step: "pick_gift", search: "", recipient: null, selectedGift: null, loading: false });
+                      setGiftModal({ step: "pick_gift", search: "", recipient: null, selectedGift: null, loading: false, message: "" });
                     }
                   }}
                   className={`w-8 h-8 flex items-center justify-center rounded-xl transition-all shrink-0 ${giftModal ? "bg-fuchsia-500/20 text-fuchsia-400" : "text-muted-foreground hover:text-foreground"}`} title="Send a gift">
@@ -3006,7 +3007,7 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
                       const canAfford = walletBal === null || walletBal >= gift.price;
                       return (
                         <motion.button key={gift.id} whileTap={{ scale: 0.92 }} whileHover={{ scale: 1.05 }}
-                          onClick={() => canAfford && setGiftModal(m => m ? { ...m, step: "confirm", selectedGift: gift } : null)}
+                          onClick={() => canAfford && setGiftModal(m => m ? { ...m, step: "confirm", selectedGift: gift, message: "" } : null)}
                           className={`flex flex-col items-center gap-1.5 p-2.5 rounded-xl border transition-all relative
                             ${canAfford ? "hover:border-fuchsia-500/50 hover:bg-fuchsia-500/10 cursor-pointer" : "opacity-40 cursor-not-allowed"}
                             ${gift.rare ? "border-yellow-500/40 bg-yellow-500/5" : "border-border bg-accent/30"}`}>
@@ -3032,7 +3033,7 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
                     const res = await fetch("/api/wallet/gift", {
                       method: "POST",
                       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-                      body: JSON.stringify({ toUserId: giftModal.recipient!.id, giftId: gift.id, chatId }),
+                      body: JSON.stringify({ toUserId: giftModal.recipient!.id, giftId: gift.id, chatId, message: giftModal.message || null }),
                     });
                     if (res.ok) {
                       const data = await res.json();
@@ -3072,6 +3073,20 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
                     <div className="flex items-center justify-between bg-fuchsia-500/10 border border-fuchsia-500/20 rounded-xl px-3 py-2.5">
                       <span className="text-sm text-muted-foreground">Cost</span>
                       <span className="font-bold text-fuchsia-400">⚡ {gift.price} coins</span>
+                    </div>
+
+                    {/* Message input */}
+                    <div>
+                      <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide block mb-1.5">Message (optional)</label>
+                      <textarea
+                        value={giftModal.message}
+                        onChange={e => setGiftModal(m => m ? { ...m, message: e.target.value } : null)}
+                        placeholder="Add a sweet message..."
+                        maxLength={100}
+                        className="w-full bg-background border border-border rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-fuchsia-500/50 resize-none"
+                        rows={2}
+                      />
+                      <p className="text-[10px] text-muted-foreground mt-1">{giftModal.message.length}/100</p>
                     </div>
 
                     {/* Confirm button */}
