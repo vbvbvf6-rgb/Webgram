@@ -379,8 +379,8 @@ export default function ChatsPage({ activeChatId }: { activeChatId?: number }) {
   const [showOnline, setShowOnline] = useState(false);
 
   const { data: searchResults } = useSearchUsers(
-    { q: newChatSearch },
-    { query: { queryKey: getSearchUsersQueryKey({ q: newChatSearch }), enabled: newChatSearch.length > 1 } }
+    { q: groupMode ? (newChatSearch || " ") : newChatSearch },
+    { query: { queryKey: getSearchUsersQueryKey({ q: groupMode ? (newChatSearch || " ") : newChatSearch }), enabled: groupMode || newChatSearch.length > 1 } }
   );
 
   const createChat = useCreateChat();
@@ -716,12 +716,14 @@ export default function ChatsPage({ activeChatId }: { activeChatId?: number }) {
                 )}
 
                 <div className="space-y-1">
-                  {newChatSearch.length > 1 && (searchResults || []).length === 0 && (
-                    <p className="text-sm text-slate-400 text-center py-6">No users found for "{newChatSearch}"</p>
+                  {((groupMode && newChatSearch.length === 0) || newChatSearch.length > 1) && (searchResults || []).length === 0 && (
+                    <p className="text-sm text-slate-400 text-center py-6">{newChatSearch ? `No users found for "${newChatSearch}"` : "No users found"}</p>
                   )}
-                  {(searchResults || []).map((user: any) => (
-                    <button
+                  {(searchResults || []).filter((user: any) => user.id !== myId).map((user: any) => (
+                    <motion.button
                       key={user.id}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
                       onClick={() => groupMode ? setSelectedUsers(p => p.find((x: any) => x.id === user.id) ? p : [...p, user]) : startDirectChat(user.id)}
                       className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-white/6 transition-colors text-left"
                     >
@@ -731,12 +733,15 @@ export default function ChatsPage({ activeChatId }: { activeChatId?: number }) {
                         <p className="text-xs text-slate-400">@{user.username} {user.isOnline ? "· 🟢 Online" : ""}</p>
                       </div>
                       {groupMode && selectedUsers.find((x: any) => x.id === user.id) && (
-                        <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center"><Check size={12} className="text-white" /></div>
+                        <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="w-6 h-6 rounded-full bg-primary flex items-center justify-center"><Check size={12} className="text-white" /></motion.div>
                       )}
-                    </button>
+                    </motion.button>
                   ))}
-                  {newChatSearch.length <= 1 && (
+                  {!groupMode && newChatSearch.length <= 1 && (
                     <p className="text-xs text-slate-500 text-center py-4">Type a name or username to search</p>
+                  )}
+                  {groupMode && !newChatSearch && (searchResults || []).length === 0 && (
+                    <p className="text-xs text-slate-500 text-center py-4">Loading friends...</p>
                   )}
                 </div>
 
