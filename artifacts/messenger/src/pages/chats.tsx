@@ -409,13 +409,13 @@ export default function ChatsPage({ activeChatId }: { activeChatId?: number }) {
   }, [totalUnread]);
 
   return (
-    <div className="h-screen flex bg-background overflow-hidden">
+    <div className="h-screen flex bg-[#f4edf9] overflow-hidden">
       <ClerkProfileSync meId={myId} />
 
       {/* Sidebar */}
-      <div className={`${activeChatId ? "hidden md:flex" : "flex"} flex-col w-full md:w-80 lg:w-[340px] border-r border-border bg-sidebar shrink-0 pb-16 md:pb-0`}>
+      <div className={`${activeChatId ? "hidden md:flex" : "flex"} flex-col w-full md:w-80 lg:w-[340px] border-r border-white/50 bg-white/75 backdrop-blur-xl shrink-0 pb-16 md:pb-0`}>
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-white/50">
           <button onClick={() => setLocation("/settings")} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
             <Avatar src={(me as any)?.avatarUrl} name={(me as any)?.displayName || "Me"} size={34} online />
             <div className="text-left">
@@ -591,7 +591,7 @@ export default function ChatsPage({ activeChatId }: { activeChatId?: number }) {
       {activeChatId ? (
         <ChatWindow chatId={activeChatId} myId={myId} me={me} onBack={() => setLocation("/chats")} />
       ) : (
-        <div className="hidden md:flex flex-1 flex-col items-center justify-center bg-background gap-4 relative overflow-hidden">
+        <div className="hidden md:flex flex-1 flex-col items-center justify-center bg-[#f4edf9] gap-4 relative overflow-hidden">
           <div className="absolute inset-0 pointer-events-none">
             <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-96 h-96 bg-primary/5 rounded-full blur-3xl" />
           </div>
