@@ -147,29 +147,41 @@ function AuthBackground({ children, showButton = false, onButtonClick }: { child
         <div className="absolute -left-16 top-24 h-56 w-56 rounded-full bg-violet-500/12 blur-3xl animate-pulse" />
         <div className="absolute left-0 bottom-10 h-44 w-44 rounded-full bg-fuchsia-500/12 blur-3xl animate-pulse" />
         <div className="absolute right-10 bottom-0 h-52 w-52 rounded-full bg-sky-500/12 blur-3xl animate-pulse" />
+        <div className="absolute inset-0 opacity-[0.02]" style={{ backgroundImage: "radial-gradient(circle, #fff 1px, transparent 1px)", backgroundSize: "40px 40px" }} />
       </div>
       <div className="relative z-10 flex min-h-[100dvh] items-center justify-center px-5 py-10">
-        <div className="relative w-full max-w-[430px] rounded-[34px] bg-[#13182b]/95 p-8 shadow-[0_30px_80px_rgba(0,0,0,0.45)] backdrop-blur-sm border border-white/10">
-          <div className="flex flex-col items-center text-center">
-            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500 via-fuchsia-500 to-sky-500 text-white shadow-lg shadow-violet-200/60 animate-pulse">
-              <svg width="30" height="30" viewBox="0 0 32 32" fill="none" aria-hidden="true">
-                <path d="M6 8C6 6.9 6.9 6 8 6h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2h-4l-4 4-4-4H8c-1.1 0-2-.9-2-2V8z" fill="white" opacity="0.96" />
-                <circle cx="11" cy="13" r="1.5" fill="#7C3AED" />
-                <circle cx="16" cy="13" r="1.5" fill="#7C3AED" />
-                <circle cx="21" cy="13" r="1.5" fill="#7C3AED" />
-              </svg>
+        <div className="relative w-full max-w-[430px]">
+          <div className="rounded-[34px] bg-[#13182b]/95 p-8 shadow-[0_30px_80px_rgba(0,0,0,0.45)] backdrop-blur-sm border border-white/10">
+            <div className="flex flex-col items-center text-center mb-6">
+              <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500 via-fuchsia-500 to-sky-500 text-white shadow-lg shadow-violet-500/40 animate-pulse">
+                <svg width="30" height="30" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+                  <path d="M6 8C6 6.9 6.9 6 8 6h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2h-4l-4 4-4-4H8c-1.1 0-2-.9-2-2V8z" fill="white" opacity="0.96" />
+                  <circle cx="11" cy="13" r="1.5" fill="#7C3AED" />
+                  <circle cx="16" cy="13" r="1.5" fill="#7C3AED" />
+                  <circle cx="21" cy="13" r="1.5" fill="#7C3AED" />
+                </svg>
+              </div>
+              <h1 className="text-3xl font-black text-slate-100">Droidgram</h1>
+              <p className="mt-2 text-xs text-slate-400 font-medium tracking-wide">MODERN MESSENGER</p>
+              <p className="mt-2 text-sm text-slate-400">Fast, private, and beautifully designed</p>
             </div>
-            <h1 className="text-3xl font-black text-slate-100">Droidgram</h1>
-            <p className="mt-1 text-sm text-slate-400">Мессенджер будущего</p>
+            
+            {showButton ? (
+              <div className="space-y-4">
+                <button onClick={onButtonClick} className="w-full inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-fuchsia-500 to-violet-500 px-5 py-3.5 text-sm font-semibold text-white transition-all hover:shadow-lg hover:shadow-violet-500/30 hover:scale-105">
+                  Enter messenger
+                </button>
+                <p className="text-xs text-slate-500 text-center">Instantly connect with anyone, anywhere</p>
+              </div>
+            ) : (
+              <>
+                {children}
+                <div className="mt-6 pt-6 border-t border-white/5">
+                  <p className="text-xs text-slate-500 text-center">🔒 End-to-end encrypted • 🚀 Ultra-fast • 💬 Group ready</p>
+                </div>
+              </>
+            )}
           </div>
-          {showButton && (
-            <div className="mt-6 flex justify-center">
-              <button onClick={onButtonClick} className="inline-flex items-center justify-center rounded-xl bg-fuchsia-500 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-fuchsia-400">
-                Войти в мессенджер
-              </button>
-            </div>
-          )}
-          {children}
         </div>
       </div>
     </div>
