@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useClerk, useUser } from "@clerk/react";
 import { setTabLoggedOut } from "@/App";
@@ -139,9 +139,10 @@ const BASE_TABS: { id: SettingsTab; label: string; icon: any }[] = [
   { id: "privacy", label: "Privacy", icon: Shield },
   { id: "calls", label: "Calls", icon: MessageSquare },
   { id: "storage", label: "Storage", icon: HardDrive },
-  { id: "admin", label: "Admin", icon: Shield },
   { id: "about", label: "About", icon: Info },
 ];
+
+const ADMIN_TAB = { id: "admin" as SettingsTab, label: "Admin", icon: Shield };
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -371,7 +372,7 @@ export default function SettingsPage() {
       else localStorage.removeItem("pulse_auto_answer");
     }
     setAppliedTabs(prev => ({ ...prev, [tab]: true }));
-    toast({ title: `${TABS.find(t => t.id === tab)?.label || "Settings"} applied ✓` });
+    toast({ title: `${BASE_TABS.find(t => t.id === tab)?.label || "Settings"} applied ✓` });
   }
 
   function sendIssue(kind: "bug" | "support") {
@@ -430,7 +431,7 @@ export default function SettingsPage() {
         {/* Sidebar tabs - horizontal on mobile, vertical on desktop */}
         <div className="md:w-56 shrink-0 border-b md:border-b-0 md:border-r border-white/10">
           <div className="flex md:flex-col gap-1 px-2 py-2 md:py-4 overflow-x-auto">
-            {BASE_TABS.filter(tab => tab.id !== "admin" || m?.isAdmin).map(tab => (
+            {BASE_TABS.map(tab => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
@@ -441,6 +442,17 @@ export default function SettingsPage() {
                 {appliedTabs[tab.id] && <Check size={12} className="ml-1 text-primary" />}
               </button>
             ))}
+            {m?.isAdmin && (
+              <button
+                key="admin"
+                onClick={() => setActiveTab("admin")}
+                className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-medium whitespace-nowrap transition-all shrink-0 ${activeTab === "admin" ? "bg-white/10 text-white" : "text-slate-400 hover:text-slate-100 hover:bg-white/6"}`}
+              >
+                <ADMIN_TAB.icon size={16} />
+                <span className="hidden md:inline">{ADMIN_TAB.label}</span>
+                {appliedTabs["admin"] && <Check size={12} className="ml-1 text-primary" />}
+              </button>
+            )}
           </div>
         </div>
 
