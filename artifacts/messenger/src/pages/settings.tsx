@@ -7,7 +7,7 @@ import {
   Bell, BellOff, Shield, Palette, Volume2, VolumeX, Eye, EyeOff,
   Trash2, HardDrive, Info, ChevronRight, Check, Moon, Sun,
   Smartphone, Globe, Lock, Download, Star, MessageSquare, Bug, LifeBuoy,
-  Phone, CheckCircle2, XCircle,
+  Phone, CheckCircle2, XCircle, Copy,
 } from "lucide-react";
 import { useGetMe, useUpdateMe, getGetMeQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -477,6 +477,18 @@ export default function SettingsPage() {
                   <div className="text-center">
                     <p className="font-bold text-lg text-slate-100">{previewName}</p>
                     <p className="text-sm text-slate-400">@{username || m?.username || "username"}</p>
+                    {m?.id && (
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(String(m.id));
+                          toast({ title: `Copied User ID: ${m.id}` });
+                        }}
+                        className="text-xs text-slate-500 hover:text-slate-300 mt-2 flex items-center gap-1 justify-center transition-colors"
+                      >
+                        <span>ID: {m.id}</span>
+                        <Copy size={12} />
+                      </button>
+                    )}
                     {bio && <p className="text-xs text-slate-400 mt-1 max-w-xs">{bio}</p>}
                   </div>
                   {clerkUser?.imageUrl && (
