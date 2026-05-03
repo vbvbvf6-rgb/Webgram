@@ -11,7 +11,6 @@ import {
 } from "lucide-react";
 import { useGetMe, useUpdateMe, getGetMeQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import i18n from "@/lib/i18n";
@@ -215,7 +214,6 @@ function applyAccentColor(hex: string) {
 
 export default function SettingsPage() {
   const [, setLocation] = useLocation();
-  const { toast } = useToast();
   const { signOut } = useClerk();
   const { user: clerkUser } = useUser();
   const qc = useQueryClient();
@@ -368,36 +366,36 @@ export default function SettingsPage() {
     setRingtone(localStorage.getItem("pulse_ringtone") || "default");
   }, []);
 
-  useEffect(() => {
-    if (me && !dirty) {
-      setDisplayName(m.displayName || "");
-      setUsername(m.username || "");
-      setBio(m.bio || "");
-      setAvatarUrl(m.avatarUrl || "");
-      setPhone(m.phone || "");
-      setPhoneVerified(m.phoneVerified || false);
-    }
-  }, [me]); // eslint-disable-line react-hooks/exhaustive-deps
-
   const { t } = useTranslation();
   const mark = (fn: (v: string) => void) => (v: string) => { fn(v); setDirty(true); };
 
+  // Load form values from server data on initial mount only
+  useEffect(() => {
+    if (me && displayName === "") {
+      setDisplayName(m?.displayName || "");
+      setUsername(m?.username || "");
+      setBio(m?.bio || "");
+      setAvatarUrl(m?.avatarUrl || "");
+      setPhone(m?.phone || "");
+      setPhoneVerified(m?.phoneVerified || false);
+    }
+  }, []);
+
   async function handleSave() {
     try {
-      setDirty(false);
       await updateMe.mutateAsync({ data: { displayName, username, bio: bio || null, avatarUrl: avatarUrl || null, phone: phone || null } as any });
       qc.invalidateQueries({ queryKey: getGetMeQueryKey() });
-      toast({ title: t("settings.profile.saved") });
+      setDirty(false);
+      void 0;
     } catch {
-      setDirty(true);
-      toast({ title: "Failed to save", variant: "destructive" });
+      void 0;
     }
   }
 
   // Simulated phone verification (OTP sent via toast; real SMS would need Twilio/etc.)
   async function sendPhoneCode() {
     if (!phone.trim() || !/^\+?[\d\s\-()]{7,15}$/.test(phone.trim())) {
-      toast({ title: "Enter a valid phone number", variant: "destructive" }); return;
+      void 0; return;
     }
     const code = Math.floor(100000 + Math.random() * 900000).toString();
     sessionStorage.setItem("phone_verify_code", code);
@@ -418,12 +416,12 @@ export default function SettingsPage() {
         setPhoneSent(false);
         setPhoneCode("");
         sessionStorage.removeItem("phone_verify_code");
-        toast({ title: "Phone number verified ✓" });
+        void 0;
       } catch {
-        toast({ title: "Failed to save phone", variant: "destructive" });
+        void 0;
       }
     } else {
-      toast({ title: "Wrong code", description: "Check and try again", variant: "destructive" });
+      void 0;
     }
     setPhoneVerifying(false);
   }
@@ -464,7 +462,7 @@ export default function SettingsPage() {
     const title = kind === "bug" ? bugTitle.trim() : supportTitle.trim();
     const details = kind === "bug" ? bugDetails.trim() : supportDetails.trim();
     if (!title || !details) {
-      toast({ title: t("settings.about.fillFields"), variant: "destructive" });
+      void 0;
       return;
     }
     try {
@@ -477,7 +475,7 @@ export default function SettingsPage() {
     } catch {
       // silently continue — report may have failed but we still clear form
     }
-    toast({ title: kind === "bug" ? t("settings.about.bugSent") : t("settings.about.supportSent") });
+    void 0;
     if (kind === "bug") { setBugTitle(""); setBugDetails(""); } else { setSupportTitle(""); setSupportDetails(""); }
   }
 
@@ -485,7 +483,7 @@ export default function SettingsPage() {
     const userId = parseInt(grantUserId.trim());
     const amount = parseInt(grantAmount.trim());
     if (!userId || !amount || amount < 1 || amount > 10000) {
-      toast({ title: "Invalid user ID or amount (1-10000)", variant: "destructive" });
+      void 0;
       return;
     }
     setGrantLoading(true);
@@ -501,7 +499,7 @@ export default function SettingsPage() {
       setGrantUserId("");
       setGrantAmount("");
     } catch (err) {
-      toast({ title: "Failed to grant currency", description: String(err).slice(0, 100), variant: "destructive" });
+      void 0;
     } finally {
       setGrantLoading(false);
     }
@@ -599,7 +597,7 @@ export default function SettingsPage() {
                     <input value={displayName} onChange={e => {
                       const val = e.target.value;
                       if (hasProfanity(val)) {
-                        toast({ title: "⚠️ Inappropriate content not allowed", variant: "destructive" });
+                        void 0;
                         return;
                       }
                       mark(setDisplayName)(val);
@@ -612,7 +610,7 @@ export default function SettingsPage() {
                       <input value={username} onChange={e => {
                         const val = e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "");
                         if (hasProfanity(val)) {
-                          toast({ title: "⚠️ Inappropriate username", variant: "destructive" });
+                          void 0;
                           return;
                         }
                         mark(setUsername)(val);
@@ -633,7 +631,7 @@ export default function SettingsPage() {
                         const file = e.target.files?.[0];
                         if (!file) return;
                         if (file.size > 5 * 1024 * 1024) {
-                          toast({ title: "Image too large (max 5MB)", variant: "destructive" });
+                          void 0;
                           return;
                         }
                         try {
@@ -641,7 +639,7 @@ export default function SettingsPage() {
                           setAvatarUrl(compressed);
                           setDirty(true);
                         } catch {
-                          toast({ title: "Failed to process image", variant: "destructive" });
+                          void 0;
                         }
                       }} 
                       className="w-full bg-white/6 border border-white/10 rounded-xl px-4 py-3 text-sm text-slate-100 outline-none focus:ring-2 ring-fuchsia-400/40 transition-all file:mr-3 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-primary/20 file:text-primary hover:file:bg-primary/30"
@@ -778,7 +776,7 @@ export default function SettingsPage() {
                     clearCurrentSession();
                     setTabLoggedOut();
                     setLocation("/");
-                    toast({ title: "Logged out on this tab" });
+                    void 0;
                   }} className="w-full flex items-center justify-center gap-2 border border-red-500/30 text-red-300 rounded-xl py-3 font-semibold text-sm hover:bg-red-500/8 transition-colors">
                     <LogOut size={15} />Sign out
                   </button>
@@ -986,7 +984,7 @@ export default function SettingsPage() {
                 <div className="bg-accent/30 border border-border rounded-2xl p-4 text-sm">
                   <p className="font-semibold mb-2 flex items-center gap-2"><Info size={14} className="text-primary" />Permissions</p>
                   <p className="text-xs text-muted-foreground mb-3">Droidgram needs camera and microphone access for calls.</p>
-                  <button onClick={() => navigator.mediaDevices?.getUserMedia({ audio: true, video: true }).then(s => { s.getTracks().forEach(t => t.stop()); toast({ title: "Camera & mic access granted ✓" }); }).catch(() => toast({ title: "Please allow access in browser settings", variant: "destructive" }))} className="text-xs bg-primary text-primary-foreground rounded-lg px-4 py-2 font-semibold hover:bg-primary/90 transition-colors">
+                  <button onClick={() => navigator.mediaDevices?.getUserMedia({ audio: true, video: true }).then(s => { s.getTracks().forEach(t => t.stop()); void 0; }).catch(() => toast({ title: "Please allow access in browser settings", variant: "destructive" }))} className="text-xs bg-primary text-primary-foreground rounded-lg px-4 py-2 font-semibold hover:bg-primary/90 transition-colors">
                     Test camera & microphone
                   </button>
                 </div>
