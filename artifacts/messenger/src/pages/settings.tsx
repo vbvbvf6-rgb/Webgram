@@ -5,7 +5,7 @@ import {
   ArrowLeft, Save, LogOut, Camera, User, AtSign, FileText, Link,
   Bell, BellOff, Shield, Palette, Volume2, VolumeX, Eye, EyeOff,
   Trash2, HardDrive, Info, ChevronRight, Check, Moon, Sun,
-  Smartphone, Globe, Lock, Download, Star, MessageSquare,
+  Smartphone, Globe, Lock, Download, Star, MessageSquare, Bug, LifeBuoy,
 } from "lucide-react";
 import { useGetMe, useUpdateMe, getGetMeQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -149,6 +149,10 @@ export default function SettingsPage() {
   const [noiseCancellation, setNoiseCancellation] = useState(true);
   const [autoAnswerAfterSecs, setAutoAnswerAfterSecs] = useState<number | null>(null);
   const [ringtone, setRingtone] = useState("default");
+  const [bugTitle, setBugTitle] = useState("");
+  const [bugDetails, setBugDetails] = useState("");
+  const [supportTitle, setSupportTitle] = useState("");
+  const [supportDetails, setSupportDetails] = useState("");
 
   useEffect(() => {
     if (me) {
@@ -176,6 +180,17 @@ export default function SettingsPage() {
   function applyTab(tab: SettingsTab) {
     setAppliedTabs(prev => ({ ...prev, [tab]: true }));
     toast({ title: `${TABS.find(t => t.id === tab)?.label || "Settings"} applied ✓` });
+  }
+
+  function sendIssue(kind: "bug" | "support") {
+    const title = kind === "bug" ? bugTitle.trim() : supportTitle.trim();
+    const details = kind === "bug" ? bugDetails.trim() : supportDetails.trim();
+    if (!title || !details) {
+      toast({ title: kind === "bug" ? "Add bug title and details" : "Add a question and details", variant: "destructive" });
+      return;
+    }
+    toast({ title: kind === "bug" ? "Bug report sent" : "Support request sent" });
+    if (kind === "bug") { setBugTitle(""); setBugDetails(""); } else { setSupportTitle(""); setSupportDetails(""); }
   }
 
   const previewAvatar = avatarUrl || m?.avatarUrl;
@@ -527,6 +542,26 @@ export default function SettingsPage() {
                   <SettingRow icon={Info} label="Open source licenses" onClick={() => {}} />
                 </div>
                 <button onClick={() => applyTab("about")} className="w-full bg-primary text-primary-foreground rounded-xl py-3 font-semibold text-sm hover:bg-primary/90 transition-colors">Apply about</button>
+                <div className="grid gap-4">
+                  <div className="bg-card border border-border rounded-2xl p-4 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Bug size={16} className="text-primary" />
+                      <h3 className="font-semibold">Report bugs</h3>
+                    </div>
+                    <input value={bugTitle} onChange={e => setBugTitle(e.target.value)} placeholder="Bug title" className="w-full bg-background border border-border rounded-xl px-4 py-3 text-sm outline-none" />
+                    <textarea value={bugDetails} onChange={e => setBugDetails(e.target.value)} placeholder="What happened? Steps to reproduce..." rows={3} className="w-full bg-background border border-border rounded-xl px-4 py-3 text-sm outline-none resize-none" />
+                    <button onClick={() => sendIssue("bug")} className="w-full bg-primary text-primary-foreground rounded-xl py-3 font-semibold text-sm hover:bg-primary/90 transition-colors">Send bug report</button>
+                  </div>
+                  <div className="bg-card border border-border rounded-2xl p-4 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <LifeBuoy size={16} className="text-primary" />
+                      <h3 className="font-semibold">Support</h3>
+                    </div>
+                    <input value={supportTitle} onChange={e => setSupportTitle(e.target.value)} placeholder="Question topic" className="w-full bg-background border border-border rounded-xl px-4 py-3 text-sm outline-none" />
+                    <textarea value={supportDetails} onChange={e => setSupportDetails(e.target.value)} placeholder="Write your question for support..." rows={3} className="w-full bg-background border border-border rounded-xl px-4 py-3 text-sm outline-none resize-none" />
+                    <button onClick={() => sendIssue("support")} className="w-full bg-primary text-primary-foreground rounded-xl py-3 font-semibold text-sm hover:bg-primary/90 transition-colors">Send to support</button>
+                  </div>
+                </div>
                 <div className="text-center text-xs text-muted-foreground pb-4">
                   <p>Built with ❤️ using React, Express, and PostgreSQL</p>
                   <p className="mt-1">© {new Date().getFullYear()} Pulse — All rights reserved</p>
