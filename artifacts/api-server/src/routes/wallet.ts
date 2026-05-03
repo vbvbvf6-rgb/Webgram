@@ -290,8 +290,8 @@ router.post("/admin/grant", requireAuth, async (req: AuthenticatedRequest, res) 
     }
     
     const { toUserId, amount, description } = req.body as { toUserId: string | number; amount: number; description?: string };
-    if (!toUserId || !amount || amount < 1 || amount > 10000) {
-      res.status(400).json({ error: "Invalid amount (1-10000)" });
+    if (!toUserId || !amount || amount < 1) {
+      res.status(400).json({ error: "Invalid amount (must be at least 1)" });
       return;
     }
     
