@@ -127,14 +127,14 @@ function ClerkQueryClientCacheInvalidator() {
 
 function AuthBackground({ children }: { children: React.ReactNode }) {
   return (
-    <div className="relative min-h-[100dvh] overflow-hidden bg-[#090f1f]">
+    <div className="relative min-h-[100dvh] overflow-hidden bg-black">
       <div className="absolute inset-0">
-        <div className="absolute -left-16 top-24 h-56 w-56 rounded-full bg-violet-500/10 blur-3xl" />
-        <div className="absolute left-0 bottom-10 h-44 w-44 rounded-full bg-fuchsia-500/10 blur-3xl" />
-        <div className="absolute right-10 bottom-0 h-52 w-52 rounded-full bg-indigo-500/10 blur-3xl" />
+        <div className="absolute -left-16 top-24 h-56 w-56 rounded-full bg-violet-500/8 blur-3xl" />
+        <div className="absolute left-0 bottom-10 h-44 w-44 rounded-full bg-fuchsia-500/8 blur-3xl" />
+        <div className="absolute right-10 bottom-0 h-52 w-52 rounded-full bg-indigo-500/8 blur-3xl" />
       </div>
       <div className="relative z-10 flex min-h-[100dvh] items-center justify-center px-5 py-10">
-        <div className="relative w-full max-w-[430px] rounded-[34px] bg-[#0d1326]/92 p-8 shadow-[0_30px_100px_rgba(88,28,135,0.38)] backdrop-blur-sm border border-white/10">
+        <div className="relative w-full max-w-[430px] rounded-[34px] bg-[#0b1020]/95 p-8 shadow-[0_30px_100px_rgba(0,0,0,0.72)] backdrop-blur-sm border border-white/8">
           <div className="flex flex-col items-center text-center">
             <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500 to-pink-500 text-white shadow-lg shadow-violet-200/60">
               <svg width="30" height="30" viewBox="0 0 32 32" fill="none" aria-hidden="true">
