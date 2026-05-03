@@ -108,7 +108,7 @@ router.get("/", requireAuth, async (req: AuthenticatedRequest, res): Promise<voi
 router.post("/", requireAuth, async (req: AuthenticatedRequest, res): Promise<void> => {
   try {
     const me = await ensureUser(req.userId!);
-    const { type, name, memberIds } = req.body as { type: "direct" | "group"; name?: string; memberIds: number[] };
+    const { type, name, description, memberIds, isPublic } = req.body as { type: "direct" | "group" | "channel"; name?: string; description?: string; memberIds: number[]; isPublic?: boolean };
     if (type === "direct") {
       const otherUserId = memberIds.find((id) => id !== me.id) ?? memberIds[0];
       const existingMembers = await db.select({ chatId: chatMembersTable.chatId }).from(chatMembersTable).where(eq(chatMembersTable.userId, me.id));
@@ -123,7 +123,17 @@ router.post("/", requireAuth, async (req: AuthenticatedRequest, res): Promise<vo
         }
       }
     }
-    const [chat] = await db.insert(chatsTable).values({ type, name: name ?? null, createdBy: me.id }).returning();
+    if ((type === "group" || type === "channel") && !name?.trim()) {
+      res.status(400).json({ error: "Name required for groups/channels" });
+      return;
+    }
+    const [chat] = await db.insert(chatsTable).values({ 
+      type, 
+      name: name ?? null, 
+      description: description ?? null,
+      isPublic: type === "channel" ? (isPublic ?? false) : false,
+      createdBy: me.id 
+    }).returning();
     const allMemberIds = Array.from(new Set([me.id, ...memberIds]));
     await db.insert(chatMembersTable).values(allMemberIds.map((userId) => ({ chatId: chat.id, userId })));
     const details = await getChatWithDetails(chat.id, me.id);

@@ -1,15 +1,17 @@
-import { pgTable, serial, text, integer, timestamp, pgEnum } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, integer, timestamp, pgEnum, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { usersTable } from "./users";
 
-export const chatTypeEnum = pgEnum("chat_type", ["direct", "group"]);
+export const chatTypeEnum = pgEnum("chat_type", ["direct", "group", "channel"]);
 
 export const chatsTable = pgTable("chats", {
   id: serial("id").primaryKey(),
   type: chatTypeEnum("type").notNull(),
   name: text("name"),
   avatarUrl: text("avatar_url"),
+  description: text("description"),
+  isPublic: boolean("is_public").notNull().default(false),
   createdBy: integer("created_by").notNull().references(() => usersTable.id),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
