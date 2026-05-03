@@ -9,6 +9,7 @@ export const giftsTable = pgTable("gifts", {
   giftId: text("gift_id").notNull(),
   fromUserId: integer("from_user_id").notNull().references(() => usersTable.id),
   toUserId: integer("to_user_id").notNull().references(() => usersTable.id),
+  currentOwnerId: integer("current_owner_id").notNull().references(() => usersTable.id),
   chatId: integer("chat_id").references(() => chatsTable.id),
   message: text("message"),
   createdAt: timestamp("created_at").notNull().defaultNow(),

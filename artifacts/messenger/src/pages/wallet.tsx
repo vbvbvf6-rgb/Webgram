@@ -77,6 +77,10 @@ export default function WalletPage() {
   const [userSearch, setUserSearch] = useState<any[]>([]);
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [giftAction, setGiftAction] = useState<{ type: "sell" | "transfer"; giftId: number } | null>(null);
+  const [transferSearch, setTransferSearch] = useState("");
+  const [transferUser, setTransferUser] = useState<any>(null);
+  const [actionLoading, setActionLoading] = useState(false);
 
   const fetchWallet = useCallback(async () => {
     try {
@@ -331,40 +335,138 @@ export default function WalletPage() {
 
         {/* GIFTS TAB */}
         {tab === "gifts" && (
-          <div className="px-4 pt-4 space-y-4">
-            <div className="space-y-2">
-              <p className="text-sm font-semibold">Available Gifts</p>
-              <p className="text-xs text-muted-foreground">Send gifts to your friends! Maximum support from your balance: {wallet?.balance ?? "—"} ⚡</p>
+          <div className="px-4 pt-4 space-y-6">
+            {/* My Gifts */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-semibold">My Gifts</p>
+                <p className="text-xs text-muted-foreground">{gifts.length} gift{gifts.length !== 1 ? "s" : ""}</p>
+              </div>
+              {gifts.length === 0 ? (
+                <p className="text-xs text-muted-foreground text-center py-6">No gifts yet. Buy some!</p>
+              ) : (
+                <div className="space-y-2 max-h-48 overflow-y-auto">
+                  {gifts.map(gift => {
+                    const giftInfo = GIFTS_CATALOG.find(g => g.id === gift.giftId);
+                    const sellPrice = Math.floor((giftInfo?.price || 0) * 0.5);
+                    return (
+                      <motion.div key={gift.id} initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}
+                        className="flex items-center gap-3 p-3 rounded-xl bg-card border border-border/60 hover:border-primary/30 transition-colors">
+                        <span className="text-2xl">{giftInfo?.emoji || "🎁"}</span>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold">{giftInfo?.name || "Unknown"}</p>
+                          <p className="text-[10px] text-muted-foreground">from {gift.fromUser.displayName}</p>
+                        </div>
+                        <div className="flex gap-1.5 shrink-0">
+                          <motion.button whileTap={{ scale: 0.95 }}
+                            onClick={() => setGiftAction({ type: "transfer", giftId: gift.id })}
+                            className="px-2 py-1 rounded-lg bg-primary/10 text-primary text-[10px] font-semibold hover:bg-primary/20 transition-colors">
+                            Transfer
+                          </motion.button>
+                          <motion.button whileTap={{ scale: 0.95 }}
+                            onClick={() => setGiftAction({ type: "sell", giftId: gift.id })}
+                            className="px-2 py-1 rounded-lg bg-orange-500/10 text-orange-400 text-[10px] font-semibold hover:bg-orange-500/20 transition-colors">
+                            Sell ⚡{sellPrice}
+                          </motion.button>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
-            <div className="grid grid-cols-3 gap-2">
-              {GIFTS_CATALOG.map(gift => {
-                const canAfford = wallet ? wallet.balance >= gift.price : false;
-                const isUltra = gift.price === 10000;
-                return (
-                  <motion.div key={gift.id}
-                    whileHover={canAfford ? { scale: 1.05 } : {}}
-                    className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border transition-all ${
-                      isUltra ? "border-yellow-500/50 bg-gradient-to-br from-yellow-500/10 to-pink-500/10" :
-                      canAfford ? "border-primary/30 bg-primary/5 hover:border-primary/50" : "border-border/50 opacity-40"
-                    } ${!canAfford ? "cursor-not-allowed" : "cursor-pointer"}`}>
-                    <span className={`text-2xl ${isUltra ? "gift-supreme" : ""}`}>{gift.emoji}</span>
-                    <p className="text-[10px] font-semibold leading-none text-center text-muted-foreground">{gift.name}</p>
-                    <p className={`text-[10px] font-bold ${isUltra ? "text-yellow-400" : "text-primary"}`}>⚡{gift.price}</p>
-                    {isUltra && <span className="text-[7px] text-yellow-400 font-bold">ULTRA RARE</span>}
-                  </motion.div>
-                );
-              })}
-            </div>
-            <div className="bg-card border border-border/80 rounded-2xl p-4 mt-6">
-              <p className="text-xs font-semibold mb-2">💎 Crown Jewel</p>
-              <p className="text-xs text-muted-foreground mb-3">The rarest gift in Droidgram! 👑✨ Shows your ultimate appreciation. Perfect for special moments and milestones.</p>
-              <div className="text-[11px] text-muted-foreground space-y-1">
-                <p>• Only 10,000 coins</p>
-                <p>• Premium animation</p>
-                <p>• Ultra rare status</p>
+
+            <div className="h-px bg-border/40" />
+
+            {/* Shop */}
+            <div className="space-y-3">
+              <p className="text-sm font-semibold">Shop</p>
+              <p className="text-xs text-muted-foreground">Balance: {wallet?.balance ?? "—"} ⚡</p>
+              <div className="grid grid-cols-3 gap-2">
+                {GIFTS_CATALOG.map(gift => {
+                  const canAfford = wallet ? wallet.balance >= gift.price : false;
+                  const isUltra = gift.price === 10000;
+                  return (
+                    <motion.div key={gift.id}
+                      whileHover={canAfford ? { scale: 1.05 } : {}}
+                      className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border transition-all ${
+                        isUltra ? "border-yellow-500/50 bg-gradient-to-br from-yellow-500/10 to-pink-500/10" :
+                        canAfford ? "border-primary/30 bg-primary/5 hover:border-primary/50" : "border-border/50 opacity-40"
+                      } ${!canAfford ? "cursor-not-allowed" : "cursor-pointer"}`}>
+                      <span className={`text-2xl ${isUltra ? "gift-supreme" : ""}`}>{gift.emoji}</span>
+                      <p className="text-[10px] font-semibold leading-none text-center text-muted-foreground">{gift.name}</p>
+                      <p className={`text-[10px] font-bold ${isUltra ? "text-yellow-400" : "text-primary"}`}>⚡{gift.price}</p>
+                      {isUltra && <span className="text-[7px] text-yellow-400 font-bold">ULTRA RARE</span>}
+                    </motion.div>
+                  );
+                })}
               </div>
             </div>
           </div>
+        )}
+
+        {/* Gift Action Modal */}
+        {giftAction && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="absolute inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4"
+            onClick={() => setGiftAction(null)}>
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-card border border-border rounded-2xl w-full max-w-sm overflow-hidden"
+              onClick={e => e.stopPropagation()}>
+              <div className="p-4 border-b border-border/50">
+                <h3 className="font-semibold text-sm">{giftAction.type === "sell" ? "Sell Gift" : "Transfer Gift"}</h3>
+              </div>
+
+              {giftAction.type === "sell" ? (
+                <div className="p-4 space-y-4">
+                  <p className="text-xs text-muted-foreground">You'll receive 50% of the gift's original price.</p>
+                  <motion.button whileTap={{ scale: 0.97 }} 
+                    onClick={async () => {
+                      setActionLoading(true);
+                      try {
+                        const token = await getToken();
+                        const res = await fetch(`/api/wallet/gift/${giftAction.giftId}/sell`, {
+                          method: "POST",
+                          headers: { Authorization: `Bearer ${token}` },
+                        });
+                        if (res.ok) {
+                          const data = await res.json();
+                          setWallet(w => w ? { ...w, balance: data.newBalance } : null);
+                          setGiftAction(null);
+                          fetchGifts();
+                          toast({ title: `Sold gift for ⚡${data.sellPrice} coins!` });
+                        } else {
+                          toast({ title: "Failed to sell gift", variant: "destructive" });
+                        }
+                      } finally {
+                        setActionLoading(false);
+                      }
+                    }}
+                    disabled={actionLoading}
+                    className="w-full py-2 bg-orange-500/20 text-orange-400 rounded-xl font-semibold text-sm hover:bg-orange-500/30 transition-colors disabled:opacity-50">
+                    {actionLoading ? "Selling…" : "Confirm Sale"}
+                  </motion.button>
+                </div>
+              ) : (
+                <div className="p-4 space-y-4">
+                  <input type="text" placeholder="Search user…" value={transferSearch}
+                    onChange={e => setTransferSearch(e.target.value)}
+                    className="w-full bg-background border border-border rounded-xl px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-primary/60" />
+                  {transferSearch && (
+                    <div className="max-h-32 overflow-y-auto space-y-1 border border-border rounded-xl p-2">
+                      {/* Search would happen here - for now simplified */}
+                      <p className="text-[10px] text-muted-foreground text-center py-2">Search coming soon</p>
+                    </div>
+                  )}
+                  <motion.button whileTap={{ scale: 0.97 }}
+                    disabled={actionLoading || !transferUser}
+                    className="w-full py-2 bg-primary/20 text-primary rounded-xl font-semibold text-sm hover:bg-primary/30 transition-colors disabled:opacity-50">
+                    {actionLoading ? "Transferring…" : "Transfer Gift"}
+                  </motion.button>
+                </div>
+              )}
+            </motion.div>
+          </motion.div>
         )}
 
         {/* LEADERBOARD TAB */}

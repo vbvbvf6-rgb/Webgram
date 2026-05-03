@@ -167,7 +167,7 @@ router.post("/gift", requireAuth, async (req: AuthenticatedRequest, res): Promis
   }
 });
 
-// ── Get gifts received ────────────────────────────────────────────────────────
+// ── Get my gift inventory ─────────────────────────────────────────────────────
 router.get("/gifts", requireAuth, async (req: AuthenticatedRequest, res) => {
   try {
     const me = await ensureUser(req.userId!);
@@ -179,12 +179,80 @@ router.get("/gifts", requireAuth, async (req: AuthenticatedRequest, res) => {
       fromUser: usersTable,
     }).from(giftsTable)
       .innerJoin(usersTable, eq(giftsTable.fromUserId, usersTable.id))
-      .where(eq(giftsTable.toUserId, me.id))
+      .where(eq(giftsTable.currentOwnerId, me.id))
       .orderBy(desc(giftsTable.createdAt))
       .limit(100);
     res.json(gifts);
   } catch (err) {
     req.log.error({ err }, "Failed to get gifts");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// ── Sell gift ─────────────────────────────────────────────────────────────────
+router.post("/gift/:id/sell", requireAuth, async (req: AuthenticatedRequest, res): Promise<void> => {
+  try {
+    const me = await ensureUser(req.userId!);
+    const giftId = parseInt(req.params.id);
+    if (isNaN(giftId)) { res.status(400).json({ error: "Invalid gift ID" }); return; }
+    
+    const gift = await db.select().from(giftsTable).where(eq(giftsTable.id, giftId)).limit(1);
+    if (!gift.length) { res.status(404).json({ error: "Gift not found" }); return; }
+    if (gift[0].currentOwnerId !== me.id) { res.status(403).json({ error: "You don't own this gift" }); return; }
+    
+    const GIFT_CATALOG: Record<string, { price: number }> = {
+      "rose": { price: 25 }, "star": { price: 30 }, "fire": { price: 50 },
+      "rocket": { price: 75 }, "crown": { price: 100 }, "rainbow": { price: 150 },
+      "diamond": { price: 200 }, "trophy": { price: 500 }, "crown-jewel": { price: 10000 },
+    };
+    const giftInfo = GIFT_CATALOG[gift[0].giftId];
+    const sellPrice = Math.floor((giftInfo?.price || 0) * 0.5);
+    
+    const wallet = await ensureWallet(me.id);
+    const [updated] = await db.update(walletsTable)
+      .set({ balance: wallet.balance + sellPrice, updatedAt: new Date() })
+      .where(eq(walletsTable.userId, me.id))
+      .returning();
+    
+    await db.insert(transactionsTable).values({
+      toUserId: me.id, amount: sellPrice, type: "send",
+      description: `Sold ${gift[0].giftId} gift for ${sellPrice} coins`,
+    });
+    
+    await db.delete(giftsTable).where(eq(giftsTable.id, giftId));
+    res.json({ success: true, newBalance: updated.balance, sellPrice });
+  } catch (err) {
+    req.log.error({ err }, "Failed to sell gift");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// ── Transfer gift to another user ──────────────────────────────────────────────
+router.post("/gift/:id/transfer", requireAuth, async (req: AuthenticatedRequest, res): Promise<void> => {
+  try {
+    const me = await ensureUser(req.userId!);
+    const giftId = parseInt(req.params.id);
+    const { toUserId } = req.body as { toUserId: number };
+    
+    if (isNaN(giftId)) { res.status(400).json({ error: "Invalid gift ID" }); return; }
+    if (!toUserId) { res.status(400).json({ error: "Invalid request" }); return; }
+    if (toUserId === me.id) { res.status(400).json({ error: "Cannot transfer to yourself" }); return; }
+    
+    const gift = await db.select().from(giftsTable).where(eq(giftsTable.id, giftId)).limit(1);
+    if (!gift.length) { res.status(404).json({ error: "Gift not found" }); return; }
+    if (gift[0].currentOwnerId !== me.id) { res.status(403).json({ error: "You don't own this gift" }); return; }
+    
+    const recipient = await db.select().from(usersTable).where(eq(usersTable.id, toUserId)).limit(1);
+    if (!recipient.length) { res.status(404).json({ error: "User not found" }); return; }
+    
+    const [updated] = await db.update(giftsTable)
+      .set({ currentOwnerId: toUserId, updatedAt: new Date() })
+      .where(eq(giftsTable.id, giftId))
+      .returning();
+    
+    res.json({ success: true, gift: updated, recipient: recipient[0] });
+  } catch (err) {
+    req.log.error({ err }, "Failed to transfer gift");
     res.status(500).json({ error: "Internal server error" });
   }
 });
