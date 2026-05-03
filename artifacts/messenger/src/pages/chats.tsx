@@ -1079,7 +1079,7 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
         badge: "⚡",
       });
     }
-  }, [messages?.length]);
+  }, [messages?.[messages?.length - 1]?.id, chatMuted, chatName, chatId, myId]);
 
   // Theme persistence
   useEffect(() => {
