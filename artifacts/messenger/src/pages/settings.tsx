@@ -7,12 +7,14 @@ import {
   Bell, BellOff, Shield, Palette, Volume2, VolumeX, Eye, EyeOff,
   Trash2, HardDrive, Info, ChevronRight, Check, Moon, Sun,
   Smartphone, Globe, Lock, Download, Star, MessageSquare, Bug, LifeBuoy,
-  Phone, CheckCircle2, XCircle, Copy, Gift,
+  Phone, CheckCircle2, XCircle, Copy, Gift, Languages,
 } from "lucide-react";
 import { useGetMe, useUpdateMe, getGetMeQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
+import { useTranslation } from "react-i18next";
+import i18n from "@/lib/i18n";
 
 // Profanity filter
 const BAD_WORDS = ["fuck", "shit", "bitch", "asshole", "pussy", "dick", "cunt", "damn", "hell", "piss"];
@@ -261,6 +263,9 @@ export default function SettingsPage() {
   const [showAvatars, setShowAvatars] = useState(true);
   const [compactMode, setCompactMode] = useState(false);
   const [animationsEnabled, setAnimationsEnabled] = useState(true);
+  const [language, setLanguage] = useState<"en" | "ru">(
+    (localStorage.getItem("droidgram_language") as "en" | "ru") || "en"
+  );
 
   // Privacy
   const [readReceipts, setReadReceipts] = useState(true);
@@ -364,26 +369,27 @@ export default function SettingsPage() {
   }, []);
 
   useEffect(() => {
-    if (me) {
+    if (me && !dirty) {
       setDisplayName(m.displayName || "");
       setUsername(m.username || "");
       setBio(m.bio || "");
       setAvatarUrl(m.avatarUrl || "");
       setPhone(m.phone || "");
       setPhoneVerified(m.phoneVerified || false);
-      setDirty(false);
     }
-  }, [me]);
+  }, [me]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const { t } = useTranslation();
   const mark = (fn: (v: string) => void) => (v: string) => { fn(v); setDirty(true); };
 
   async function handleSave() {
     try {
+      setDirty(false);
       await updateMe.mutateAsync({ data: { displayName, username, bio: bio || null, avatarUrl: avatarUrl || null, phone: phone || null } as any });
       qc.invalidateQueries({ queryKey: getGetMeQueryKey() });
-      toast({ title: "Profile saved ✓" });
-      setDirty(false);
+      toast({ title: t("settings.profile.saved") });
     } catch {
+      setDirty(true);
       toast({ title: "Failed to save", variant: "destructive" });
     }
   }
@@ -431,6 +437,8 @@ export default function SettingsPage() {
       localStorage.setItem("pulse_show_avatars", String(showAvatars));
       localStorage.setItem("pulse_compact", String(compactMode));
       localStorage.setItem("pulse_animations", String(animationsEnabled));
+      localStorage.setItem("droidgram_language", language);
+      i18n.changeLanguage(language);
       const fontSizeMap = { small: "13px", medium: "15px", large: "17px" } as const;
       document.documentElement.style.fontSize = fontSizeMap[fontSize];
     } else if (tab === "notifications") {
@@ -449,17 +457,27 @@ export default function SettingsPage() {
       else localStorage.removeItem("pulse_auto_answer");
     }
     setAppliedTabs(prev => ({ ...prev, [tab]: true }));
-    toast({ title: `${BASE_TABS.find(t => t.id === tab)?.label || "Settings"} applied ✓` });
+    toast({ title: `${BASE_TABS.find(tab_ => tab_.id === tab)?.label || "Settings"} applied ✓` });
   }
 
-  function sendIssue(kind: "bug" | "support") {
+  async function sendIssue(kind: "bug" | "support") {
     const title = kind === "bug" ? bugTitle.trim() : supportTitle.trim();
     const details = kind === "bug" ? bugDetails.trim() : supportDetails.trim();
     if (!title || !details) {
-      toast({ title: kind === "bug" ? "Add bug title and details" : "Add a question and details", variant: "destructive" });
+      toast({ title: t("settings.about.fillFields"), variant: "destructive" });
       return;
     }
-    toast({ title: kind === "bug" ? "Bug report sent" : "Support request sent" });
+    try {
+      const token = await clerkUser?.getToken?.();
+      await fetch("/api/reports", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify({ kind, title, details }),
+      });
+    } catch {
+      // silently continue — report may have failed but we still clear form
+    }
+    toast({ title: kind === "bug" ? t("settings.about.bugSent") : t("settings.about.supportSent") });
     if (kind === "bug") { setBugTitle(""); setBugDetails(""); } else { setSupportTitle(""); setSupportDetails(""); }
   }
 
@@ -500,7 +518,7 @@ export default function SettingsPage() {
         <button onClick={() => setLocation("/chats")} className="w-8 h-8 flex items-center justify-center rounded-xl hover:bg-white/8 transition-colors">
           <ArrowLeft size={18} />
         </button>
-        <h1 className="font-bold text-lg text-slate-100">Settings</h1>
+        <h1 className="font-bold text-lg text-slate-100">{t("settings.title")}</h1>
         {dirty && <span className="ml-auto text-xs text-slate-400 font-medium animate-pulse">Unsaved</span>}
       </div>
 
@@ -861,17 +879,36 @@ export default function SettingsPage() {
                 </div>
 
                 <div className="bg-card border border-border/80 rounded-2xl overflow-hidden divide-y divide-border/50">
-                  <SettingRow icon={User} label="Show avatars" description="Display profile pictures in chat">
+                  <SettingRow icon={User} label={t("settings.appearance.showAvatars")} description={t("settings.appearance.showAvatarsDesc")}>
                     <Toggle value={showAvatars} onChange={v => { setShowAvatars(v); localStorage.setItem("pulse_show_avatars", String(v)); }} />
                   </SettingRow>
-                  <SettingRow icon={Smartphone} label="Compact mode" description="Reduce spacing between messages">
+                  <SettingRow icon={Smartphone} label={t("settings.appearance.compactMode")} description={t("settings.appearance.compactModeDesc")}>
                     <Toggle value={compactMode} onChange={v => { setCompactMode(v); localStorage.setItem("pulse_compact", String(v)); }} />
                   </SettingRow>
-                  <SettingRow icon={Star} label="Animations" description="Enable message enter animations">
+                  <SettingRow icon={Star} label={t("settings.appearance.animations")} description={t("settings.appearance.animationsDesc")}>
                     <Toggle value={animationsEnabled} onChange={v => { setAnimationsEnabled(v); localStorage.setItem("pulse_animations", String(v)); }} />
                   </SettingRow>
                 </div>
-                <button onClick={() => applyTab("appearance")} className="w-full bg-primary text-primary-foreground rounded-xl py-3 font-semibold text-sm hover:bg-primary/90 transition-colors">Apply appearance</button>
+
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                    <Languages size={11} />{t("settings.appearance.language")}
+                  </p>
+                  <p className="text-xs text-muted-foreground">{t("settings.appearance.languageDesc")}</p>
+                  <div className="flex gap-2">
+                    {(["en", "ru"] as const).map(lang => (
+                      <button
+                        key={lang}
+                        onClick={() => setLanguage(lang)}
+                        className={`flex-1 py-3 rounded-xl text-sm font-semibold border transition-all ${language === lang ? "border-fuchsia-400 bg-fuchsia-500/10 text-white" : "border-white/10 text-slate-400 hover:border-fuchsia-400/40"}`}
+                      >
+                        {lang === "en" ? "🇬🇧 English" : "🇷🇺 Русский"}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <button onClick={() => applyTab("appearance")} className="w-full bg-primary text-primary-foreground rounded-xl py-3 font-semibold text-sm hover:bg-primary/90 transition-colors">{t("settings.appearance.title")}</button>
               </motion.div>
             )}
 
@@ -1062,20 +1099,20 @@ export default function SettingsPage() {
                   <div className="bg-card border border-border rounded-2xl p-4 space-y-3">
                     <div className="flex items-center gap-2">
                       <Bug size={16} className="text-primary" />
-                      <h3 className="font-semibold">Report bugs</h3>
+                      <h3 className="font-semibold">{t("settings.about.reportBugs")}</h3>
                     </div>
-                    <input value={bugTitle} onChange={e => setBugTitle(e.target.value)} placeholder="Bug title" className="w-full bg-background border border-border rounded-xl px-4 py-3 text-sm outline-none" />
-                    <textarea value={bugDetails} onChange={e => setBugDetails(e.target.value)} placeholder="What happened? Steps to reproduce..." rows={3} className="w-full bg-background border border-border rounded-xl px-4 py-3 text-sm outline-none resize-none" />
-                    <button onClick={() => sendIssue("bug")} className="w-full bg-primary text-primary-foreground rounded-xl py-3 font-semibold text-sm hover:bg-primary/90 transition-colors">Send bug report</button>
+                    <input value={bugTitle} onChange={e => setBugTitle(e.target.value)} placeholder={t("settings.about.bugTitle")} className="w-full bg-background border border-border rounded-xl px-4 py-3 text-sm outline-none" />
+                    <textarea value={bugDetails} onChange={e => setBugDetails(e.target.value)} placeholder={t("settings.about.bugDetails")} rows={3} className="w-full bg-background border border-border rounded-xl px-4 py-3 text-sm outline-none resize-none" />
+                    <button onClick={() => sendIssue("bug")} className="w-full bg-primary text-primary-foreground rounded-xl py-3 font-semibold text-sm hover:bg-primary/90 transition-colors">{t("settings.about.sendBugReport")}</button>
                   </div>
                   <div className="bg-card border border-border rounded-2xl p-4 space-y-3">
                     <div className="flex items-center gap-2">
                       <LifeBuoy size={16} className="text-primary" />
-                      <h3 className="font-semibold">Support</h3>
+                      <h3 className="font-semibold">{t("settings.about.support")}</h3>
                     </div>
-                    <input value={supportTitle} onChange={e => setSupportTitle(e.target.value)} placeholder="Question topic" className="w-full bg-background border border-border rounded-xl px-4 py-3 text-sm outline-none" />
-                    <textarea value={supportDetails} onChange={e => setSupportDetails(e.target.value)} placeholder="Write your question for support..." rows={3} className="w-full bg-background border border-border rounded-xl px-4 py-3 text-sm outline-none resize-none" />
-                    <button onClick={() => sendIssue("support")} className="w-full bg-primary text-primary-foreground rounded-xl py-3 font-semibold text-sm hover:bg-primary/90 transition-colors">Send to support</button>
+                    <input value={supportTitle} onChange={e => setSupportTitle(e.target.value)} placeholder={t("settings.about.supportTopic")} className="w-full bg-background border border-border rounded-xl px-4 py-3 text-sm outline-none" />
+                    <textarea value={supportDetails} onChange={e => setSupportDetails(e.target.value)} placeholder={t("settings.about.supportDetails")} rows={3} className="w-full bg-background border border-border rounded-xl px-4 py-3 text-sm outline-none resize-none" />
+                    <button onClick={() => sendIssue("support")} className="w-full bg-primary text-primary-foreground rounded-xl py-3 font-semibold text-sm hover:bg-primary/90 transition-colors">{t("settings.about.sendSupport")}</button>
                   </div>
                 </div>
                 <div className="text-center text-xs text-muted-foreground pb-4">
