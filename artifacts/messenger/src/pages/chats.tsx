@@ -1982,7 +1982,10 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
                       <div className="max-w-[72%] sm:max-w-[60%]">
                         {/* Sender name */}
                         {!isOwn && showAvatar && (
-                          <p className="text-[11px] text-muted-foreground font-medium ml-1 mb-0.5">{msg.sender?.displayName}</p>
+                          <p className="text-[11px] text-muted-foreground font-medium ml-1 mb-0.5 flex items-center gap-1">
+                            <span>{msg.sender?.displayName}</span>
+                            {(msg.sender as any)?.isAdmin && <span className="text-xs text-blue-400 font-bold">✓</span>}
+                          </p>
                         )}
 
                         {/* Reply quote */}
@@ -3301,7 +3304,10 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
                 </div>
               </div>
               <div className="pt-10 pb-5 px-5 text-center">
-                <h3 className="font-bold text-base">{profileViewer.displayName}</h3>
+                <div className="flex items-center justify-center gap-2">
+                  <h3 className="font-bold text-base">{profileViewer.displayName}</h3>
+                  {(profileViewer as any)?.isAdmin && <span className="text-sm text-blue-400 font-bold">✓ Admin</span>}
+                </div>
                 <p className="text-xs text-muted-foreground mt-0.5">{profileViewer.isOnline ? "🟢 Active now" : "Last seen recently"}</p>
                 {profileViewer.bio && <p className="text-xs text-muted-foreground mt-3 leading-relaxed">{profileViewer.bio}</p>}
                 <div className="flex flex-col gap-2 mt-4">
