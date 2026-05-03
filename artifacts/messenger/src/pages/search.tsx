@@ -145,7 +145,7 @@ export default function SearchPage() {
               </div>
               <div className="text-center">
                 <p className="font-medium text-foreground text-sm">No one's online yet</p>
-                <p className="text-xs mt-1">Invite friends to join Pulse!</p>
+                <p className="text-xs mt-1">Invite friends to join Droidgram!</p>
               </div>
             </motion.div>
           ) : (

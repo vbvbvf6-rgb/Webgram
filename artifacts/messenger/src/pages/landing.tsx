@@ -13,13 +13,13 @@ const FEATURES = [
 ];
 
 const TESTIMONIALS = [
-  { name: "Alex K.", text: "Pulse is what every messenger should be. Clean, fast, and beautiful.", avatar: "AK" },
+  { name: "Alex K.", text: "Droidgram is what every messenger should be. Clean, fast, and beautiful.", avatar: "AK" },
   { name: "Sarah M.", text: "I switched from Telegram and never looked back. The design is stunning.", avatar: "SM" },
   { name: "David L.", text: "Group chats work flawlessly. My team loves it.", avatar: "DL" },
 ];
 
 const MOCK_MESSAGES = [
-  { from: "Alex", content: "Hey! Did you see the new Pulse update? 🔥", own: false },
+  { from: "Alex", content: "Hey! Did you see the new Droidgram update? 🔥", own: false },
   { from: "Me", content: "Just got it! The reactions are so smooth", own: true },
   { from: "Alex", content: "Right?! Also the dark theme is 🤌", own: false },
   { from: "Me", content: "Love it. Way better than anything else out there", own: true },
@@ -45,7 +45,7 @@ export default function LandingPage() {
               <circle cx="24" cy="22" r="4" fill="white" opacity="0.6"/>
             </svg>
           </div>
-          <span className="font-bold text-lg tracking-tight">Pulse</span>
+          <span className="font-bold text-lg tracking-tight">Droidgram</span>
         </div>
         <div className="flex items-center gap-2">
           <button onClick={() => setLocation("/sign-in")} className="text-sm text-muted-foreground hover:text-foreground transition-colors px-4 py-2 rounded-xl hover:bg-accent">
@@ -100,7 +100,7 @@ export default function LandingPage() {
             transition={{ delay: 0.25, duration: 0.5 }}
             className="text-lg text-muted-foreground max-w-xl mx-auto mb-10 leading-relaxed"
           >
-            Pulse is a modern messenger built for people who care how they communicate.
+            Droidgram is a modern messenger built for people who care how they communicate.
             Fast, expressive, and beautifully designed.
           </motion.p>
 
@@ -158,7 +158,7 @@ export default function LandingPage() {
                   <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/70" />
                   <div className="w-2.5 h-2.5 rounded-full bg-green-500/70" />
                 </div>
-                <span className="text-xs text-muted-foreground mx-auto font-medium">Pulse Messenger</span>
+                <span className="text-xs text-muted-foreground mx-auto font-medium">Droidgram Messenger</span>
               </div>
               {/* Chat header */}
               <div className="flex items-center gap-3 px-4 py-2.5 bg-sidebar/60 border-b border-border/50">
@@ -284,7 +284,7 @@ export default function LandingPage() {
             <MessageSquare size={28} className="text-white" />
           </div>
           <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight mb-4">Ready to start chatting?</h2>
-          <p className="text-muted-foreground text-sm mb-8 max-w-sm mx-auto">Join thousands of people already using Pulse. It's free, fast, and beautiful.</p>
+          <p className="text-muted-foreground text-sm mb-8 max-w-sm mx-auto">Join thousands of people already using Droidgram. It's free, fast, and beautiful.</p>
           <motion.button
             whileHover={{ scale: 1.03 }}
             whileTap={{ scale: 0.97 }}
@@ -305,10 +305,10 @@ export default function LandingPage() {
             <div className="w-6 h-6 rounded-lg bg-primary/20 flex items-center justify-center">
               <MessageSquare size={12} className="text-primary" />
             </div>
-            <span className="font-bold text-sm">Pulse</span>
+            <span className="font-bold text-sm">Droidgram</span>
             <span className="text-muted-foreground text-xs">· Real-time messaging, reimagined</span>
           </div>
-          <p className="text-xs text-muted-foreground">© {new Date().getFullYear()} Pulse. Built with love.</p>
+          <p className="text-xs text-muted-foreground">© {new Date().getFullYear()} Droidgram. Built with love.</p>
         </div>
       </footer>
     </div>

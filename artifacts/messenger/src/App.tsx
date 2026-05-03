@@ -44,7 +44,7 @@ const clerkAppearance = {
     logoImageUrl: `${window.location.origin}${basePath}/logo.svg`,
   },
   variables: {
-    colorPrimary: "#8B5CF6",
+    colorPrimary: "#8AB4FF",
     colorForeground: "#d4dae8",
     colorMutedForeground: "#6b7a99",
     colorDanger: "#ef4444",
@@ -64,16 +64,16 @@ const clerkAppearance = {
     headerSubtitle: "text-[#6b7a99]",
     socialButtonsBlockButtonText: "text-[#d4dae8]",
     formFieldLabel: "text-[#d4dae8]",
-    footerActionLink: "text-[#8B5CF6] hover:text-[#a78bfa]",
+    footerActionLink: "text-[#8AB4FF] hover:text-[#C4B5FD]",
     footerActionText: "text-[#6b7a99]",
     dividerText: "text-[#6b7a99]",
-    identityPreviewEditButton: "text-[#8B5CF6]",
+    identityPreviewEditButton: "text-[#8AB4FF]",
     formFieldSuccessText: "text-green-400",
     alertText: "text-[#d4dae8]",
     logoBox: "flex justify-center py-2",
     logoImage: "w-12 h-12",
     socialButtonsBlockButton: "border border-[#1e2d47] bg-[#1a2133] hover:bg-[#1e2d47] text-[#d4dae8]",
-    formButtonPrimary: "bg-[#8B5CF6] hover:bg-[#7c3aed] text-white",
+    formButtonPrimary: "bg-[#8AB4FF] hover:bg-[#6F9CFF] text-white",
     formFieldInput: "bg-[#1a2133] border-[#1e2d47] text-[#d4dae8] placeholder:text-[#6b7a99]",
     footerAction: "bg-[#0d1420]",
     dividerLine: "bg-[#1e2d47]",
@@ -187,8 +187,8 @@ function AppRoutes() {
       signInUrl={`${basePath}/sign-in`}
       signUpUrl={`${basePath}/sign-up`}
       localization={{
-        signIn: { start: { title: "Welcome back to Pulse", subtitle: "Sign in to continue your conversations" } },
-        signUp: { start: { title: "Join Pulse", subtitle: "Create your account to get started" } },
+        signIn: { start: { title: "Welcome back to Droidgram", subtitle: "Sign in to continue your conversations" } },
+        signUp: { start: { title: "Join Droidgram", subtitle: "Create your account to get started" } },
       }}
       routerPush={(to) => setLocation(stripBase(to))}
       routerReplace={(to) => setLocation(stripBase(to), { replace: true })}

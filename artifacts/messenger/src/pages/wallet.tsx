@@ -108,7 +108,7 @@ export default function WalletPage() {
       const r = await fetch("/api/wallet/daily", { method: "POST", headers: { Authorization: `Bearer ${token}` } });
       const data = await r.json();
       if (r.ok) {
-        toast({ title: `⚡ +${data.bonus} Pulsecoins claimed!`, description: "Come back tomorrow for more" });
+        toast({ title: `⚡ +${data.bonus} Droidgram coins claimed!`, description: "Come back tomorrow for more" });
         setWallet(data.wallet);
         setCanClaim(false);
         setNextClaimIn("24h 0m");
@@ -141,7 +141,7 @@ export default function WalletPage() {
       });
       const data = await r.json();
       if (r.ok) {
-        toast({ title: `⚡ ${amount} Pulsecoins sent to ${selectedUser.displayName}!` });
+        toast({ title: `⚡ ${amount} Droidgram coins sent to ${selectedUser.displayName}!` });
         setShowSend(false); setSendAmount(""); setSendNote(""); setSelectedUser(null); setSearchQuery("");
         fetchWallet(); fetchTransactions();
       } else toast({ title: data.error, variant: "destructive" });
@@ -173,7 +173,7 @@ export default function WalletPage() {
           <ArrowLeft size={18} />
         </button>
         <div className="flex-1">
-          <h1 className="font-bold text-sm">⚡ Pulsecoins</h1>
+          <h1 className="font-bold text-sm">⚡ Droidgram coins</h1>
           <p className="text-[11px] text-muted-foreground">In-app currency</p>
         </div>
         <button onClick={() => { fetchWallet(); fetchTransactions(); fetchLeaderboard(); }}
@@ -215,7 +215,7 @@ export default function WalletPage() {
                 )}
                 <span className="text-white/70 text-sm mb-1 font-medium">PC</span>
               </div>
-              <p className="text-white/60 text-xs">⚡ Pulsecoins</p>
+              <p className="text-white/60 text-xs">⚡ Droidgram coins</p>
               {myRank > 0 && (
                 <div className="absolute top-4 right-4 flex items-center gap-1 bg-white/15 rounded-full px-2.5 py-1">
                   <Crown size={11} className="text-yellow-300" />
@@ -355,7 +355,7 @@ export default function WalletPage() {
             <motion.div initial={{ y: 60, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 60, opacity: 0 }}
               className="bg-card border border-border rounded-3xl w-full max-w-sm p-5 space-y-4">
               <div className="flex items-center justify-between">
-                <h3 className="font-bold">⚡ Send Pulsecoins</h3>
+                <h3 className="font-bold">⚡ Send Droidgram coins</h3>
                 <button onClick={() => { setShowSend(false); setSelectedUser(null); setSearchQuery(""); }}
                   className="w-7 h-7 flex items-center justify-center rounded-xl hover:bg-accent text-muted-foreground">
                   <X size={14} />
@@ -404,7 +404,7 @@ export default function WalletPage() {
                   <motion.button whileTap={{ scale: 0.97 }} onClick={doSend}
                     disabled={sendLoading || !sendAmount || parseInt(sendAmount) < 1}
                     className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-semibold text-sm disabled:opacity-50 transition-all">
-                    {sendLoading ? "Sending…" : `Send ${sendAmount || 0} ⚡ Pulsecoins`}
+                    {sendLoading ? "Sending…" : `Send ${sendAmount || 0} ⚡ Droidgram coins`}
                   </motion.button>
                 </div>
               )}

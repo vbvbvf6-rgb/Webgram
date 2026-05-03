@@ -477,7 +477,7 @@ export default function SettingsPage() {
 
                 <div className="bg-primary/5 border border-primary/20 rounded-2xl p-4 text-sm text-muted-foreground">
                   <p className="font-medium text-foreground mb-1">📱 Push notifications</p>
-                  <p className="text-xs">Enable browser notifications to receive alerts even when Pulse is in the background.</p>
+                  <p className="text-xs">Enable browser notifications to receive alerts even when Droidgram is in the background.</p>
                   <button onClick={() => Notification.requestPermission().then(p => toast({ title: p === "granted" ? "Notifications enabled ✓" : "Permission denied" }))} className="mt-3 text-xs bg-primary text-primary-foreground rounded-lg px-4 py-2 font-semibold hover:bg-primary/90 transition-colors">
                     Enable push notifications
                   </button>
@@ -489,7 +489,7 @@ export default function SettingsPage() {
               <motion.div key="appearance" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} className="space-y-6">
                 <div>
                   <p className="font-bold text-base mb-1">Appearance</p>
-                  <p className="text-sm text-muted-foreground">Customize how Pulse looks</p>
+                  <p className="text-sm text-muted-foreground">Customize how Droidgram looks</p>
                 </div>
 
                 <div className="space-y-2">
@@ -614,7 +614,7 @@ export default function SettingsPage() {
                 <button onClick={() => applyTab("calls")} className="w-full bg-primary text-primary-foreground rounded-xl py-3 font-semibold text-sm hover:bg-primary/90 transition-colors">Apply calls</button>
                 <div className="bg-accent/30 border border-border rounded-2xl p-4 text-sm">
                   <p className="font-semibold mb-2 flex items-center gap-2"><Info size={14} className="text-primary" />Permissions</p>
-                  <p className="text-xs text-muted-foreground mb-3">Pulse needs camera and microphone access for calls.</p>
+                  <p className="text-xs text-muted-foreground mb-3">Droidgram needs camera and microphone access for calls.</p>
                   <button onClick={() => navigator.mediaDevices?.getUserMedia({ audio: true, video: true }).then(s => { s.getTracks().forEach(t => t.stop()); toast({ title: "Camera & mic access granted ✓" }); }).catch(() => toast({ title: "Please allow access in browser settings", variant: "destructive" }))} className="text-xs bg-primary text-primary-foreground rounded-lg px-4 py-2 font-semibold hover:bg-primary/90 transition-colors">
                     Test camera & microphone
                   </button>
@@ -663,13 +663,13 @@ export default function SettingsPage() {
                     <MessageSquare size={36} className="text-white" />
                   </div>
                   <div className="text-center">
-                    <h2 className="font-black text-2xl">Pulse</h2>
+                    <h2 className="font-black text-2xl">Droidgram</h2>
                     <p className="text-sm text-muted-foreground">Version 1.0.0</p>
                     <p className="text-xs text-muted-foreground mt-1">Real-time messaging, reimagined</p>
                   </div>
                 </div>
                 <div className="bg-card border border-border/80 rounded-2xl overflow-hidden divide-y divide-border/50">
-                  <SettingRow icon={Star} label="Rate Pulse" description="Leave a review" onClick={() => toast({ title: "Thanks for rating! ⭐" })} />
+                  <SettingRow icon={Star} label="Rate Droidgram" description="Leave a review" onClick={() => toast({ title: "Thanks for rating! ⭐" })} />
                   <SettingRow icon={Globe} label="Website" description="pulse.app" onClick={() => {}} />
                   <SettingRow icon={Shield} label="Privacy Policy" onClick={() => {}} />
                   <SettingRow icon={FileText} label="Terms of Service" onClick={() => {}} />
@@ -698,7 +698,7 @@ export default function SettingsPage() {
                 </div>
                 <div className="text-center text-xs text-muted-foreground pb-4">
                   <p>Built with ❤️ using React, Express, and PostgreSQL</p>
-                  <p className="mt-1">© {new Date().getFullYear()} Pulse — All rights reserved</p>
+                  <p className="mt-1">© {new Date().getFullYear()} Droidgram — All rights reserved</p>
                 </div>
               </motion.div>
             )}

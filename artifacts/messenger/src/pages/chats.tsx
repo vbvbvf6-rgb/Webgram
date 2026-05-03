@@ -49,13 +49,13 @@ const CURATED_GIFS = [
 
 const CHAT_THEMES: { id: string; label: string; gradient: string; msgBg: string }[] = [
   { id: "default", label: "Default", gradient: "", msgBg: "" },
-  { id: "ocean",   label: "🌊 Ocean",   gradient: "bg-gradient-to-b from-blue-950/40 to-cyan-950/20",   msgBg: "bg-blue-600" },
+  { id: "ocean",   label: "🌊 Ocean",   gradient: "bg-gradient-to-b from-blue-900/40 to-cyan-900/20",   msgBg: "bg-cyan-500" },
   { id: "sunset",  label: "🌅 Sunset",  gradient: "bg-gradient-to-b from-orange-950/40 to-rose-950/20", msgBg: "bg-orange-600" },
   { id: "forest",  label: "🌿 Forest",  gradient: "bg-gradient-to-b from-green-950/40 to-emerald-950/20", msgBg: "bg-green-700" },
-  { id: "galaxy",  label: "🌌 Galaxy",  gradient: "bg-gradient-to-b from-purple-950/40 to-indigo-950/20", msgBg: "bg-purple-600" },
+  { id: "galaxy",  label: "🌌 Galaxy",  gradient: "bg-gradient-to-b from-violet-900/40 to-indigo-900/20", msgBg: "bg-violet-500" },
   { id: "cherry",  label: "🌸 Cherry",  gradient: "bg-gradient-to-b from-pink-950/40 to-rose-950/20",   msgBg: "bg-pink-600" },
   { id: "midnight",label: "🌙 Midnight",gradient: "bg-gradient-to-b from-slate-900 to-slate-950",      msgBg: "bg-slate-700" },
-  { id: "aurora",  label: "🌈 Aurora",  gradient: "bg-gradient-to-b from-teal-950/40 to-purple-950/20", msgBg: "bg-teal-600" },
+  { id: "aurora",  label: "🌈 Aurora",  gradient: "bg-gradient-to-b from-sky-900/40 to-violet-900/20", msgBg: "bg-sky-500" },
 ];
 
 const BOT_COMMANDS = [
@@ -394,8 +394,8 @@ export default function ChatsPage({ activeChatId }: { activeChatId?: number }) {
 
   // Update document title with unread count
   useEffect(() => {
-    document.title = totalUnread > 0 ? `(${totalUnread}) Pulse` : "Pulse";
-    return () => { document.title = "Pulse"; };
+    document.title = totalUnread > 0 ? `(${totalUnread}) Droidgram` : "Droidgram";
+    return () => { document.title = "Droidgram"; };
   }, [totalUnread]);
 
   return (
@@ -417,7 +417,7 @@ export default function ChatsPage({ activeChatId }: { activeChatId?: number }) {
             <button onClick={() => setLocation("/saved")} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-accent transition-colors" title="Saved messages">
               <Bookmark size={15} className="text-muted-foreground" />
             </button>
-            <button onClick={() => setLocation("/wallet")} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-accent transition-colors" title="Pulsecoins wallet">
+            <button onClick={() => setLocation("/wallet")} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-accent transition-colors" title="Droidgram coins wallet">
               <Zap size={15} className="text-muted-foreground" />
             </button>
             <button onClick={() => setLocation("/search")} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-accent transition-colors" title="Search users">
@@ -959,9 +959,9 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
           body: JSON.stringify({ toUserId: target.id, amount: amt, chatId }),
         });
         if (wr.ok) {
-          await sendMessage.mutateAsync({ chatId, data: { content: `⚡ Sent **${amt} Pulsecoins** to ${target.displayName}!`, replyToId: null } });
+          await sendMessage.mutateAsync({ chatId, data: { content: `⚡ Sent **${amt} Droidgram coins** to ${target.displayName}!`, replyToId: null } });
           setWalletBal(prev => prev !== null ? prev - amt : null);
-          toast({ title: `⚡ ${amt} Pulsecoins sent!` });
+          toast({ title: `⚡ ${amt} Droidgram coins sent!` });
         } else {
           const e = await wr.json();
           toast({ title: e.error || "Failed to send coins", variant: "destructive" });
@@ -2300,7 +2300,7 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
                   <button onClick={() => { setProfileViewer(null); setShowPollCreate(false); if (inputRef.current) { inputRef.current.textContent = `/coin @${profileViewer.displayName} `; inputRef.current.focus(); setInput(`/coin @${profileViewer.displayName} `); } }}
                     className="mt-4 flex items-center gap-1.5 mx-auto px-4 py-2 rounded-xl bg-primary/10 text-primary text-xs font-semibold hover:bg-primary/20 transition-colors">
                     <Zap size={12} />
-                    Send Pulsecoins
+                    Send Droidgram coins
                   </button>
                 )}
               </div>
