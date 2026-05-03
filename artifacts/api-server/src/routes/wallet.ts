@@ -111,14 +111,15 @@ router.post("/send", requireAuth, async (req: AuthenticatedRequest, res): Promis
 });
 
 const GIFT_CATALOG: Record<string, { name: string; price: number }> = {
-  rose:    { name: "Rose",       price: 25  },
-  star:    { name: "Star",       price: 30  },
-  fire:    { name: "Fire Heart", price: 50  },
-  rocket:  { name: "Rocket",     price: 75  },
-  crown:   { name: "Crown",      price: 100 },
-  rainbow: { name: "Rainbow",    price: 150 },
-  diamond: { name: "Diamond",    price: 200 },
-  trophy:  { name: "Trophy",     price: 500 },
+  rose:         { name: "Rose",        price: 25   },
+  star:         { name: "Star",        price: 30   },
+  fire:         { name: "Fire Heart",  price: 50   },
+  rocket:       { name: "Rocket",      price: 75   },
+  crown:        { name: "Crown",       price: 100  },
+  rainbow:      { name: "Rainbow",     price: 150  },
+  diamond:      { name: "Diamond",     price: 200  },
+  trophy:       { name: "Trophy",      price: 500  },
+  "crown-jewel": { name: "Crown Jewel", price: 10000 },
 };
 
 router.post("/gift", requireAuth, async (req: AuthenticatedRequest, res): Promise<void> => {
@@ -200,12 +201,12 @@ router.post("/gift/:id/sell", requireAuth, async (req: AuthenticatedRequest, res
     if (!gift.length) { res.status(404).json({ error: "Gift not found" }); return; }
     if (gift[0].currentOwnerId !== me.id) { res.status(403).json({ error: "You don't own this gift" }); return; }
     
-    const GIFT_CATALOG: Record<string, { price: number }> = {
+    const SELL_GIFT_PRICES: Record<string, { price: number }> = {
       "rose": { price: 25 }, "star": { price: 30 }, "fire": { price: 50 },
       "rocket": { price: 75 }, "crown": { price: 100 }, "rainbow": { price: 150 },
       "diamond": { price: 200 }, "trophy": { price: 500 }, "crown-jewel": { price: 10000 },
     };
-    const giftInfo = GIFT_CATALOG[gift[0].giftId];
+    const giftInfo = SELL_GIFT_PRICES[gift[0].giftId];
     const sellPrice = Math.floor((giftInfo?.price || 0) * 0.5);
     
     const wallet = await ensureWallet(me.id);
