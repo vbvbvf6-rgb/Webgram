@@ -12,6 +12,7 @@ export const usersTable = pgTable("users", {
   phone: text("phone"),
   phoneVerified: boolean("phone_verified").notNull().default(false),
   isOnline: boolean("is_online").notNull().default(false),
+  isAdmin: boolean("is_admin").notNull().default(false),
   lastSeen: timestamp("last_seen"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });

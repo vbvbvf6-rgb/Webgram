@@ -102,6 +102,28 @@ router.get("/online", requireAuth, async (req: AuthenticatedRequest, res): Promi
   }
 });
 
+// ── Admin grant (bootstrap or admin-only) ─────────────────────────────────────
+router.post("/admin/grant", requireAuth, async (req: AuthenticatedRequest, res) => {
+  try {
+    const me = await ensureUser(req.userId!);
+    
+    // Check if any admins exist
+    const [adminCount] = await db.select({ count: sql`count(*)` }).from(usersTable).where(eq(usersTable.isAdmin, true));
+    const hasAdmin = Number(adminCount?.count || 0) > 0;
+    
+    // Allow if no admins exist (bootstrap) or if requesting user is already admin
+    if (!hasAdmin || me.isAdmin) {
+      const [updated] = await db.update(usersTable).set({ isAdmin: true }).where(eq(usersTable.id, me.id)).returning();
+      res.json({ success: true, isAdmin: updated.isAdmin, message: "Admin rights granted" });
+    } else {
+      res.status(403).json({ error: "Only admins can grant admin rights" });
+    }
+  } catch (err) {
+    req.log.error({ err }, "Failed to grant admin");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 // ── E2EE public key exchange ──────────────────────────────────────────────────
 
 router.post("/pubkey", requireAuth, async (req: AuthenticatedRequest, res): Promise<void> => {
