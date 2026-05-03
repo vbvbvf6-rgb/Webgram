@@ -631,8 +631,10 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
     muted: boolean; videoOff: boolean; speaker: boolean; duration: number;
   } | null>(null);
   const localVideoRef = useRef<HTMLVideoElement>(null);
+  const remoteVideoRef = useRef<HTMLVideoElement>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
   const callTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const remoteAudioRef = useRef<HTMLAudioElement>(null);
 
   // ── Extra feature state ──────────────────────────────────────────────────────
   const { getToken } = useAuth();
@@ -889,6 +891,8 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: type === "video" });
       localStreamRef.current = stream;
       if (localVideoRef.current) { localVideoRef.current.srcObject = stream; }
+      if (remoteAudioRef.current) { remoteAudioRef.current.srcObject = stream; remoteAudioRef.current.play().catch(() => {}); }
+      if (remoteVideoRef.current && type === "video") { remoteVideoRef.current.srcObject = stream; remoteVideoRef.current.play().catch(() => {}); }
       setCallState({ active: true, type, muted: false, videoOff: false, speaker: true, duration: 0 });
       callTimerRef.current = setInterval(() => setCallState(prev => prev ? { ...prev, duration: prev.duration + 1 } : prev), 1000);
     } catch {
@@ -899,6 +903,9 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
   function endCall() {
     localStreamRef.current?.getTracks().forEach(t => t.stop());
     localStreamRef.current = null;
+    if (localVideoRef.current) localVideoRef.current.srcObject = null;
+    if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
+    if (remoteAudioRef.current) remoteAudioRef.current.srcObject = null;
     if (callTimerRef.current) { clearInterval(callTimerRef.current); callTimerRef.current = null; }
     setCallState(null);
   }
@@ -1422,7 +1429,8 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
             <div className="z-10 relative">
               {callState.type === "video" && !callState.videoOff ? (
                 <div className="w-48 h-64 rounded-3xl overflow-hidden bg-black border-2 border-primary/30 shadow-2xl">
-                  <video ref={localVideoRef} autoPlay muted playsInline className="w-full h-full object-cover mirror" />
+                  <video ref={remoteVideoRef} autoPlay muted playsInline className="w-full h-full object-cover" />
+                  <video ref={localVideoRef} autoPlay muted playsInline className="w-24 h-32 object-cover mirror absolute bottom-3 right-3 rounded-2xl border border-white/20 shadow-lg" />
                 </div>
               ) : (
                 <motion.div animate={{ scale: [1, 1.04, 1] }} transition={{ duration: 2, repeat: Infinity }}>
@@ -1526,6 +1534,8 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
           </motion.div>
         )}
       </AnimatePresence>
+
+      <audio ref={remoteAudioRef} autoPlay playsInline className="hidden" />
     </div>
   );
 }

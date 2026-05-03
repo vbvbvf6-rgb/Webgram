@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useLocation } from "wouter";
 import { ArrowLeft, Phone, Video, PhoneIncoming, PhoneMissed, PhoneOff, Clock, Search, Mic, MicOff, Volume2, VolumeX, VideoOff } from "lucide-react";
 import { useGetChats, useGetMe } from "@workspace/api-client-react";
@@ -58,6 +58,7 @@ export default function CallsPage() {
   const [callDuration, setCallDuration] = useState(0);
   const [muted, setMuted] = useState(false);
   const [speaker, setSpeaker] = useState(true);
+  const callTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const calls = MOCK_CALLS
     .filter(c => filter === "all" || c.direction === filter)
@@ -66,13 +67,14 @@ export default function CallsPage() {
   function startCall(name: string, type: "audio" | "video") {
     setActiveCall({ name, type });
     setCallDuration(0);
-    const timer = setInterval(() => setCallDuration(d => d + 1), 1000);
-    (window as any).__callTimer = timer;
+    if (callTimerRef.current) clearInterval(callTimerRef.current);
+    callTimerRef.current = setInterval(() => setCallDuration(d => d + 1), 1000);
   }
 
   function endCall() {
     setActiveCall(null);
-    clearInterval((window as any).__callTimer);
+    if (callTimerRef.current) clearInterval(callTimerRef.current);
+    callTimerRef.current = null;
     setCallDuration(0);
     setMuted(false);
     setSpeaker(true);
