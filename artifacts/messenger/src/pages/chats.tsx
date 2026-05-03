@@ -815,6 +815,13 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
   const [pollsData, setPollsData] = useState<Map<number, any>>(new Map());
   const [cmdSuggestions, setCmdSuggestions] = useState<typeof BOT_COMMANDS>([]);
   const [walletBal, setWalletBal] = useState<number | null>(null);
+  const [coinModal, setCoinModal] = useState<{
+    step: "select_user" | "enter_amount";
+    search: string;
+    recipient: { id: number; displayName: string; avatarUrl?: string | null; isOnline?: boolean } | null;
+    amount: string;
+    loading: boolean;
+  } | null>(null);
 
   const chat = (chats || []).find((c: any) => c.id === chatId);
   const chatName = chat ? (chat.type === "group" ? chat.name || "Group" : chat.members?.find((m: any) => m.id !== myId)?.displayName || "Chat") : "";
@@ -1062,29 +1069,8 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
       if (action) await sendMessage.mutateAsync({ chatId, data: { content: `_${action}_`, replyToId: null } });
       return;
     } else if (cmd === "/coin") {
-      const parts = fullText.split(/\s+/);
-      const user = parts[1]; const amt = parseInt(parts[2] || "");
-      if (!user || isNaN(amt)) { toast({ title: "Usage: /coin @username 10", variant: "destructive" }); return; }
-      toast({ title: `⚡ Searching user…` });
-      const token = await getToken();
-      const sr = await fetch(`/api/users/search?q=${encodeURIComponent(user.replace("@",""))}`, { headers: { Authorization: `Bearer ${token}` } });
-      if (sr.ok) {
-        const users = await sr.json();
-        if (!users.length) { toast({ title: "User not found", variant: "destructive" }); return; }
-        const target = users[0];
-        const wr = await fetch("/api/wallet/send", {
-          method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ toUserId: target.id, amount: amt, chatId }),
-        });
-        if (wr.ok) {
-          await sendMessage.mutateAsync({ chatId, data: { content: `⚡ Sent **${amt} Droidgram coins** to ${target.displayName}!`, replyToId: null } });
-          setWalletBal(prev => prev !== null ? prev - amt : null);
-          toast({ title: `⚡ ${amt} Droidgram coins sent!` });
-        } else {
-          const e = await wr.json();
-          toast({ title: e.error || "Failed to send coins", variant: "destructive" });
-        }
-      }
+      clearInput(); setCmdSuggestions([]);
+      setCoinModal({ step: "select_user", search: "", recipient: null, amount: "", loading: false });
       return;
     }
     qc.invalidateQueries({ queryKey: getGetMessagesQueryKey(chatId, {}) });
@@ -2650,6 +2636,188 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
                 </div>
               ))}
             </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Coin modal */}
+      <AnimatePresence>
+        {coinModal && (
+          <motion.div key="coin-modal" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="absolute inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-end justify-center sm:items-center p-4"
+            onClick={() => setCoinModal(null)}>
+            <motion.div initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              className="bg-card border border-border rounded-2xl shadow-2xl w-full max-w-xs overflow-hidden"
+              onClick={e => e.stopPropagation()}>
+
+              {/* Header */}
+              <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+                <div className="flex items-center gap-2">
+                  {coinModal.step === "enter_amount" && (
+                    <button onClick={() => setCoinModal(m => m ? { ...m, step: "select_user", recipient: null, amount: "" } : null)}
+                      className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-accent text-muted-foreground mr-0.5">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M15 18l-6-6 6-6"/></svg>
+                    </button>
+                  )}
+                  <span className="text-base">⚡</span>
+                  <div>
+                    <h3 className="font-bold text-sm leading-none">Send Coins</h3>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                      {coinModal.step === "select_user" ? "Choose a recipient" : `To: ${coinModal.recipient?.displayName}`}
+                    </p>
+                  </div>
+                </div>
+                <button onClick={() => setCoinModal(null)} className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-accent text-muted-foreground">
+                  <X size={14}/>
+                </button>
+              </div>
+
+              {/* Step 1: select user */}
+              {coinModal.step === "select_user" && (() => {
+                const directContacts = (chats || [])
+                  .filter((c: any) => c.type === "direct")
+                  .map((c: any) => c.members?.find((m: any) => m.id !== myId))
+                  .filter(Boolean)
+                  .filter((u: any, idx: number, arr: any[]) => arr.findIndex((x: any) => x.id === u.id) === idx);
+                const q = coinModal.search.toLowerCase().trim();
+                const filtered = q
+                  ? directContacts.filter((u: any) => u.displayName?.toLowerCase().includes(q))
+                  : directContacts;
+                return (
+                  <>
+                    <div className="px-3 pt-3 pb-2">
+                      <input
+                        autoFocus
+                        type="text"
+                        placeholder="Search contacts…"
+                        value={coinModal.search}
+                        onChange={e => setCoinModal(m => m ? { ...m, search: e.target.value } : null)}
+                        className="w-full bg-background border border-border rounded-xl px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-fuchsia-500/60 placeholder:text-muted-foreground"
+                      />
+                    </div>
+                    <div className="max-h-56 overflow-y-auto p-2 space-y-0.5">
+                      {filtered.length === 0 && (
+                        <p className="text-xs text-muted-foreground text-center py-6">No contacts found</p>
+                      )}
+                      {filtered.map((u: any) => (
+                        <motion.button key={u.id} whileTap={{ scale: 0.97 }}
+                          onClick={() => setCoinModal(m => m ? { ...m, step: "enter_amount", recipient: u, amount: "" } : null)}
+                          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-fuchsia-500/10 transition-colors text-left group">
+                          <Avatar src={u.avatarUrl} name={u.displayName} size={36} online={u.isOnline} />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium truncate">{u.displayName}</p>
+                            <p className="text-[10px] text-muted-foreground">{u.isOnline ? "🟢 Online" : "Offline"}</p>
+                          </div>
+                          <svg className="opacity-0 group-hover:opacity-100 transition-opacity text-fuchsia-400" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M9 18l6-6-6-6"/></svg>
+                        </motion.button>
+                      ))}
+                    </div>
+                  </>
+                );
+              })()}
+
+              {/* Step 2: enter amount */}
+              {coinModal.step === "enter_amount" && coinModal.recipient && (
+                <div className="p-4 space-y-4">
+                  {/* Recipient card */}
+                  <div className="flex items-center gap-3 bg-fuchsia-500/10 border border-fuchsia-500/20 rounded-xl px-3 py-2.5">
+                    <Avatar src={coinModal.recipient.avatarUrl} name={coinModal.recipient.displayName} size={36} online={coinModal.recipient.isOnline} />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold truncate">{coinModal.recipient.displayName}</p>
+                      <p className="text-[10px] text-muted-foreground">{coinModal.recipient.isOnline ? "🟢 Online" : "Offline"}</p>
+                    </div>
+                    <span className="text-lg">⚡</span>
+                  </div>
+
+                  {/* Amount input */}
+                  <div>
+                    <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide block mb-1.5">Amount</label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-fuchsia-400 font-bold text-sm">⚡</span>
+                      <input
+                        autoFocus
+                        type="number"
+                        min="1"
+                        placeholder="0"
+                        value={coinModal.amount}
+                        onChange={e => setCoinModal(m => m ? { ...m, amount: e.target.value } : null)}
+                        onKeyDown={async e => {
+                          if (e.key === "Enter") {
+                            const amt = parseInt(coinModal.amount);
+                            if (!amt || amt <= 0) return;
+                            setCoinModal(m => m ? { ...m, loading: true } : null);
+                            const token = await getToken();
+                            const wr = await fetch("/api/wallet/send", {
+                              method: "POST",
+                              headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+                              body: JSON.stringify({ toUserId: coinModal.recipient!.id, amount: amt, chatId }),
+                            });
+                            if (wr.ok) {
+                              await sendMessage.mutateAsync({ chatId, data: { content: `⚡ Sent **${amt} Droidgram coins** to ${coinModal.recipient!.displayName}!`, replyToId: null } });
+                              setWalletBal(prev => prev !== null ? prev - amt : null);
+                              toast({ title: `⚡ ${amt} coins sent to ${coinModal.recipient!.displayName}!` });
+                              setCoinModal(null);
+                              qc.invalidateQueries({ queryKey: getGetMessagesQueryKey(chatId, {}) });
+                            } else {
+                              const err = await wr.json().catch(() => ({}));
+                              toast({ title: err.error || "Failed to send coins", variant: "destructive" });
+                              setCoinModal(m => m ? { ...m, loading: false } : null);
+                            }
+                          }
+                        }}
+                        className="w-full bg-background border border-border rounded-xl pl-8 pr-4 py-2.5 text-base font-bold outline-none focus:ring-2 focus:ring-fuchsia-500/50 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
+                      />
+                    </div>
+                    {walletBal !== null && (
+                      <p className="text-[11px] text-muted-foreground mt-1.5">Your balance: <span className="text-fuchsia-400 font-semibold">⚡ {walletBal}</span></p>
+                    )}
+                  </div>
+
+                  {/* Quick amount chips */}
+                  <div className="flex gap-2">
+                    {[10, 25, 50, 100].map(n => (
+                      <button key={n} onClick={() => setCoinModal(m => m ? { ...m, amount: String(n) } : null)}
+                        className="flex-1 py-1.5 rounded-lg bg-fuchsia-500/10 hover:bg-fuchsia-500/20 border border-fuchsia-500/20 text-fuchsia-300 text-xs font-semibold transition-colors">
+                        {n}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Send button */}
+                  <button
+                    disabled={!coinModal.amount || parseInt(coinModal.amount) <= 0 || coinModal.loading}
+                    onClick={async () => {
+                      const amt = parseInt(coinModal.amount);
+                      if (!amt || amt <= 0) return;
+                      setCoinModal(m => m ? { ...m, loading: true } : null);
+                      const token = await getToken();
+                      const wr = await fetch("/api/wallet/send", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+                        body: JSON.stringify({ toUserId: coinModal.recipient!.id, amount: amt, chatId }),
+                      });
+                      if (wr.ok) {
+                        await sendMessage.mutateAsync({ chatId, data: { content: `⚡ Sent **${amt} Droidgram coins** to ${coinModal.recipient!.displayName}!`, replyToId: null } });
+                        setWalletBal(prev => prev !== null ? prev - amt : null);
+                        toast({ title: `⚡ ${amt} coins sent to ${coinModal.recipient!.displayName}!` });
+                        setCoinModal(null);
+                        qc.invalidateQueries({ queryKey: getGetMessagesQueryKey(chatId, {}) });
+                      } else {
+                        const err = await wr.json().catch(() => ({}));
+                        toast({ title: err.error || "Failed to send coins", variant: "destructive" });
+                        setCoinModal(m => m ? { ...m, loading: false } : null);
+                      }
+                    }}
+                    className="w-full bg-fuchsia-500 hover:bg-fuchsia-400 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold rounded-xl py-2.5 text-sm transition-colors flex items-center justify-center gap-2">
+                    {coinModal.loading ? (
+                      <><svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg> Sending…</>
+                    ) : (
+                      <>⚡ Send {coinModal.amount ? parseInt(coinModal.amount) || "" : ""} coins</>
+                    )}
+                  </button>
+                </div>
+              )}
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
