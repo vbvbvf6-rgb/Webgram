@@ -12,7 +12,7 @@ const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 type AiMsg = { id: number; role: "user" | "assistant"; content: string; createdAt: string };
 
-function formatMarkdown(text: string): React.ReactNode {
+function formatMarkdown(text: string, isStreaming: boolean = false): React.ReactNode {
   const lines = text.split("\n");
   const nodes: React.ReactNode[] = [];
   let codeBlock = false;
@@ -28,12 +28,17 @@ function formatMarkdown(text: string): React.ReactNode {
         codeLines = [];
       } else {
         nodes.push(
-          <div key={i} className="my-2 rounded-xl overflow-hidden border border-white/10">
+          <motion.div 
+            key={i} 
+            initial={{ opacity: 0, y: 5 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="my-2 rounded-xl overflow-hidden border border-white/10"
+          >
             {codeLang && <div className="px-3 py-1 bg-white/8 text-[10px] text-slate-400 font-mono">{codeLang}</div>}
             <pre className="p-3 text-xs text-slate-200 font-mono overflow-x-auto bg-black/30 leading-relaxed">
               {codeLines.join("\n")}
             </pre>
-          </div>
+          </motion.div>
         );
         codeBlock = false;
       }
@@ -58,6 +63,7 @@ function formatMarkdown(text: string): React.ReactNode {
       nodes.push(<p key={i} className="text-sm text-slate-200 leading-relaxed">{inlineFormat(line)}</p>);
     }
   }
+  
   return <>{nodes}</>;
 }
 
@@ -197,7 +203,8 @@ export default function AiChatPage() {
     }
 
     setStreaming(true);
-    setStreamContent("");
+    setStreamContent("🤔 Thinking...");
+    scrollToBottom(false);
 
     try {
       const token = await getToken();
@@ -214,6 +221,7 @@ export default function AiChatPage() {
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let accumulated = "";
+      let firstChunk = true;
 
       while (true) {
         const { done, value } = await reader.read();
@@ -227,7 +235,12 @@ export default function AiChatPage() {
           try {
             const parsed = JSON.parse(data);
             if (parsed.content) {
-              accumulated += parsed.content;
+              if (firstChunk) {
+                accumulated = parsed.content;
+                firstChunk = false;
+              } else {
+                accumulated += parsed.content;
+              }
               setStreamContent(accumulated);
               scrollToBottom(false);
             }

@@ -137,9 +137,13 @@ router.post("/chat", requireAuth, async (req: AuthenticatedRequest, res) => {
       const content = chunk.choices[0]?.delta?.content;
       if (content) {
         fullResponse += content;
-        res.write(`data: ${JSON.stringify({ content })}\n\n`);
+        // Send content immediately as it arrives
+        res.write(`data: ${JSON.stringify({ content, timestamp: Date.now() })}\n\n`);
       }
     }
+
+    // Final marker
+    res.write(`data: ${JSON.stringify({ done: true, fullContent: fullResponse })}\n\n`);
 
     // Save assistant reply
     await db.insert(aiMessagesTable).values({
