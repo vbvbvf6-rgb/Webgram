@@ -5,7 +5,6 @@ import { publishableKeyFromHost } from "@clerk/react/internal";
 import { shadcn } from "@clerk/themes";
 import { Switch, Route, useLocation, Router as WouterRouter, Redirect, Link } from "wouter";
 import { QueryClientProvider, useQueryClient } from "@tanstack/react-query";
-import { Toaster } from "@/components/ui/toaster";
 import { queryClient } from "@/lib/queryClient";
 import { setAuthTokenGetter } from "@workspace/api-client-react";
 import ChatsPage from "@/pages/chats";
@@ -291,7 +290,6 @@ function AppRoutes() {
           </Route>
           <Route component={NotFound} />
         </Switch>
-        <Toaster />
       </QueryClientProvider>
     </ClerkProvider>
   );

@@ -4,7 +4,7 @@ import type { InitOptions } from "i18next";
 import en from "../locales/en.json";
 import ru from "../locales/ru.json";
 
-const savedLang = localStorage.getItem("droidgram_language") || "en";
+const savedLang = typeof localStorage !== "undefined" ? localStorage.getItem("droidgram_language") || "en" : "en";
 
 const options: InitOptions = {
   resources: {
@@ -13,6 +13,7 @@ const options: InitOptions = {
   },
   lng: savedLang,
   fallbackLng: "en",
+  initImmediate: false,
   interpolation: { escapeValue: false },
 };
 
