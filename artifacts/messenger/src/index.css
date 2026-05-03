@@ -164,3 +164,7 @@
   color: hsl(var(--muted-foreground));
   opacity: 1;
 }
+
+.mirror {
+  transform: scaleX(-1);
+}

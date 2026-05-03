@@ -3,10 +3,11 @@ import { useLocation } from "wouter";
 import { useUser, useClerk } from "@clerk/react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Send, Search, Plus, Settings, LogOut, Reply,
+  Send, Search, Plus, LogOut, Reply,
   Edit2, Trash2, Smile, X, Check, CheckCheck, Users, MessageSquare,
-  ArrowLeft, ChevronDown, Hash, Mic, Image as ImageIcon,
-  Bell, BellOff, Pin, MoreHorizontal, Phone, Video,
+  ArrowLeft, ChevronDown, Hash, Phone, Video,
+  PhoneOff, VideoOff, MicOff, Mic, Volume2, VolumeX, PhoneCall,
+  Copy, Forward, MoreHorizontal,
 } from "lucide-react";
 import {
   useGetMe, useGetChats, useGetMessages, useSendMessage,
@@ -227,7 +228,7 @@ export default function ChatsPage({ activeChatId }: { activeChatId?: number }) {
       <ClerkProfileSync meId={myId} />
 
       {/* Sidebar */}
-      <div className={`${activeChatId ? "hidden md:flex" : "flex"} flex-col w-full md:w-80 lg:w-[340px] border-r border-border bg-sidebar shrink-0`}>
+      <div className={`${activeChatId ? "hidden md:flex" : "flex"} flex-col w-full md:w-80 lg:w-[340px] border-r border-border bg-sidebar shrink-0 pb-16 md:pb-0`}>
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-border">
           <button onClick={() => setLocation("/settings")} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
@@ -541,6 +542,15 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
   const [msgSearch, setMsgSearch] = useState("");
   const [, setLocation] = useLocation();
 
+  // ── Call state ──────────────────────────────────────────────────────────────
+  const [callState, setCallState] = useState<{
+    active: boolean; type: "audio" | "video";
+    muted: boolean; videoOff: boolean; speaker: boolean; duration: number;
+  } | null>(null);
+  const localVideoRef = useRef<HTMLVideoElement>(null);
+  const localStreamRef = useRef<MediaStream | null>(null);
+  const callTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   const chat = (chats || []).find((c: any) => c.id === chatId);
   const chatName = chat ? (chat.type === "group" ? chat.name || "Group" : chat.members?.find((m: any) => m.id !== myId)?.displayName || "Chat") : "";
   const chatAvatar = chat?.type === "direct" ? chat.members?.find((m: any) => m.id !== myId)?.avatarUrl : null;
@@ -635,6 +645,31 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
     } catch {}
   }
 
+  // ── Call handlers ────────────────────────────────────────────────────────────
+  async function startCall(type: "audio" | "video") {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: type === "video" });
+      localStreamRef.current = stream;
+      if (localVideoRef.current) { localVideoRef.current.srcObject = stream; }
+      setCallState({ active: true, type, muted: false, videoOff: false, speaker: true, duration: 0 });
+      callTimerRef.current = setInterval(() => setCallState(prev => prev ? { ...prev, duration: prev.duration + 1 } : prev), 1000);
+    } catch {
+      toast({ title: "Could not access camera/microphone", variant: "destructive" });
+    }
+  }
+
+  function endCall() {
+    localStreamRef.current?.getTracks().forEach(t => t.stop());
+    localStreamRef.current = null;
+    if (callTimerRef.current) { clearInterval(callTimerRef.current); callTimerRef.current = null; }
+    setCallState(null);
+  }
+
+  function formatCallDur(s: number) {
+    const m = Math.floor(s / 60).toString().padStart(2, "0");
+    return `${m}:${(s % 60).toString().padStart(2, "0")}`;
+  }
+
   function startEdit(msg: Message) {
     setEditingMsg(msg);
     setInput(msg.content || "");
@@ -654,7 +689,7 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
   }
 
   return (
-    <div className="flex-1 flex min-w-0 h-screen relative overflow-hidden">
+    <div className="flex-1 flex min-w-0 h-[100dvh] relative overflow-hidden">
       <div className="flex-1 flex flex-col min-w-0">
         {/* Header */}
         <div className="flex items-center gap-3 px-4 py-3 border-b border-border bg-sidebar/80 backdrop-blur-md shrink-0 z-10">
@@ -680,6 +715,12 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
             </div>
           )}
           <div className="flex items-center gap-0.5 shrink-0">
+            <button onClick={() => startCall("audio")} className="w-8 h-8 flex items-center justify-center rounded-xl hover:bg-green-500/10 text-muted-foreground hover:text-green-400 transition-colors" title="Voice call">
+              <Phone size={15} />
+            </button>
+            <button onClick={() => startCall("video")} className="w-8 h-8 flex items-center justify-center rounded-xl hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors" title="Video call">
+              <Video size={15} />
+            </button>
             <button onClick={() => { setSearchMode(!searchMode); setMsgSearch(""); }} className={`w-8 h-8 flex items-center justify-center rounded-xl hover:bg-accent transition-colors ${searchMode ? "bg-primary/20 text-primary" : "text-muted-foreground"}`} title="Search messages">
               <Search size={15} />
             </button>
@@ -983,10 +1024,76 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
         </div>
       </div>
 
-      {/* Members panel */}
+      {/* Call Modal */}
       <AnimatePresence>
+        {callState && (
+          <motion.div
+            key="call-modal"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ duration: 0.2 }}
+            className="absolute inset-0 z-50 flex flex-col items-center justify-between bg-gradient-to-b from-slate-900 via-indigo-950 to-slate-900 px-6 py-10"
+          >
+            {/* Rings */}
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              {[1, 2, 3].map(i => (
+                <motion.div key={i} className="absolute rounded-full border border-primary/20"
+                  animate={{ scale: [1, 1.5 + i * 0.3, 1], opacity: [0.25, 0, 0.25] }}
+                  transition={{ duration: 2.5, repeat: Infinity, delay: i * 0.5 }}
+                  style={{ width: 120 + i * 60, height: 120 + i * 60 }}
+                />
+              ))}
+            </div>
+            {/* Top info */}
+            <div className="text-center z-10 mt-4">
+              <p className="text-xs text-primary/60 font-medium mb-1">{callState.type === "video" ? "📹 Video call" : "📞 Voice call"}</p>
+              <h2 className="text-3xl font-extrabold text-white">{chatName}</h2>
+              <p className="text-primary/50 text-sm mt-1.5 font-mono">{formatCallDur(callState.duration)}</p>
+            </div>
+            {/* Avatar / Video */}
+            <div className="z-10 relative">
+              {callState.type === "video" && !callState.videoOff ? (
+                <div className="w-48 h-64 rounded-3xl overflow-hidden bg-black border-2 border-primary/30 shadow-2xl">
+                  <video ref={localVideoRef} autoPlay muted playsInline className="w-full h-full object-cover mirror" />
+                </div>
+              ) : (
+                <motion.div animate={{ scale: [1, 1.04, 1] }} transition={{ duration: 2, repeat: Infinity }}>
+                  <Avatar src={chatAvatar} name={chatName} size={120} />
+                </motion.div>
+              )}
+            </div>
+            {/* Controls */}
+            <div className="z-10 flex flex-col items-center gap-5 w-full">
+              <div className="flex justify-center gap-5">
+                {[
+                  { icon: callState.muted ? MicOff : Mic, label: callState.muted ? "Unmute" : "Mute", active: callState.muted, color: "red", onClick: () => setCallState(p => p ? { ...p, muted: !p.muted } : p) },
+                  { icon: callState.speaker ? Volume2 : VolumeX, label: "Speaker", active: !callState.speaker, color: "default", onClick: () => setCallState(p => p ? { ...p, speaker: !p.speaker } : p) },
+                  ...(callState.type === "video" ? [{ icon: callState.videoOff ? VideoOff : Video, label: callState.videoOff ? "Camera off" : "Camera", active: callState.videoOff, color: "red", onClick: () => setCallState(p => p ? { ...p, videoOff: !p.videoOff } : p) }] : []),
+                ].map((btn, i) => (
+                  <div key={i} className="flex flex-col items-center gap-1.5">
+                    <motion.button whileTap={{ scale: 0.9 }} onClick={btn.onClick}
+                      className={`w-14 h-14 rounded-full flex items-center justify-center transition-all ${btn.active && btn.color === "red" ? "bg-red-500 text-white" : "bg-white/10 text-white hover:bg-white/20"}`}>
+                      <btn.icon size={22} />
+                    </motion.button>
+                    <span className="text-[10px] text-white/50">{btn.label}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="flex flex-col items-center gap-1.5">
+                <motion.button whileTap={{ scale: 0.95 }} onClick={endCall}
+                  className="w-16 h-16 rounded-full bg-red-500 hover:bg-red-600 text-white flex items-center justify-center shadow-2xl shadow-red-500/40 transition-colors">
+                  <PhoneOff size={26} />
+                </motion.button>
+                <span className="text-[10px] text-white/40">End call</span>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
         {showMembersPanel && chat?.type === "group" && (
           <motion.div
+            key="members-panel"
             initial={{ width: 0, opacity: 0 }}
             animate={{ width: 260, opacity: 1 }}
             exit={{ width: 0, opacity: 0 }}

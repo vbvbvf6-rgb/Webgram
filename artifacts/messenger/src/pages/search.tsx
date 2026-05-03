@@ -61,7 +61,7 @@ export default function SearchPage() {
     : (results || []).filter((u: any) => u.id !== myId);
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen bg-background flex flex-col pb-16 md:pb-0">
       {/* Header */}
       <div className="sticky top-0 z-20 bg-sidebar/90 backdrop-blur-xl border-b border-border">
         <div className="flex items-center gap-3 px-4 py-3">

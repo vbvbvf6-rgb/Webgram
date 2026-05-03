@@ -11,7 +11,9 @@ import LandingPage from "@/pages/landing";
 import ChatsPage from "@/pages/chats";
 import SettingsPage from "@/pages/settings";
 import SearchPage from "@/pages/search";
+import CallsPage from "@/pages/calls";
 import NotFound from "@/pages/not-found";
+import { BottomNav } from "@/components/BottomNav";
 
 const clerkPubKey = publishableKeyFromHost(
   window.location.hostname,
@@ -145,7 +147,10 @@ function HomeRedirect() {
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return (
     <>
-      <Show when="signed-in">{children}</Show>
+      <Show when="signed-in">
+        {children}
+        <BottomNav />
+      </Show>
       <Show when="signed-out"><Redirect to="/" /></Show>
     </>
   );
@@ -187,6 +192,9 @@ function AppRoutes() {
           </Route>
           <Route path="/search">
             <ProtectedRoute><SearchPage /></ProtectedRoute>
+          </Route>
+          <Route path="/calls">
+            <ProtectedRoute><CallsPage /></ProtectedRoute>
           </Route>
           <Route component={NotFound} />
         </Switch>
