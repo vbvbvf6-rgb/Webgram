@@ -780,7 +780,7 @@ export default function SettingsPage() {
                     clearCurrentSession();
                     setTabLoggedOut();
                     await signOut();
-                    setLocation("/");
+                    setLocation("/sign-in");
                   }} className="w-full flex items-center justify-center gap-2 border border-red-500/30 text-red-300 rounded-xl py-3 font-semibold text-sm hover:bg-red-500/8 transition-colors">
                     <LogOut size={15} />Sign out
                   </button>
