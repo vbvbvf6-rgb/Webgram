@@ -7,7 +7,7 @@ import {
   Bell, BellOff, Shield, Palette, Volume2, VolumeX, Eye, EyeOff,
   Trash2, HardDrive, Info, ChevronRight, Check, Moon, Sun,
   Smartphone, Globe, Lock, Download, Star, MessageSquare, Bug, LifeBuoy,
-  Phone, CheckCircle2, XCircle, Copy,
+  Phone, CheckCircle2, XCircle, Copy, Gift,
 } from "lucide-react";
 import { useGetMe, useUpdateMe, getGetMeQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -245,6 +245,21 @@ export default function SettingsPage() {
   const [grantAmount, setGrantAmount] = useState("");
   const [grantLoading, setGrantLoading] = useState(false);
 
+  // Gifts
+  const [gifts, setGifts] = useState<any[]>([]);
+  const [giftsLoading, setGiftsLoading] = useState(false);
+
+  const GIFTS_CATALOG: Record<string, { name: string; emoji: string }> = {
+    rose: { name: "Rose", emoji: "🌹" },
+    star: { name: "Star", emoji: "⭐" },
+    fire: { name: "Fire Heart", emoji: "❤️‍🔥" },
+    rocket: { name: "Rocket", emoji: "🚀" },
+    crown: { name: "Crown", emoji: "👑" },
+    rainbow: { name: "Rainbow", emoji: "🌈" },
+    diamond: { name: "Diamond", emoji: "💎" },
+    trophy: { name: "Trophy", emoji: "🏆" },
+  };
+
   // Load saved accent on mount
   useEffect(() => {
     const saved = localStorage.getItem("pulse_accent");
@@ -254,6 +269,31 @@ export default function SettingsPage() {
   useEffect(() => {
     saveCurrentAccount();
   }, []);
+
+  useEffect(() => {
+    if (activeTab === "profile" && !giftsLoading && gifts.length === 0) {
+      loadGifts();
+    }
+  }, [activeTab]);
+
+  async function loadGifts() {
+    setGiftsLoading(true);
+    try {
+      const token = await clerkUser?.getToken?.();
+      if (!token) return;
+      const res = await fetch(`/api/wallet/gifts`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setGifts(data);
+      }
+    } catch (err) {
+      req?.log?.error({ err }, "Failed to load gifts");
+    } finally {
+      setGiftsLoading(false);
+    }
+  }
 
   useEffect(() => {
     const savedAccent = localStorage.getItem("pulse_accent");
@@ -591,6 +631,35 @@ export default function SettingsPage() {
                     <Save size={16} />
                     {updateMe.isPending ? "Saving…" : "Save profile"}
                   </button>
+                </div>
+
+                {/* Gifts Section */}
+                <div className="border-t border-white/10 pt-6 space-y-4">
+                  <div className="flex items-center gap-2">
+                    <Gift size={16} className="text-fuchsia-300" />
+                    <p className="text-xs text-slate-400 uppercase tracking-wider font-semibold">My Gifts ({gifts.length})</p>
+                  </div>
+                  {giftsLoading ? (
+                    <div className="animate-pulse text-slate-400 text-sm">Loading gifts...</div>
+                  ) : gifts.length === 0 ? (
+                    <p className="text-xs text-slate-500">No gifts yet. Receive gifts from your friends! 🎁</p>
+                  ) : (
+                    <div className="grid grid-cols-4 gap-2">
+                      {Object.entries(gifts.reduce((acc: Record<string, number>, gift: any) => {
+                        acc[gift.giftId] = (acc[gift.giftId] || 0) + 1;
+                        return acc;
+                      }, {})).map(([giftId, count]) => (
+                        <button
+                          key={giftId}
+                          className="flex flex-col items-center justify-center p-3 bg-white/6 border border-white/10 rounded-xl hover:bg-white/10 transition-colors"
+                          title={`${GIFTS_CATALOG[giftId]?.name || giftId} x${count}`}
+                        >
+                          <span className="text-2xl mb-1">{GIFTS_CATALOG[giftId]?.emoji || "🎁"}</span>
+                          <span className="text-xs font-bold text-fuchsia-300">×{count}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 <div className="border-t border-white/10 pt-4 space-y-3">
