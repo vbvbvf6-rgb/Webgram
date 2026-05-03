@@ -60,6 +60,33 @@ function SettingRow({ icon: Icon, label, description, children, onClick, danger 
   );
 }
 
+function getAccountId() {
+  return localStorage.getItem("pulse_active_account") || "default";
+}
+
+function getAccounts() {
+  try {
+    return JSON.parse(localStorage.getItem("pulse_accounts") || "[]") as string[];
+  } catch {
+    return [];
+  }
+}
+
+function saveCurrentAccount() {
+  const id = getAccountId();
+  const accounts = getAccounts();
+  if (!accounts.includes(id) && accounts.length < 3) {
+    accounts.push(id);
+    localStorage.setItem("pulse_accounts", JSON.stringify(accounts));
+  }
+  localStorage.setItem("pulse_session_" + id, JSON.stringify({ lastSeen: Date.now() }));
+}
+
+function getAccountLabel(id: string) {
+  if (id === "default") return "Account";
+  return `Account ${id.slice(-4)}`;
+}
+
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-0">
@@ -191,6 +218,10 @@ export default function SettingsPage() {
   }, []);
 
   useEffect(() => {
+    saveCurrentAccount();
+  }, []);
+
+  useEffect(() => {
     const savedAccent = localStorage.getItem("pulse_accent");
     if (savedAccent) setAccentColor(savedAccent);
     const savedFontSize = localStorage.getItem("pulse_font_size");
@@ -277,6 +308,7 @@ export default function SettingsPage() {
 
   const previewAvatar = avatarUrl || m?.avatarUrl;
   const previewName = displayName || m?.displayName || "Me";
+  const accounts = getAccounts();
 
   return (
     <div className="min-h-screen bg-background flex flex-col pb-16 md:pb-0">
@@ -376,6 +408,23 @@ export default function SettingsPage() {
 
                 <div className="border-t border-border pt-4 space-y-3">
                   <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Account</p>
+                  <div className="bg-card border border-border rounded-xl p-3 space-y-2">
+                    <p className="text-xs text-muted-foreground">Saved on this device: {accounts.length}/3</p>
+                    <div className="flex flex-wrap gap-2">
+                      {accounts.map(id => (
+                        <button
+                          key={id}
+                          onClick={() => {
+                            localStorage.setItem("pulse_active_account", id);
+                            window.location.reload();
+                          }}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-semibold ${getAccountId() === id ? "bg-primary text-primary-foreground" : "bg-accent text-foreground"}`}
+                        >
+                          {getAccountLabel(id)}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                   {clerkUser && (
                     <div className="flex items-center gap-3 bg-card border border-border rounded-xl p-4">
                       <div className="w-9 h-9 bg-accent rounded-xl flex items-center justify-center"><Globe size={16} className="text-primary" /></div>
@@ -385,7 +434,10 @@ export default function SettingsPage() {
                       </div>
                     </div>
                   )}
-                  <button onClick={() => signOut()} className="w-full flex items-center justify-center gap-2 border border-red-500/30 text-red-400 rounded-xl py-3 font-semibold text-sm hover:bg-red-500/8 transition-colors">
+                  <button onClick={() => {
+                    window.dispatchEvent(new Event("pulse-logout-overlay"));
+                    signOut();
+                  }} className="w-full flex items-center justify-center gap-2 border border-red-500/30 text-red-400 rounded-xl py-3 font-semibold text-sm hover:bg-red-500/8 transition-colors">
                     <LogOut size={15} />Sign out
                   </button>
                 </div>

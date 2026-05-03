@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ClerkProvider, SignIn, SignUp, Show, useClerk, useAuth } from "@clerk/react";
 import { publishableKeyFromHost } from "@clerk/react/internal";
 import { shadcn } from "@clerk/themes";
@@ -117,6 +117,24 @@ function ClerkQueryClientCacheInvalidator() {
   return null;
 }
 
+function LogoutOverlay() {
+  const [show, setShow] = useState(false);
+
+  useEffect(() => {
+    function onShow() {
+      setShow(true);
+      window.setTimeout(() => setShow(false), 30000);
+    }
+    window.addEventListener("pulse-logout-overlay", onShow);
+    return () => window.removeEventListener("pulse-logout-overlay", onShow);
+  }, []);
+
+  if (!show) return null;
+  return (
+    <div className="fixed inset-0 z-[100] bg-black" />
+  );
+}
+
 function SignInPage() {
   return (
     <div className="flex min-h-[100dvh] items-center justify-center bg-background px-4">
@@ -178,6 +196,7 @@ function AppRoutes() {
       <QueryClientProvider client={queryClient}>
         <ClerkApiSetup />
         <ClerkQueryClientCacheInvalidator />
+        <LogoutOverlay />
         <Switch>
           <Route path="/" component={HomeRedirect} />
           <Route path="/sign-in/*?" component={SignInPage} />

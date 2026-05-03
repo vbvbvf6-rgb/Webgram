@@ -315,6 +315,12 @@ function ClerkProfileSync({ meId }: { meId?: number }) {
   return null;
 }
 
+function clearCurrentSession() {
+  const active = localStorage.getItem("pulse_active_account");
+  if (active) localStorage.removeItem(`pulse_session_${active}`);
+  localStorage.removeItem("pulse_active_account");
+}
+
 // ─── ChatsSidebar ─────────────────────────────────────────────────────────────
 
 export default function ChatsPage({ activeChatId }: { activeChatId?: number }) {
@@ -420,7 +426,11 @@ export default function ChatsPage({ activeChatId }: { activeChatId?: number }) {
             <button onClick={() => setShowNewChat(true)} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-accent transition-colors" title="New chat">
               <Plus size={15} className="text-muted-foreground" />
             </button>
-            <button onClick={() => signOut()} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-accent transition-colors" title="Sign out">
+            <button onClick={() => {
+              clearCurrentSession();
+              window.dispatchEvent(new Event("pulse-logout-overlay"));
+              signOut();
+            }} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-accent transition-colors" title="Sign out">
               <LogOut size={15} className="text-muted-foreground" />
             </button>
           </div>
