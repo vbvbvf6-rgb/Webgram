@@ -223,4 +223,46 @@ router.get("/leaderboard", requireAuth, async (req: AuthenticatedRequest, res) =
   }
 });
 
+// ── Admin: Grant currency ────────────────────────────────────────────────────
+router.post("/admin/grant", requireAuth, async (req: AuthenticatedRequest, res) => {
+  try {
+    const admin = await ensureUser(req.userId!);
+    if (!admin.isAdmin) {
+      res.status(403).json({ error: "Only admins can grant currency" });
+      return;
+    }
+    
+    const { toUserId, amount, description } = req.body as { toUserId: number; amount: number; description?: string };
+    if (!toUserId || !amount || amount < 1 || amount > 10000) {
+      res.status(400).json({ error: "Invalid amount (1-10000)" });
+      return;
+    }
+    
+    const target = await db.select().from(usersTable).where(eq(usersTable.id, toUserId)).limit(1);
+    if (!target.length) {
+      res.status(404).json({ error: "User not found" });
+      return;
+    }
+    
+    const targetWallet = await ensureWallet(toUserId);
+    const now = new Date();
+    const [updated] = await db.update(walletsTable)
+      .set({ balance: targetWallet.balance + amount, updatedAt: now })
+      .where(eq(walletsTable.userId, toUserId))
+      .returning();
+    
+    await db.insert(transactionsTable).values({
+      toUserId,
+      amount,
+      type: "bonus",
+      description: description || `Admin grant by ${admin.displayName}`,
+    });
+    
+    res.json({ success: true, newBalance: updated.balance, targetUser: target[0].displayName });
+  } catch (err) {
+    req.log.error({ err }, "Failed to grant currency");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 export default router;

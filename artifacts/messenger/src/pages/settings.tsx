@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useLocation } from "wouter";
 import { useClerk, useUser } from "@clerk/react";
 import { setTabLoggedOut } from "@/App";
@@ -130,15 +130,16 @@ const ACCENT_COLORS = [
   { name: "Red", value: "#EF4444" },
 ];
 
-type SettingsTab = "profile" | "notifications" | "appearance" | "privacy" | "calls" | "storage" | "about";
+type SettingsTab = "profile" | "notifications" | "appearance" | "privacy" | "calls" | "storage" | "admin" | "about";
 
-const TABS: { id: SettingsTab; label: string; icon: any }[] = [
+const BASE_TABS: { id: SettingsTab; label: string; icon: any }[] = [
   { id: "profile", label: "Profile", icon: User },
   { id: "notifications", label: "Notifications", icon: Bell },
   { id: "appearance", label: "Appearance", icon: Palette },
   { id: "privacy", label: "Privacy", icon: Shield },
   { id: "calls", label: "Calls", icon: MessageSquare },
   { id: "storage", label: "Storage", icon: HardDrive },
+  { id: "admin", label: "Admin", icon: Shield },
   { id: "about", label: "About", icon: Info },
 ];
 
@@ -190,6 +191,7 @@ export default function SettingsPage() {
     privacy: false,
     calls: false,
     storage: false,
+    admin: false,
     about: false,
   });
 
@@ -236,6 +238,11 @@ export default function SettingsPage() {
   const [bugDetails, setBugDetails] = useState("");
   const [supportTitle, setSupportTitle] = useState("");
   const [supportDetails, setSupportDetails] = useState("");
+
+  // Admin panel
+  const [grantUserId, setGrantUserId] = useState("");
+  const [grantAmount, setGrantAmount] = useState("");
+  const [grantLoading, setGrantLoading] = useState(false);
 
   // Load saved accent on mount
   useEffect(() => {
@@ -378,6 +385,32 @@ export default function SettingsPage() {
     if (kind === "bug") { setBugTitle(""); setBugDetails(""); } else { setSupportTitle(""); setSupportDetails(""); }
   }
 
+  async function grantCurrency() {
+    const userId = parseInt(grantUserId.trim());
+    const amount = parseInt(grantAmount.trim());
+    if (!userId || !amount || amount < 1 || amount > 10000) {
+      toast({ title: "Invalid user ID or amount (1-10000)", variant: "destructive" });
+      return;
+    }
+    setGrantLoading(true);
+    try {
+      const res = await fetch(`/api/wallet/admin/grant`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ toUserId: userId, amount, description: `Admin grant` }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      toast({ title: `✓ Granted ⚡${amount} to user ${data.targetUser}`, description: `New balance: ⚡${data.newBalance}` });
+      setGrantUserId("");
+      setGrantAmount("");
+    } catch (err) {
+      toast({ title: "Failed to grant currency", description: String(err).slice(0, 100), variant: "destructive" });
+    } finally {
+      setGrantLoading(false);
+    }
+  }
+
   const previewAvatar = avatarUrl || m?.avatarUrl;
   const previewName = displayName || m?.displayName || "Me";
   const accounts = getAccounts();
@@ -397,7 +430,7 @@ export default function SettingsPage() {
         {/* Sidebar tabs - horizontal on mobile, vertical on desktop */}
         <div className="md:w-56 shrink-0 border-b md:border-b-0 md:border-r border-white/10">
           <div className="flex md:flex-col gap-1 px-2 py-2 md:py-4 overflow-x-auto">
-            {TABS.map(tab => (
+            {BASE_TABS.filter(tab => tab.id !== "admin" || m?.isAdmin).map(tab => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
@@ -761,6 +794,55 @@ export default function SettingsPage() {
                     Test camera & microphone
                   </button>
                 </div>
+              </motion.div>
+            )}
+
+            {activeTab === "admin" && (
+              <motion.div key="admin" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} className="space-y-6">
+                {!m?.isAdmin ? (
+                  <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-4 text-center">
+                    <p className="text-red-400 font-medium">Admin access required</p>
+                    <p className="text-sm text-muted-foreground mt-1">You don't have admin privileges</p>
+                  </div>
+                ) : (
+                  <>
+                    <div>
+                      <p className="font-bold text-base mb-1">Admin Panel</p>
+                      <p className="text-sm text-muted-foreground">Manage users and currency</p>
+                    </div>
+                    <div className="bg-card border border-border rounded-2xl p-4 space-y-4">
+                      <div>
+                        <label className="text-sm font-medium block mb-2">User ID</label>
+                        <input
+                          type="number"
+                          value={grantUserId}
+                          onChange={e => setGrantUserId(e.target.value)}
+                          placeholder="Enter user ID"
+                          className="w-full bg-background border border-border rounded-xl px-4 py-3 text-sm outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium block mb-2">Amount (⚡)</label>
+                        <input
+                          type="number"
+                          value={grantAmount}
+                          onChange={e => setGrantAmount(e.target.value)}
+                          placeholder="1-10000"
+                          min="1"
+                          max="10000"
+                          className="w-full bg-background border border-border rounded-xl px-4 py-3 text-sm outline-none"
+                        />
+                      </div>
+                      <button
+                        onClick={grantCurrency}
+                        disabled={grantLoading}
+                        className="w-full bg-primary text-primary-foreground rounded-xl py-3 font-semibold text-sm hover:bg-primary/90 transition-colors disabled:opacity-50"
+                      >
+                        {grantLoading ? "Granting..." : "Grant Currency"}
+                      </button>
+                    </div>
+                  </>
+                )}
               </motion.div>
             )}
 
