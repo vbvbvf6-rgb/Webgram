@@ -144,6 +144,30 @@ router.post("/pubkey", requireAuth, async (req: AuthenticatedRequest, res): Prom
   }
 });
 
+router.get("/:randomId", requireAuth, async (req: AuthenticatedRequest, res): Promise<void> => {
+  try {
+    const user = await db.select().from(usersTable).where(eq(usersTable.randomId, req.params.randomId)).limit(1);
+    if (!user.length) {
+      res.status(404).json({ error: "User not found" });
+      return;
+    }
+    const u = user[0];
+    res.json({
+      id: u.id,
+      randomId: u.randomId,
+      username: u.username,
+      displayName: u.displayName,
+      avatarUrl: u.avatarUrl,
+      bio: u.bio,
+      isOnline: u.isOnline,
+      createdAt: u.createdAt,
+    });
+  } catch (err) {
+    req.log.error({ err }, "Failed to get user profile");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 router.get("/:userId/pubkey", requireAuth, async (req: AuthenticatedRequest, res): Promise<void> => {
   try {
     const userId = Number(req.params.userId);
