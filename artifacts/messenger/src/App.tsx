@@ -215,13 +215,6 @@ function HomeRedirect() {
 }
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  // Check if this tab was logged out (per-tab session)
-  const tabLoggedOut = isTabLoggedOut();
-  
-  if (tabLoggedOut) {
-    return <Redirect to="/" />;
-  }
-  
   return (
     <>
       <Show when="signed-in">
