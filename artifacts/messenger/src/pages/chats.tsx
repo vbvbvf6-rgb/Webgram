@@ -362,6 +362,7 @@ export default function ChatsPage({ activeChatId }: { activeChatId?: number }) {
   // Per-tab logout handler — mark this tab as logged out
   const handleTabLogout = async () => {
     clearCurrentSession();
+    qc.clear();
     const app = await import("../App");
     app.setTabLoggedOut();
     setLocation("/");

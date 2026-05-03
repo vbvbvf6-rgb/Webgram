@@ -128,7 +128,8 @@ function ClerkQueryClientCacheInvalidator() {
   useEffect(() => {
     const unsubscribe = addListener(({ user }) => {
       const userId = user?.id ?? null;
-      if (prevUserIdRef.current !== undefined && prevUserIdRef.current !== userId) {
+      if (prevUserIdRef.current !== undefined && prevUserIdRef.current !== userId && userId === null) {
+        // Only clear cache on actual logout (user became null), not on login
         qc.clear();
       }
       prevUserIdRef.current = userId;
