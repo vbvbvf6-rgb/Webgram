@@ -105,6 +105,15 @@ export default function SettingsPage() {
   const m = me as any;
 
   const [activeTab, setActiveTab] = useState<SettingsTab>("profile");
+  const [appliedTabs, setAppliedTabs] = useState<Record<SettingsTab, boolean>>({
+    profile: true,
+    notifications: false,
+    appearance: false,
+    privacy: false,
+    calls: false,
+    storage: false,
+    about: false,
+  });
 
   // Profile fields
   const [displayName, setDisplayName] = useState("");
@@ -164,6 +173,11 @@ export default function SettingsPage() {
     }
   }
 
+  function applyTab(tab: SettingsTab) {
+    setAppliedTabs(prev => ({ ...prev, [tab]: true }));
+    toast({ title: `${TABS.find(t => t.id === tab)?.label || "Settings"} applied ✓` });
+  }
+
   const previewAvatar = avatarUrl || m?.avatarUrl;
   const previewName = displayName || m?.displayName || "Me";
 
@@ -190,6 +204,7 @@ export default function SettingsPage() {
               >
                 <tab.icon size={16} />
                 <span className="hidden md:inline">{tab.label}</span>
+                {appliedTabs[tab.id] && <Check size={12} className="ml-1 text-primary" />}
               </button>
             ))}
           </div>
@@ -309,6 +324,7 @@ export default function SettingsPage() {
                     <Toggle value={notifCalls} onChange={setNotifCalls} />
                   </SettingRow>
                 </div>
+                <button onClick={() => applyTab("notifications")} className="w-full bg-primary text-primary-foreground rounded-xl py-3 font-semibold text-sm hover:bg-primary/90 transition-colors">Apply notifications</button>
 
                 <div className="bg-primary/5 border border-primary/20 rounded-2xl p-4 text-sm text-muted-foreground">
                   <p className="font-medium text-foreground mb-1">📱 Push notifications</p>
@@ -380,6 +396,7 @@ export default function SettingsPage() {
                     <Toggle value={animationsEnabled} onChange={setAnimationsEnabled} />
                   </SettingRow>
                 </div>
+                <button onClick={() => applyTab("appearance")} className="w-full bg-primary text-primary-foreground rounded-xl py-3 font-semibold text-sm hover:bg-primary/90 transition-colors">Apply appearance</button>
               </motion.div>
             )}
 
@@ -421,6 +438,7 @@ export default function SettingsPage() {
                   <SettingRow icon={Download} label="Export my data" description="Download a copy of your data" onClick={() => toast({ title: "Data export requested" })} />
                   <SettingRow icon={Trash2} label="Delete account" description="Permanently delete your account" onClick={() => toast({ title: "Contact support to delete your account", variant: "destructive" })} danger />
                 </div>
+                <button onClick={() => applyTab("privacy")} className="w-full bg-primary text-primary-foreground rounded-xl py-3 font-semibold text-sm hover:bg-primary/90 transition-colors">Apply privacy</button>
               </motion.div>
             )}
 
@@ -444,6 +462,7 @@ export default function SettingsPage() {
                     <Toggle value={autoAnswerAfterSecs !== null} onChange={v => setAutoAnswerAfterSecs(v ? 10 : null)} />
                   </SettingRow>
                 </div>
+                <button onClick={() => applyTab("calls")} className="w-full bg-primary text-primary-foreground rounded-xl py-3 font-semibold text-sm hover:bg-primary/90 transition-colors">Apply calls</button>
                 <div className="bg-accent/30 border border-border rounded-2xl p-4 text-sm">
                   <p className="font-semibold mb-2 flex items-center gap-2"><Info size={14} className="text-primary" />Permissions</p>
                   <p className="text-xs text-muted-foreground mb-3">Pulse needs camera and microphone access for calls.</p>
@@ -484,6 +503,7 @@ export default function SettingsPage() {
                   <SettingRow icon={Download} label="Auto-download media" description="Wi-Fi only" onClick={() => toast({ title: "Changed to Wi-Fi only" })} />
                   <SettingRow icon={HardDrive} label="Media storage location" description="Internal storage" onClick={() => {}} />
                 </div>
+                <button onClick={() => applyTab("storage")} className="w-full bg-primary text-primary-foreground rounded-xl py-3 font-semibold text-sm hover:bg-primary/90 transition-colors">Apply storage</button>
               </motion.div>
             )}
 
@@ -506,6 +526,7 @@ export default function SettingsPage() {
                   <SettingRow icon={FileText} label="Terms of Service" onClick={() => {}} />
                   <SettingRow icon={Info} label="Open source licenses" onClick={() => {}} />
                 </div>
+                <button onClick={() => applyTab("about")} className="w-full bg-primary text-primary-foreground rounded-xl py-3 font-semibold text-sm hover:bg-primary/90 transition-colors">Apply about</button>
                 <div className="text-center text-xs text-muted-foreground pb-4">
                   <p>Built with ❤️ using React, Express, and PostgreSQL</p>
                   <p className="mt-1">© {new Date().getFullYear()} Pulse — All rights reserved</p>
