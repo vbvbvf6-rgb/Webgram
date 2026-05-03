@@ -530,17 +530,27 @@ export default function ChatsPage({ activeChatId }: { activeChatId?: number }) {
                         )}
                       </div>
                       <div className="flex items-center justify-between gap-2">
-                        <p className="text-xs text-muted-foreground truncate">
-                          {lastMsg
-                            ? (lastMsg.isDeleted
-                              ? "🚫 Message deleted"
-                              : (chat.type === "group" && lastMsg.sender?.displayName ? `${lastMsg.sender.displayName.split(" ")[0]}: ${lastMsg.content}` : lastMsg.content))
-                            : "Tap to start chatting"}
-                        </p>
-                        {chat.unreadCount > 0 && (
-                          <span className="bg-primary text-primary-foreground text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 shrink-0">
+                        <div className="flex items-center gap-1 min-w-0">
+                          {/* Read receipt for own last message */}
+                          {lastMsg && lastMsg.senderId === myId && !lastMsg.isDeleted && (
+                            lastMsg.readBy && lastMsg.readBy.length > 1
+                              ? <CheckCheck size={11} className="text-blue-400 shrink-0" />
+                              : <CheckCheck size={11} className="text-muted-foreground/50 shrink-0" />
+                          )}
+                          <p className="text-xs text-muted-foreground truncate">
+                            {lastMsg
+                              ? (lastMsg.isDeleted
+                                ? "🚫 Message deleted"
+                                : (chat.type === "group" && lastMsg.sender?.displayName ? `${lastMsg.sender.displayName.split(" ")[0]}: ${lastMsg.content}` : lastMsg.content))
+                              : "Tap to start chatting"}
+                          </p>
+                        </div>
+                        {chat.unreadCount > 0 ? (
+                          <span className="bg-primary text-primary-foreground text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 shrink-0 shadow-sm shadow-primary/30">
                             {chat.unreadCount > 99 ? "99+" : chat.unreadCount}
                           </span>
+                        ) : isActive && (
+                          <span className="w-1.5 h-1.5 rounded-full bg-primary/40 shrink-0" />
                         )}
                       </div>
                     </div>
@@ -751,6 +761,7 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const voiceChunksRef = useRef<Blob[]>([]);
   const voiceTimerRef2 = useRef<ReturnType<typeof setInterval> | null>(null);
+  const isSendingVoiceRef = useRef(false);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // ── Extra features state ─────────────────────────────────────────────────────
@@ -1132,7 +1143,8 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
   }
 
   async function sendVoiceMsg() {
-    if (!voiceBlob) return;
+    if (!voiceBlob || isSendingVoiceRef.current) return;
+    isSendingVoiceRef.current = true;
     const reader = new FileReader();
     reader.readAsDataURL(voiceBlob);
     reader.onload = async () => {
@@ -1144,7 +1156,9 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
         qc.invalidateQueries({ queryKey: getGetChatsQueryKey() });
         cancelVoice();
       } catch { toast({ title: "Failed to send voice message", variant: "destructive" }); }
+      finally { isSendingVoiceRef.current = false; }
     };
+    reader.onerror = () => { isSendingVoiceRef.current = false; };
   }
 
   // ── Ringtone helpers ─────────────────────────────────────────────────────────
@@ -1345,17 +1359,26 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
     <div className="flex-1 flex min-w-0 h-[100dvh] relative overflow-hidden">
       <div className="flex-1 flex flex-col min-w-0">
         {/* Header */}
-        <div className="flex items-center gap-3 px-4 py-3 border-b border-border bg-sidebar/80 backdrop-blur-md shrink-0 z-10">
+        <div className="flex items-center gap-3 px-4 py-3 border-b border-border bg-sidebar/90 backdrop-blur-md shrink-0 z-10">
           <button onClick={onBack} className="md:hidden w-8 h-8 flex items-center justify-center rounded-xl hover:bg-accent shrink-0">
             <ArrowLeft size={18} />
           </button>
           {chat ? (
             <button onClick={() => chat.type === "group" && setShowMembersPanel(!showMembersPanel)} className="flex items-center gap-3 flex-1 min-w-0 text-left hover:opacity-80 transition-opacity">
-              <Avatar src={chatAvatar} name={chatName} size={38} online={chatOnline !== undefined ? chatOnline : undefined} />
+              <div className="relative shrink-0">
+                <Avatar src={chatAvatar} name={chatName} size={38} online={false} />
+                {chatOnline && (
+                  <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-green-500 border-2 border-sidebar ring-0">
+                    <span className="absolute inset-0 rounded-full bg-green-400 animate-ping opacity-75" />
+                  </span>
+                )}
+              </div>
               <div className="min-w-0">
                 <p className="font-bold text-sm truncate">{chatName}</p>
-                <p className="text-[11px] text-muted-foreground truncate">
-                  {chatOnline ? "🟢 Active now"
+                <p className={`text-[11px] truncate ${chatOnline ? "text-green-400 font-medium" : "text-muted-foreground"}`}>
+                  {typingUsers.length > 0
+                    ? <span className="text-primary italic">{typingUsers[0].name} is typing…</span>
+                    : chatOnline ? "Active now"
                     : chat.type === "group" ? `${chat.members?.length || 0} members`
                     : "Last seen recently"}
                 </p>
@@ -1498,17 +1521,30 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
                 const showAvatar = !isOwn && (!prevMsg || prevMsg.senderId !== msg.senderId || showDateSep);
                 const isGrouped = !showDateSep && prevMsg && prevMsg.senderId === msg.senderId && !msg.isDeleted;
                 const nextIsOwn = nextMsg?.senderId === msg.senderId;
+                const isFirstUnread = !isOwn && !msg.readBy.includes(myId) &&
+                  (idx === 0 || displayedMessages[idx - 1].readBy.includes(myId) || displayedMessages[idx - 1].senderId === myId);
 
                 return (
                   <div key={msg.id}>
+                    {/* Unread divider */}
+                    {isFirstUnread && !msgSearch && (
+                      <div className="flex items-center gap-3 my-3">
+                        <div className="flex-1 h-px bg-primary/20" />
+                        <span className="text-[10px] text-primary font-semibold bg-primary/10 border border-primary/20 px-3 py-0.5 rounded-full">
+                          ↓ New messages
+                        </span>
+                        <div className="flex-1 h-px bg-primary/20" />
+                      </div>
+                    )}
+
                     {/* Date separator */}
                     {showDateSep && (
                       <div className="flex items-center gap-3 my-4">
-                        <div className="flex-1 h-px bg-border" />
-                        <span className="text-[10px] text-muted-foreground font-medium bg-background px-3 py-1 rounded-full border border-border">
+                        <div className="flex-1 h-px bg-border/60" />
+                        <span className="text-[10px] text-muted-foreground font-medium bg-card/80 backdrop-blur-sm px-3 py-1 rounded-full border border-border/50 shadow-sm">
                           {formatDate(msg.createdAt)}
                         </span>
-                        <div className="flex-1 h-px bg-border" />
+                        <div className="flex-1 h-px bg-border/60" />
                       </div>
                     )}
 
@@ -1572,9 +1608,13 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
                             <span>{new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
                             {msg.isEdited && !msg.isDeleted && <span>· edited</span>}
                             {isOwn && !msg.isDeleted && (
-                              msg.readBy.length > 1
-                                ? <CheckCheck size={11} className="text-blue-300" />
-                                : <Check size={11} className="opacity-70" />
+                              msg.readBy.length > 1 ? (
+                                <motion.span key="read" initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: "spring", stiffness: 400 }}>
+                                  <CheckCheck size={12} className="text-blue-300 drop-shadow-sm" />
+                                </motion.span>
+                              ) : (
+                                <CheckCheck size={12} className="opacity-40" />
+                              )
                             )}
                           </div>
                         </div>
@@ -1686,12 +1726,17 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
         <AnimatePresence>
           {!atBottom && !msgsLoading && (
             <motion.button
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.8 }}
+              initial={{ opacity: 0, scale: 0.8, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.8, y: 10 }}
               onClick={() => scrollToBottom()}
-              className="absolute bottom-20 right-4 w-10 h-10 bg-primary text-primary-foreground rounded-full shadow-lg flex items-center justify-center hover:bg-primary/90 transition-colors z-10"
+              className="absolute bottom-20 right-4 w-10 h-10 bg-primary text-white rounded-full shadow-xl shadow-primary/30 flex items-center justify-center hover:bg-primary/90 transition-colors z-10"
             >
+              {msgList.filter((m: Message) => !m.readBy.includes(myId) && m.senderId !== myId).length > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[9px] font-bold rounded-full min-w-[16px] h-4 flex items-center justify-center px-1 shadow">
+                  {msgList.filter((m: Message) => !m.readBy.includes(myId) && m.senderId !== myId).length}
+                </span>
+              )}
               <ChevronDown size={18} />
             </motion.button>
           )}
@@ -1700,16 +1745,27 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
         {/* Typing indicator */}
         <AnimatePresence>
           {typingUsers.length > 0 && (
-            <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden shrink-0">
-              <div className="px-4 py-1.5 flex items-center gap-2.5">
-                <div className="flex gap-1 items-center">
+            <motion.div
+              initial={{ height: 0, opacity: 0, y: 4 }}
+              animate={{ height: "auto", opacity: 1, y: 0 }}
+              exit={{ height: 0, opacity: 0, y: 4 }}
+              className="overflow-hidden shrink-0"
+            >
+              <div className="px-4 py-1 flex items-center gap-2">
+                {/* Animated bubble */}
+                <div className="flex items-center gap-[3px] bg-card border border-border/70 rounded-2xl rounded-bl-sm px-3 py-1.5 shadow-sm">
                   {[0, 1, 2].map(i => (
-                    <motion.span key={i} className="w-1.5 h-1.5 rounded-full bg-primary/50 block"
-                      animate={{ y: [0, -4, 0] }} transition={{ duration: 0.7, repeat: Infinity, delay: i * 0.12 }} />
+                    <motion.span key={i}
+                      className="w-1.5 h-1.5 rounded-full bg-primary block"
+                      animate={{ y: [0, -5, 0], opacity: [0.4, 1, 0.4] }}
+                      transition={{ duration: 0.8, repeat: Infinity, delay: i * 0.15, ease: "easeInOut" }}
+                    />
                   ))}
                 </div>
-                <span className="text-xs text-muted-foreground italic">
-                  {typingUsers.length === 1 ? `${typingUsers[0].name} is typing…` : `${typingUsers.map(u => u.name).join(", ")} are typing…`}
+                <span className="text-[11px] text-muted-foreground">
+                  {typingUsers.length === 1
+                    ? <><span className="font-medium text-foreground/70">{typingUsers[0].name}</span> is typing</>
+                    : <><span className="font-medium text-foreground/70">{typingUsers.map(u => u.name).join(", ")}</span> are typing</>}
                 </span>
               </div>
             </motion.div>
@@ -1815,8 +1871,10 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
                   ) : (
                     <>
                       {voiceUrl && <audio src={voiceUrl} controls className="h-7 flex-1 min-w-0" />}
-                      <motion.button whileTap={{ scale: 0.9 }} onClick={sendVoiceMsg} className="w-8 h-8 rounded-xl bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary/90 transition-colors shrink-0" title="Send">
-                        <Send size={14} />
+                      <motion.button whileTap={{ scale: 0.9 }} onClick={sendVoiceMsg} disabled={isSendingVoiceRef.current} className="w-8 h-8 rounded-xl bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary/90 disabled:opacity-50 transition-colors shrink-0" title="Send">
+                        {isSendingVoiceRef.current
+                          ? <motion.div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full" animate={{ rotate: 360 }} transition={{ duration: 0.7, repeat: Infinity, ease: "linear" }} />
+                          : <Send size={14} />}
                       </motion.button>
                       <button onClick={cancelVoice} className="text-muted-foreground hover:text-foreground transition-colors shrink-0"><X size={14}/></button>
                     </>
