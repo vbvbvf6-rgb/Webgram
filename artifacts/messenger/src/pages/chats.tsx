@@ -208,6 +208,23 @@ interface Message {
   updatedAt: string;
 }
 
+// ─── Message preview formatter (for sidebar / reply quotes) ───────────────────
+
+function formatMsgPreview(content: string | null | undefined): string {
+  if (!content) return "";
+  if (content.startsWith("[voice:")) {
+    const m = content.match(/^\[voice:(\d+):/);
+    if (m) {
+      const s = parseInt(m[1]);
+      const t = `${Math.floor(s / 60).toString().padStart(2, "0")}:${(s % 60).toString().padStart(2, "0")}`;
+      return `🎤 Voice message · ${t}`;
+    }
+    return "🎤 Voice message";
+  }
+  if (content.match(/^\[poll:\d+\]$/)) return "📊 Poll";
+  return content;
+}
+
 // ─── Rich text renderer ───────────────────────────────────────────────────────
 
 function renderRichText(content: string): React.ReactNode {
@@ -541,7 +558,7 @@ export default function ChatsPage({ activeChatId }: { activeChatId?: number }) {
                             {lastMsg
                               ? (lastMsg.isDeleted
                                 ? "🚫 Message deleted"
-                                : (chat.type === "group" && lastMsg.sender?.displayName ? `${lastMsg.sender.displayName.split(" ")[0]}: ${lastMsg.content}` : lastMsg.content))
+                                : (chat.type === "group" && lastMsg.sender?.displayName ? `${lastMsg.sender.displayName.split(" ")[0]}: ${formatMsgPreview(lastMsg.content)}` : formatMsgPreview(lastMsg.content)))
                               : "Tap to start chatting"}
                           </p>
                         </div>
@@ -1578,7 +1595,7 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
                           <div className={`flex rounded-xl mb-1 overflow-hidden ${isOwn ? "border-r-2 border-primary/40" : "border-l-2 border-primary/60"} bg-accent/50`}>
                             <div className="px-3 py-1.5 min-w-0">
                               <p className="text-[10px] text-primary/80 font-semibold">{msg.replyTo.sender?.displayName}</p>
-                              <p className="text-[11px] text-muted-foreground truncate">{msg.replyTo.content}</p>
+                              <p className="text-[11px] text-muted-foreground truncate">{formatMsgPreview(msg.replyTo.content)}</p>
                             </div>
                           </div>
                         )}
@@ -1787,7 +1804,7 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
                   <p className={`text-[11px] font-semibold ${editingMsg ? "text-yellow-500" : "text-primary"}`}>
                     {editingMsg ? "✏️ Editing message" : `↩ Replying to ${replyTo?.sender?.displayName}`}
                   </p>
-                  <p className="text-xs text-muted-foreground truncate">{editingMsg?.content || replyTo?.content}</p>
+                  <p className="text-xs text-muted-foreground truncate">{formatMsgPreview(editingMsg?.content) || formatMsgPreview(replyTo?.content)}</p>
                 </div>
                 <button onClick={() => { setReplyTo(null); setEditingMsg(null); clearInput(); }} className="w-6 h-6 flex items-center justify-center rounded-lg hover:bg-accent text-muted-foreground">
                   <X size={14} />
