@@ -321,25 +321,25 @@ export default function SettingsPage() {
   const accounts = getAccounts();
 
   return (
-    <div className="min-h-screen bg-[#f4edf9] text-white flex flex-col pb-16 md:pb-0">
+    <div className="min-h-screen bg-[#0b1020] text-slate-100 flex flex-col pb-16 md:pb-0">
       {/* Header */}
-      <div className="sticky top-0 z-20 flex items-center gap-3 px-4 py-3 border-b border-white/50 bg-white/20 backdrop-blur-xl text-white">
-        <button onClick={() => setLocation("/chats")} className="w-8 h-8 flex items-center justify-center rounded-xl hover:bg-accent transition-colors">
+      <div className="sticky top-0 z-20 flex items-center gap-3 px-4 py-3 border-b border-white/10 bg-[#13182b]/90 backdrop-blur-xl text-slate-100">
+        <button onClick={() => setLocation("/chats")} className="w-8 h-8 flex items-center justify-center rounded-xl hover:bg-white/8 transition-colors">
           <ArrowLeft size={18} />
         </button>
-        <h1 className="font-bold text-lg text-white">Settings</h1>
-        {dirty && <span className="ml-auto text-xs text-white font-medium animate-pulse">Unsaved</span>}
+        <h1 className="font-bold text-lg text-slate-100">Settings</h1>
+        {dirty && <span className="ml-auto text-xs text-slate-400 font-medium animate-pulse">Unsaved</span>}
       </div>
 
       <div className="flex flex-col md:flex-row max-w-4xl mx-auto w-full flex-1">
         {/* Sidebar tabs - horizontal on mobile, vertical on desktop */}
-        <div className="md:w-56 shrink-0 border-b md:border-b-0 md:border-r border-white/50">
+        <div className="md:w-56 shrink-0 border-b md:border-b-0 md:border-r border-white/10">
           <div className="flex md:flex-col gap-1 px-2 py-2 md:py-4 overflow-x-auto">
             {TABS.map(tab => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-medium whitespace-nowrap transition-all shrink-0 ${activeTab === tab.id ? "bg-white/20 text-white" : "text-white/70 hover:text-white hover:bg-white/10"}`}
+                className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-medium whitespace-nowrap transition-all shrink-0 ${activeTab === tab.id ? "bg-white/10 text-white" : "text-slate-400 hover:text-slate-100 hover:bg-white/6"}`}
               >
                 <tab.icon size={16} />
                 <span className="hidden md:inline">{tab.label}</span>
@@ -358,22 +358,22 @@ export default function SettingsPage() {
                 {/* Avatar */}
                 <div className="flex flex-col items-center gap-4 pb-4">
                   {isLoading ? (
-                    <div className="w-24 h-24 bg-accent rounded-full animate-pulse" />
+                    <div className="w-24 h-24 bg-white/6 rounded-full animate-pulse" />
                   ) : (
                     <div className="relative">
                       <Avatar src={previewAvatar} name={previewName} size={96} />
-                      <div className="absolute bottom-0 right-0 w-8 h-8 bg-primary rounded-full flex items-center justify-center ring-2 ring-background cursor-pointer hover:bg-primary/90 transition-colors">
+                      <div className="absolute bottom-0 right-0 w-8 h-8 bg-fuchsia-500 rounded-full flex items-center justify-center ring-2 ring-[#0b1020] cursor-pointer hover:bg-fuchsia-400 transition-colors">
                         <Camera size={14} className="text-white" />
                       </div>
                     </div>
                   )}
                   <div className="text-center">
-                    <p className="font-bold text-lg">{previewName}</p>
-                    <p className="text-sm text-muted-foreground">@{username || m?.username || "username"}</p>
-                    {bio && <p className="text-xs text-muted-foreground mt-1 max-w-xs">{bio}</p>}
+                    <p className="font-bold text-lg text-slate-100">{previewName}</p>
+                    <p className="text-sm text-slate-400">@{username || m?.username || "username"}</p>
+                    {bio && <p className="text-xs text-slate-400 mt-1 max-w-xs">{bio}</p>}
                   </div>
                   {clerkUser?.imageUrl && (
-                    <button onClick={() => { setDisplayName(clerkUser.fullName || clerkUser.firstName || ""); setAvatarUrl(clerkUser.imageUrl || ""); setDirty(true); }} className="text-xs text-primary underline-offset-2 hover:underline">
+                    <button onClick={() => { setDisplayName(clerkUser.fullName || clerkUser.firstName || ""); setAvatarUrl(clerkUser.imageUrl || ""); setDirty(true); }} className="text-xs text-fuchsia-300 underline-offset-2 hover:underline">
                       Sync from account
                     </button>
                   )}
@@ -384,42 +384,42 @@ export default function SettingsPage() {
                     { icon: User, label: "Display Name", value: displayName, setter: mark(setDisplayName), placeholder: "Your name" },
                   ].map(f => (
                     <div key={f.label}>
-                      <label className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5"><f.icon size={11} />{f.label}</label>
-                      <input value={f.value} onChange={e => f.setter(e.target.value)} placeholder={f.placeholder} className="w-full bg-card border border-border rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 ring-primary/40 transition-all placeholder:text-muted-foreground" />
+                      <label className="flex items-center gap-2 text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5"><f.icon size={11} />{f.label}</label>
+                      <input value={f.value} onChange={e => f.setter(e.target.value)} placeholder={f.placeholder} className="w-full bg-white/6 border border-white/10 rounded-xl px-4 py-3 text-sm text-slate-100 outline-none focus:ring-2 ring-fuchsia-400/40 transition-all placeholder:text-slate-500" />
                     </div>
                   ))}
                   <div>
-                    <label className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5"><AtSign size={11} />Username</label>
+                    <label className="flex items-center gap-2 text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5"><AtSign size={11} />Username</label>
                     <div className="relative">
-                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-medium">@</span>
-                      <input value={username} onChange={e => mark(setUsername)(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ""))} placeholder="username" className="w-full bg-card border border-border rounded-xl pl-8 pr-4 py-3 text-sm outline-none focus:ring-2 ring-primary/40 transition-all placeholder:text-muted-foreground" />
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 text-sm font-medium">@</span>
+                      <input value={username} onChange={e => mark(setUsername)(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ""))} placeholder="username" className="w-full bg-white/6 border border-white/10 rounded-xl pl-8 pr-4 py-3 text-sm text-slate-100 outline-none focus:ring-2 ring-fuchsia-400/40 transition-all placeholder:text-slate-500" />
                     </div>
                   </div>
                   <div>
-                    <label className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5"><FileText size={11} />Bio</label>
-                    <textarea value={bio} onChange={e => mark(setBio)(e.target.value)} placeholder="Tell people about yourself..." rows={3} maxLength={200} className="w-full bg-card border border-border rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 ring-primary/40 transition-all resize-none placeholder:text-muted-foreground" />
-                    <p className="text-[10px] text-muted-foreground text-right mt-1">{bio.length}/200</p>
+                    <label className="flex items-center gap-2 text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5"><FileText size={11} />Bio</label>
+                    <textarea value={bio} onChange={e => mark(setBio)(e.target.value)} placeholder="Tell people about yourself..." rows={3} maxLength={200} className="w-full bg-white/6 border border-white/10 rounded-xl px-4 py-3 text-sm text-slate-100 outline-none focus:ring-2 ring-fuchsia-400/40 transition-all resize-none placeholder:text-slate-500" />
+                    <p className="text-[10px] text-slate-500 text-right mt-1">{bio.length}/200</p>
                   </div>
                   <div>
-                    <label className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5"><Link size={11} />Avatar URL</label>
-                    <input value={avatarUrl} onChange={e => mark(setAvatarUrl)(e.target.value)} placeholder="https://..." className="w-full bg-card border border-border rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 ring-primary/40 transition-all placeholder:text-muted-foreground" />
+                    <label className="flex items-center gap-2 text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5"><Link size={11} />Avatar URL</label>
+                    <input value={avatarUrl} onChange={e => mark(setAvatarUrl)(e.target.value)} placeholder="https://..." className="w-full bg-white/6 border border-white/10 rounded-xl px-4 py-3 text-sm text-slate-100 outline-none focus:ring-2 ring-fuchsia-400/40 transition-all placeholder:text-slate-500" />
                     {avatarUrl && (
-                      <div className="flex items-center gap-3 mt-2 bg-accent/40 rounded-xl p-2.5">
+                      <div className="flex items-center gap-3 mt-2 bg-white/6 rounded-xl p-2.5">
                         <img src={avatarUrl} alt="" className="w-10 h-10 rounded-full object-cover" onError={e => (e.currentTarget.style.display = "none")} />
-                        <p className="text-xs text-muted-foreground">Preview</p>
+                        <p className="text-xs text-slate-400">Preview</p>
                       </div>
                     )}
                   </div>
-                  <button onClick={handleSave} disabled={!dirty || updateMe.isPending} className="w-full flex items-center justify-center gap-2 bg-primary text-primary-foreground rounded-xl py-3.5 font-bold text-sm hover:bg-primary/90 transition-colors disabled:opacity-40 shadow-lg shadow-primary/20">
+                  <button onClick={handleSave} disabled={!dirty || updateMe.isPending} className="w-full flex items-center justify-center gap-2 bg-fuchsia-500 text-white rounded-xl py-3.5 font-bold text-sm hover:bg-fuchsia-400 transition-colors disabled:opacity-40 shadow-lg shadow-fuchsia-500/20">
                     <Save size={16} />
                     {updateMe.isPending ? "Saving…" : "Save profile"}
                   </button>
                 </div>
 
-                <div className="border-t border-border pt-4 space-y-3">
-                  <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Account</p>
-                  <div className="bg-card border border-border rounded-xl p-3 space-y-2">
-                    <p className="text-xs text-muted-foreground">Saved on this device: {accounts.length}/3</p>
+                <div className="border-t border-white/10 pt-4 space-y-3">
+                  <p className="text-xs text-slate-400 uppercase tracking-wider font-semibold">Account</p>
+                  <div className="bg-white/6 border border-white/10 rounded-xl p-3 space-y-2">
+                    <p className="text-xs text-slate-400">Saved on this device: {accounts.length}/3</p>
                     <div className="flex flex-wrap gap-2">
                       {accounts.map(id => (
                         <button
@@ -428,7 +428,7 @@ export default function SettingsPage() {
                             localStorage.setItem("pulse_active_account", id);
                             window.location.reload();
                           }}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-semibold ${getAccountId() === id ? "bg-primary text-primary-foreground" : "bg-accent text-foreground"}`}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-semibold ${getAccountId() === id ? "bg-fuchsia-500 text-white" : "bg-white/6 text-slate-200"}`}
                         >
                           {getAccountLabel(id)}
                         </button>
@@ -436,17 +436,17 @@ export default function SettingsPage() {
                     </div>
                   </div>
                   {clerkUser && (
-                    <div className="flex items-center gap-3 bg-card border border-border rounded-xl p-4">
-                      <div className="w-9 h-9 bg-accent rounded-xl flex items-center justify-center"><Globe size={16} className="text-primary" /></div>
+                    <div className="flex items-center gap-3 bg-white/6 border border-white/10 rounded-xl p-4">
+                      <div className="w-9 h-9 bg-white/8 rounded-xl flex items-center justify-center"><Globe size={16} className="text-fuchsia-300" /></div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium truncate">{clerkUser.primaryEmailAddress?.emailAddress}</p>
-                        <p className="text-xs text-muted-foreground">Signed in with Clerk</p>
+                        <p className="text-xs text-slate-400">Signed in with Clerk</p>
                       </div>
                     </div>
                   )}
                   <button onClick={() => {
                     signOut();
-                  }} className="w-full flex items-center justify-center gap-2 border border-red-500/30 text-red-400 rounded-xl py-3 font-semibold text-sm hover:bg-red-500/8 transition-colors">
+                  }} className="w-full flex items-center justify-center gap-2 border border-red-500/30 text-red-300 rounded-xl py-3 font-semibold text-sm hover:bg-red-500/8 transition-colors">
                     <LogOut size={15} />Sign out
                   </button>
                 </div>
@@ -456,10 +456,10 @@ export default function SettingsPage() {
             {activeTab === "notifications" && (
               <motion.div key="notifs" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} className="space-y-6">
                 <div>
-                  <p className="font-bold text-base mb-1">Notifications</p>
-                  <p className="text-sm text-muted-foreground">Control what you're notified about</p>
+                  <p className="font-bold text-base mb-1 text-slate-100">Notifications</p>
+                  <p className="text-sm text-slate-400">Control what you're notified about</p>
                 </div>
-                <div className="bg-card border border-border/80 rounded-2xl overflow-hidden divide-y divide-border/50 p-0">
+                <div className="bg-white/6 border border-white/10 rounded-2xl overflow-hidden divide-y divide-white/10 p-0">
                   <SettingRow icon={BellOff} label="Do Not Disturb" description="Silence all notifications">
                     <Toggle value={doNotDisturb} onChange={v => { setDoNotDisturb(v); localStorage.setItem("pulse_dnd", String(v)); }} />
                   </SettingRow>
@@ -482,14 +482,14 @@ export default function SettingsPage() {
                     <Toggle value={notifCalls} onChange={v => { setNotifCalls(v); localStorage.setItem("pulse_notif_calls", String(v)); }} />
                   </SettingRow>
                 </div>
-                <div className="flex items-center gap-2 text-xs text-green-400 bg-green-500/10 border border-green-500/20 rounded-xl px-4 py-2.5">
+                <div className="flex items-center gap-2 text-xs text-emerald-300 bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-4 py-2.5">
                   <Check size={13} />Changes save automatically
                 </div>
 
-                <div className="bg-primary/5 border border-primary/20 rounded-2xl p-4 text-sm text-muted-foreground">
-                  <p className="font-medium text-foreground mb-1">📱 Push notifications</p>
+                <div className="bg-white/6 border border-white/10 rounded-2xl p-4 text-sm text-slate-400">
+                  <p className="font-medium text-slate-100 mb-1">📱 Push notifications</p>
                   <p className="text-xs">Enable browser notifications to receive alerts even when Droidgram is in the background.</p>
-                  <button onClick={() => Notification.requestPermission().then(p => toast({ title: p === "granted" ? "Notifications enabled ✓" : "Permission denied" }))} className="mt-3 text-xs bg-primary text-primary-foreground rounded-lg px-4 py-2 font-semibold hover:bg-primary/90 transition-colors">
+                  <button onClick={() => Notification.requestPermission().then(p => toast({ title: p === "granted" ? "Notifications enabled ✓" : "Permission denied" }))} className="mt-3 text-xs bg-fuchsia-500 text-white rounded-lg px-4 py-2 font-semibold hover:bg-fuchsia-400 transition-colors">
                     Enable push notifications
                   </button>
                 </div>
@@ -499,12 +499,12 @@ export default function SettingsPage() {
             {activeTab === "appearance" && (
               <motion.div key="appearance" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} className="space-y-6">
                 <div>
-                  <p className="font-bold text-base mb-1">Appearance</p>
-                  <p className="text-sm text-muted-foreground">Customize how Droidgram looks</p>
+                  <p className="font-bold text-base mb-1 text-slate-100">Appearance</p>
+                  <p className="text-sm text-slate-400">Customize how Droidgram looks</p>
                 </div>
 
                 <div className="space-y-2">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Accent color</p>
+                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Accent color</p>
                   <div className="flex flex-wrap gap-3">
                     {ACCENT_COLORS.map(c => (
                       <button
@@ -523,10 +523,10 @@ export default function SettingsPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Font size</p>
+                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Font size</p>
                   <div className="flex gap-2">
                     {(["small", "medium", "large"] as const).map(s => (
-                      <button key={s} onClick={() => setFontSize(s)} className={`flex-1 py-2.5 rounded-xl text-sm font-medium border transition-all ${fontSize === s ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:border-primary/40"}`}>
+                      <button key={s} onClick={() => setFontSize(s)} className={`flex-1 py-2.5 rounded-xl text-sm font-medium border transition-all ${fontSize === s ? "border-fuchsia-400 bg-fuchsia-500/10 text-white" : "border-white/10 text-slate-400 hover:border-fuchsia-400/40"}`}>
                         {s === "small" ? "A" : s === "medium" ? "A" : "A"}
                         <span className="block text-[10px] capitalize mt-0.5">{s}</span>
                       </button>
@@ -535,10 +535,10 @@ export default function SettingsPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Message bubbles</p>
+                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Message bubbles</p>
                   <div className="flex gap-2">
                     {(["rounded", "sharp", "bubble"] as const).map(s => (
-                      <button key={s} onClick={() => setBubbleStyle(s)} className={`flex-1 py-2.5 rounded-xl text-xs font-medium border transition-all capitalize ${bubbleStyle === s ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:border-primary/40"}`}>
+                      <button key={s} onClick={() => setBubbleStyle(s)} className={`flex-1 py-2.5 rounded-xl text-xs font-medium border transition-all capitalize ${bubbleStyle === s ? "border-fuchsia-400 bg-fuchsia-500/10 text-white" : "border-white/10 text-slate-400 hover:border-fuchsia-400/40"}`}>
                         {s}
                       </button>
                     ))}

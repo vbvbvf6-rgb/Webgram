@@ -409,13 +409,13 @@ export default function ChatsPage({ activeChatId }: { activeChatId?: number }) {
   }, [totalUnread]);
 
   return (
-    <div className="h-screen flex bg-[#f4edf9] text-white overflow-hidden">
+    <div className="h-screen flex bg-[#0b1020] text-slate-100 overflow-hidden">
       <ClerkProfileSync meId={myId} />
 
       {/* Sidebar */}
-      <div className={`${activeChatId ? "hidden md:flex" : "flex"} flex-col w-full md:w-80 lg:w-[340px] border-r border-white/50 bg-white/75 text-white backdrop-blur-xl shrink-0 pb-16 md:pb-0`}>
+      <div className={`${activeChatId ? "hidden md:flex" : "flex"} flex-col w-full md:w-80 lg:w-[340px] border-r border-white/10 bg-[#13182b]/95 text-slate-100 backdrop-blur-xl shrink-0 pb-16 md:pb-0`}>
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-white/50 text-white">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 text-slate-100">
           <button onClick={() => setLocation("/settings")} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
             <Avatar src={(me as any)?.avatarUrl} name={(me as any)?.displayName || "Me"} size={34} online />
             <div className="text-left">
@@ -424,39 +424,39 @@ export default function ChatsPage({ activeChatId }: { activeChatId?: number }) {
             </div>
           </button>
           <div className="flex items-center gap-0.5">
-            <button onClick={() => setLocation("/saved")} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-accent transition-colors" title="Saved messages">
-              <Bookmark size={15} className="text-white" />
+            <button onClick={() => setLocation("/saved")} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/10 transition-colors" title="Saved messages">
+              <Bookmark size={15} className="text-slate-100" />
             </button>
-            <button onClick={() => setLocation("/wallet")} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-accent transition-colors" title="Droidgram coins wallet">
-              <Zap size={15} className="text-white" />
+            <button onClick={() => setLocation("/wallet")} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/10 transition-colors" title="Droidgram coins wallet">
+              <Zap size={15} className="text-slate-100" />
             </button>
-            <button onClick={() => setLocation("/search")} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-accent transition-colors" title="Search users">
-              <Search size={15} className="text-white" />
+            <button onClick={() => setLocation("/search")} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/10 transition-colors" title="Search users">
+              <Search size={15} className="text-slate-100" />
             </button>
-            <button onClick={() => setShowNewChat(true)} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-accent transition-colors" title="New chat">
-              <Plus size={15} className="text-white" />
+            <button onClick={() => setShowNewChat(true)} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/10 transition-colors" title="New chat">
+              <Plus size={15} className="text-slate-100" />
             </button>
             <button onClick={() => {
               clearCurrentSession();
               window.dispatchEvent(new Event("pulse-logout-overlay"));
               signOut();
-            }} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-accent transition-colors" title="Sign out">
-              <LogOut size={15} className="text-white" />
+            }} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/10 transition-colors" title="Sign out">
+              <LogOut size={15} className="text-slate-100" />
             </button>
           </div>
         </div>
 
         {/* Stats bar */}
         {stats && (
-          <div className="grid grid-cols-3 gap-px bg-border mx-4 my-2 rounded-xl overflow-hidden text-center">
+          <div className="grid grid-cols-3 gap-px bg-white/10 mx-4 my-2 rounded-xl overflow-hidden text-center">
             {[
               { label: "Chats", value: (stats as any).totalChats ?? 0 },
               { label: "Unread", value: totalUnread },
               { label: "Online", value: (onlineUsers || []).length },
             ].map((s, i) => (
-              <div key={i} className="bg-accent/40 px-2 py-2">
-                <div className="text-sm font-bold text-white">{s.value}</div>
-                <div className="text-[9px] text-white/70 uppercase tracking-wide">{s.label}</div>
+              <div key={i} className="bg-white/5 px-2 py-2">
+                <div className="text-sm font-bold text-slate-100">{s.value}</div>
+                <div className="text-[9px] text-slate-400 uppercase tracking-wide">{s.label}</div>
               </div>
             ))}
           </div>
@@ -465,12 +465,12 @@ export default function ChatsPage({ activeChatId }: { activeChatId?: number }) {
         {/* Search */}
         <div className="px-3 pb-2">
           <div className="relative">
-            <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               placeholder="Search chats..."
-              className="w-full bg-accent/50 rounded-xl pl-8 pr-3 py-2 text-sm outline-none placeholder:text-muted-foreground focus:ring-1 ring-primary/50 transition-all"
+              className="w-full bg-white/6 text-slate-100 rounded-xl pl-8 pr-3 py-2 text-sm outline-none placeholder:text-slate-500 focus:ring-1 ring-white/10 transition-all"
             />
           </div>
         </div>
@@ -478,7 +478,7 @@ export default function ChatsPage({ activeChatId }: { activeChatId?: number }) {
         {/* Online users strip */}
         {(onlineUsers || []).length > 0 && (
           <div className="px-3 pb-2">
-            <button onClick={() => setShowOnline(!showOnline)} className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors mb-1.5 w-full">
+            <button onClick={() => setShowOnline(!showOnline)} className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-200 transition-colors mb-1.5 w-full">
               <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
               <span className="font-medium">{(onlineUsers || []).length} online now</span>
               <ChevronDown size={11} className={`ml-auto transition-transform ${showOnline ? "rotate-180" : ""}`} />
@@ -490,7 +490,7 @@ export default function ChatsPage({ activeChatId }: { activeChatId?: number }) {
                     {(onlineUsers || []).slice(0, 8).map((u: any) => (
                       <button key={u.id} onClick={() => startDirectChat(u.id)} className="flex flex-col items-center gap-1 shrink-0" title={u.displayName}>
                         <Avatar src={u.avatarUrl} name={u.displayName} size={36} online />
-                        <span className="text-[9px] text-muted-foreground truncate w-10 text-center">{u.displayName.split(" ")[0]}</span>
+                        <span className="text-[9px] text-slate-400 truncate w-10 text-center">{u.displayName.split(" ")[0]}</span>
                       </button>
                     ))}
                   </div>
@@ -515,18 +515,18 @@ export default function ChatsPage({ activeChatId }: { activeChatId?: number }) {
               ))}
             </div>
           ) : filteredChats.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-52 gap-3 text-muted-foreground px-6 text-center">
-              <div className="w-14 h-14 bg-accent rounded-2xl flex items-center justify-center">
-                <MessageSquare size={28} className="text-primary/60" />
+            <div className="flex flex-col items-center justify-center h-52 gap-3 text-slate-400 px-6 text-center">
+              <div className="w-14 h-14 bg-white/6 rounded-2xl flex items-center justify-center">
+                <MessageSquare size={28} className="text-slate-100" />
               </div>
               <div>
-                <p className="text-sm font-medium text-foreground">
+                <p className="text-sm font-medium text-slate-100">
                   {searchQuery ? "No chats found" : "No conversations yet"}
                 </p>
-                <p className="text-xs mt-1">{searchQuery ? "Try a different search" : "Start a new chat to get going"}</p>
+                <p className="text-xs mt-1 text-slate-400">{searchQuery ? "Try a different search" : "Start a new chat to get going"}</p>
               </div>
               {!searchQuery && (
-                <button onClick={() => setShowNewChat(true)} className="text-xs bg-primary text-primary-foreground rounded-lg px-4 py-1.5 hover:bg-primary/90 transition-colors font-medium">
+                <button onClick={() => setShowNewChat(true)} className="text-xs bg-white text-[#111827] rounded-lg px-4 py-1.5 hover:bg-white/90 transition-colors font-medium">
                   New chat
                 </button>
               )}
@@ -541,14 +541,14 @@ export default function ChatsPage({ activeChatId }: { activeChatId?: number }) {
                   <button
                     key={chat.id}
                     onClick={() => setLocation(`/chats/${chat.id}`)}
-                    className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-accent/60 transition-all text-left relative ${isActive ? "bg-primary/10 border-r-2 border-primary" : ""}`}
+                    className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-white/6 transition-all text-left relative ${isActive ? "bg-white/8 border-r-2 border-fuchsia-400" : ""}`}
                   >
                     <Avatar src={getChatAvatar(chat)} name={chatName} size={46} online={getChatOnline(chat)} />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between mb-0.5">
-                        <span className={`text-sm truncate ${isActive ? "font-semibold text-primary" : "font-medium"}`}>{chatName}</span>
+                        <span className={`text-sm truncate ${isActive ? "font-semibold text-white" : "font-medium text-slate-100"}`}>{chatName}</span>
                         {lastMsg && (
-                          <span className="text-[10px] text-muted-foreground shrink-0 ml-2">{formatTime(lastMsg.createdAt)}</span>
+                          <span className="text-[10px] text-slate-400 shrink-0 ml-2">{formatTime(lastMsg.createdAt)}</span>
                         )}
                       </div>
                       <div className="flex items-center justify-between gap-2">
@@ -557,9 +557,9 @@ export default function ChatsPage({ activeChatId }: { activeChatId?: number }) {
                           {lastMsg && lastMsg.senderId === myId && !lastMsg.isDeleted && (
                             lastMsg.readBy && lastMsg.readBy.length > 1
                               ? <CheckCheck size={11} className="text-blue-400 shrink-0" />
-                              : <CheckCheck size={11} className="text-muted-foreground/50 shrink-0" />
+                              : <CheckCheck size={11} className="text-slate-500 shrink-0" />
                           )}
-                          <p className="text-xs text-muted-foreground truncate">
+                          <p className="text-xs text-slate-400 truncate">
                             {lastMsg
                               ? (lastMsg.isDeleted
                                 ? "🚫 Message deleted"
@@ -568,7 +568,7 @@ export default function ChatsPage({ activeChatId }: { activeChatId?: number }) {
                           </p>
                         </div>
                         {chat.unreadCount > 0 ? (
-                          <span className="bg-primary text-primary-foreground text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 shrink-0 shadow-sm shadow-primary/30">
+                          <span className="bg-fuchsia-400 text-[#111827] text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 shrink-0 shadow-sm shadow-fuchsia-500/20">
                             {chat.unreadCount > 99 ? "99+" : chat.unreadCount}
                           </span>
                         ) : isActive && (
@@ -577,7 +577,7 @@ export default function ChatsPage({ activeChatId }: { activeChatId?: number }) {
                       </div>
                     </div>
                     {chat.type === "group" && (
-                      <Hash size={10} className="absolute top-2 right-2 text-muted-foreground/40" />
+                      <Hash size={10} className="absolute top-2 right-2 text-slate-500" />
                     )}
                   </button>
                 );
@@ -591,7 +591,7 @@ export default function ChatsPage({ activeChatId }: { activeChatId?: number }) {
       {activeChatId ? (
         <ChatWindow chatId={activeChatId} myId={myId} me={me} onBack={() => setLocation("/chats")} />
       ) : (
-        <div className="hidden md:flex flex-1 flex-col items-center justify-center bg-[#f4edf9] gap-4 relative overflow-hidden">
+        <div className="hidden md:flex flex-1 flex-col items-center justify-center bg-[#0b1020] gap-4 relative overflow-hidden">
           <div className="absolute inset-0 pointer-events-none">
             <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-96 h-96 bg-primary/5 rounded-full blur-3xl" />
           </div>
@@ -599,18 +599,18 @@ export default function ChatsPage({ activeChatId }: { activeChatId?: number }) {
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ type: "spring", stiffness: 200, damping: 20 }}
-            className="w-20 h-20 bg-gradient-to-br from-primary/20 to-indigo-500/20 rounded-3xl flex items-center justify-center border border-primary/20"
+            className="w-20 h-20 bg-gradient-to-br from-fuchsia-500/20 via-violet-500/20 to-sky-500/20 rounded-3xl flex items-center justify-center border border-white/10"
           >
-            <MessageSquare size={36} className="text-primary" />
+            <MessageSquare size={36} className="text-slate-100" />
           </motion.div>
           <motion.div initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.15 }} className="text-center">
-            <h3 className="font-bold text-xl mb-1">Your messages</h3>
-            <p className="text-sm text-muted-foreground">Select a chat or start a new conversation</p>
+            <h3 className="font-bold text-xl mb-1 text-slate-100">Your messages</h3>
+            <p className="text-sm text-slate-400">Select a chat or start a new conversation</p>
           </motion.div>
           <motion.button
             initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.25 }}
             onClick={() => setShowNewChat(true)}
-            className="bg-primary text-primary-foreground rounded-xl px-6 py-2.5 text-sm font-semibold hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20"
+            className="bg-white text-[#111827] rounded-xl px-6 py-2.5 text-sm font-semibold hover:bg-white/90 transition-colors shadow-lg shadow-white/10"
           >
             Start a conversation
           </motion.button>
@@ -626,7 +626,7 @@ export default function ChatsPage({ activeChatId }: { activeChatId?: number }) {
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: "100%", opacity: 0 }}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="bg-card border border-border rounded-t-3xl sm:rounded-2xl w-full sm:max-w-md shadow-2xl overflow-hidden"
+              className="bg-[#17182b] border border-white/10 rounded-t-3xl sm:rounded-2xl w-full sm:max-w-md shadow-2xl overflow-hidden text-slate-100"
             >
               <div className="w-10 h-1 bg-border rounded-full mx-auto mt-3 mb-1 sm:hidden" />
               <div className="flex items-center justify-between px-5 py-4 border-b border-border">
@@ -636,7 +636,7 @@ export default function ChatsPage({ activeChatId }: { activeChatId?: number }) {
                     {groupMode ? "→ Direct message" : "→ Create group instead"}
                   </button>
                 </div>
-                <button onClick={() => { setShowNewChat(false); setGroupMode(false); setSelectedUsers([]); }} className="w-8 h-8 flex items-center justify-center rounded-xl hover:bg-accent text-muted-foreground">
+                <button onClick={() => { setShowNewChat(false); setGroupMode(false); setSelectedUsers([]); }} className="w-8 h-8 flex items-center justify-center rounded-xl hover:bg-white/8 text-slate-400">
                   <X size={16} />
                 </button>
               </div>
@@ -646,16 +646,16 @@ export default function ChatsPage({ activeChatId }: { activeChatId?: number }) {
                   <input
                     value={groupName} onChange={e => setGroupName(e.target.value)}
                     placeholder="Group name..."
-                    className="w-full bg-accent rounded-xl px-4 py-2.5 text-sm outline-none placeholder:text-muted-foreground focus:ring-1 ring-primary/50"
+                    className="w-full bg-white/6 rounded-xl px-4 py-2.5 text-sm outline-none text-slate-100 placeholder:text-slate-500 focus:ring-1 ring-fuchsia-400/30"
                     autoFocus
                   />
                 )}
                 <div className="relative">
-                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
                   <input
                     value={newChatSearch} onChange={e => setNewChatSearch(e.target.value)}
                     placeholder="Search people..."
-                    className="w-full bg-accent rounded-xl pl-9 pr-3 py-2.5 text-sm outline-none placeholder:text-muted-foreground focus:ring-1 ring-primary/50"
+                    className="w-full bg-white/6 rounded-xl pl-9 pr-3 py-2.5 text-sm outline-none text-slate-100 placeholder:text-slate-500 focus:ring-1 ring-fuchsia-400/30"
                     autoFocus={!groupMode}
                   />
                 </div>
@@ -673,18 +673,18 @@ export default function ChatsPage({ activeChatId }: { activeChatId?: number }) {
 
                 <div className="space-y-1">
                   {newChatSearch.length > 1 && (searchResults || []).length === 0 && (
-                    <p className="text-sm text-muted-foreground text-center py-6">No users found for "{newChatSearch}"</p>
+                    <p className="text-sm text-slate-400 text-center py-6">No users found for "{newChatSearch}"</p>
                   )}
                   {(searchResults || []).map((user: any) => (
                     <button
                       key={user.id}
                       onClick={() => groupMode ? setSelectedUsers(p => p.find((x: any) => x.id === user.id) ? p : [...p, user]) : startDirectChat(user.id)}
-                      className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-accent transition-colors text-left"
+                      className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-white/6 transition-colors text-left"
                     >
                       <Avatar src={user.avatarUrl} name={user.displayName} size={40} online={user.isOnline} />
                       <div className="flex-1">
-                        <p className="text-sm font-semibold">{user.displayName}</p>
-                        <p className="text-xs text-muted-foreground">@{user.username} {user.isOnline ? "· 🟢 Online" : ""}</p>
+                        <p className="text-sm font-semibold text-slate-100">{user.displayName}</p>
+                        <p className="text-xs text-slate-400">@{user.username} {user.isOnline ? "· 🟢 Online" : ""}</p>
                       </div>
                       {groupMode && selectedUsers.find((x: any) => x.id === user.id) && (
                         <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center"><Check size={12} className="text-white" /></div>
@@ -692,7 +692,7 @@ export default function ChatsPage({ activeChatId }: { activeChatId?: number }) {
                     </button>
                   ))}
                   {newChatSearch.length <= 1 && (
-                    <p className="text-xs text-muted-foreground text-center py-4">Type a name or username to search</p>
+                    <p className="text-xs text-slate-500 text-center py-4">Type a name or username to search</p>
                   )}
                 </div>
 
@@ -700,7 +700,7 @@ export default function ChatsPage({ activeChatId }: { activeChatId?: number }) {
                   <button
                     onClick={createGroupChat}
                     disabled={!groupName.trim() || selectedUsers.length === 0 || createChat.isPending}
-                    className="w-full bg-primary text-primary-foreground rounded-xl py-3 text-sm font-bold disabled:opacity-40 hover:bg-primary/90 transition-colors"
+                    className="w-full bg-fuchsia-500 text-white rounded-xl py-3 text-sm font-bold disabled:opacity-40 hover:bg-fuchsia-400 transition-colors"
                   >
                     {createChat.isPending ? "Creating…" : `Create group with ${selectedUsers.length} member${selectedUsers.length !== 1 ? "s" : ""}`}
                   </button>
@@ -1044,7 +1044,7 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
       const poll = await r.json();
       await sendMessage.mutateAsync({ chatId, data: { content: `[poll:${poll.id}]`, replyToId: null } });
       qc.invalidateQueries({ queryKey: getGetMessagesQueryKey(chatId, {}) });
-      setShowPollCreate(false); setPollQuestion(""); setPollOptions(["", ""]); setPollMultiple(false);
+      setPollQuestion(""); setPollOptions(["", ""]); setPollMultiple(false);
       toast({ title: "📊 Poll created!" });
     }
   }
@@ -1057,8 +1057,6 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
       await sendMessage.mutateAsync({ chatId, data: { content: Math.random() > 0.5 ? "🪙 Heads!" : "🪙 Tails!", replyToId: null } });
     } else if (cmd === "/roll") {
       await sendMessage.mutateAsync({ chatId, data: { content: `🎲 Rolled a ${Math.floor(Math.random() * 6) + 1}!`, replyToId: null } });
-    } else if (cmd === "/poll") {
-      setShowPollCreate(true); return;
     } else if (cmd === "/me") {
       const action = fullText.slice(3).trim();
       if (action) await sendMessage.mutateAsync({ chatId, data: { content: `_${action}_`, replyToId: null } });
