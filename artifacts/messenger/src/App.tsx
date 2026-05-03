@@ -126,7 +126,7 @@ function ClerkQueryClientCacheInvalidator() {
   return null;
 }
 
-function AuthBackground({ children }: { children: React.ReactNode }) {
+function AuthBackground({ children, showButton = false, onButtonClick }: { children?: React.ReactNode; showButton?: boolean; onButtonClick?: () => void }) {
   return (
     <div className="relative min-h-[100dvh] overflow-hidden bg-[radial-gradient(circle_at_top_left,_rgba(168,85,247,0.22),_transparent_36%),radial-gradient(circle_at_top_right,_rgba(236,72,153,0.16),_transparent_34%),linear-gradient(135deg,_#0b1020_0%,_#11172a_45%,_#0b1020_100%)]">
       <div className="absolute inset-0">
@@ -148,15 +148,27 @@ function AuthBackground({ children }: { children: React.ReactNode }) {
             <h1 className="text-3xl font-black text-slate-100">Droidgram</h1>
             <p className="mt-1 text-sm text-slate-400">Мессенджер будущего</p>
           </div>
-          <div className="mt-6 flex justify-center">
-            <button onClick={() => setLocation("/chats")} className="inline-flex items-center justify-center rounded-xl bg-fuchsia-500 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-fuchsia-400">
-              Войти в мессенджер
-            </button>
-          </div>
+          {showButton && (
+            <div className="mt-6 flex justify-center">
+              <button onClick={onButtonClick} className="inline-flex items-center justify-center rounded-xl bg-fuchsia-500 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-fuchsia-400">
+                Войти в мессенджер
+              </button>
+            </div>
+          )}
           {children}
         </div>
       </div>
     </div>
+  );
+}
+
+function LandingPage() {
+  const [, setLocation] = useLocation();
+  return (
+    <AuthBackground
+      showButton={true}
+      onButtonClick={() => setLocation("/sign-in")}
+    />
   );
 }
 
@@ -183,7 +195,7 @@ function HomeRedirect() {
         <Redirect to="/chats" />
       </Show>
       <Show when="signed-out">
-        <SignInPage />
+        <LandingPage />
       </Show>
     </>
   );
