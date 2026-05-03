@@ -719,13 +719,18 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
 
   // ── Call state ──────────────────────────────────────────────────────────────
   const [callState, setCallState] = useState<{
-    active: boolean; type: "audio" | "video";
+    phase: "ringing" | "connected"; type: "audio" | "video";
     muted: boolean; videoOff: boolean; speaker: boolean; duration: number;
+  } | null>(null);
+  const [incomingCall, setIncomingCall] = useState<{
+    fromName: string; fromId: number; signalKey: string; type: "audio" | "video";
   } | null>(null);
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
   const callTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const callRingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const ringtoneStopRef = useRef<(() => void) | null>(null);
   const remoteAudioRef = useRef<HTMLAudioElement>(null);
 
   // ── Extra feature state ──────────────────────────────────────────────────────
@@ -1147,29 +1152,175 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
     };
   }
 
+  // ── Ringtone helpers ─────────────────────────────────────────────────────────
+  function buildRingtone(outgoing: boolean): () => void {
+    let stopped = false;
+    let ctx: AudioContext | null = null;
+    function ring() {
+      if (stopped) return;
+      try {
+        if (!ctx || ctx.state === "closed") ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+        const now = ctx.currentTime;
+        if (outgoing) {
+          [0, 0.45].forEach((delay, idx) => {
+            const osc = ctx!.createOscillator(); const gain = ctx!.createGain();
+            osc.connect(gain); gain.connect(ctx!.destination);
+            osc.frequency.value = idx === 0 ? 440 : 480;
+            gain.gain.setValueAtTime(0, now + delay);
+            gain.gain.linearRampToValueAtTime(0.18, now + delay + 0.04);
+            gain.gain.setValueAtTime(0.18, now + delay + 0.35);
+            gain.gain.linearRampToValueAtTime(0, now + delay + 0.43);
+            osc.start(now + delay); osc.stop(now + delay + 0.46);
+          });
+          if (!stopped) setTimeout(ring, 3200);
+        } else {
+          [0, 0.22, 0.44].forEach(delay => {
+            const osc = ctx!.createOscillator(); const gain = ctx!.createGain();
+            osc.connect(gain); gain.connect(ctx!.destination);
+            osc.frequency.value = 880;
+            gain.gain.setValueAtTime(0, now + delay);
+            gain.gain.linearRampToValueAtTime(0.28, now + delay + 0.03);
+            gain.gain.setValueAtTime(0.28, now + delay + 0.16);
+            gain.gain.linearRampToValueAtTime(0, now + delay + 0.21);
+            osc.start(now + delay); osc.stop(now + delay + 0.23);
+          });
+          if (!stopped) setTimeout(ring, 2400);
+        }
+      } catch {}
+    }
+    ring();
+    return () => { stopped = true; ctx?.close().catch(() => {}); };
+  }
+
+  function stopRingtone() {
+    ringtoneStopRef.current?.();
+    ringtoneStopRef.current = null;
+  }
+
+  // ── Incoming call + accepted signal listeners ─────────────────────────────────
+  useEffect(() => {
+    const inKey = `pulse_call_in_${myId}`;
+    const acceptKey = `pulse_call_accepted_${myId}`;
+    const declineKey = `pulse_call_declined_${myId}`;
+
+    function handleStorage(e: StorageEvent) {
+      // Someone is calling me
+      if (e.key === inKey && e.newValue) {
+        try {
+          const sig = JSON.parse(e.newValue);
+          if (Date.now() - sig.timestamp > 30000) return;
+          setIncomingCall({ fromName: sig.fromName, fromId: sig.fromId, signalKey: inKey, type: sig.type });
+          ringtoneStopRef.current = buildRingtone(false);
+        } catch {}
+      }
+      // Incoming call removed (caller cancelled)
+      if (e.key === inKey && !e.newValue) {
+        setIncomingCall(null);
+        stopRingtone();
+      }
+      // Other user accepted MY outgoing call
+      if (e.key === acceptKey && e.newValue) {
+        localStorage.removeItem(acceptKey);
+        stopRingtone();
+        if (callRingTimeoutRef.current) { clearTimeout(callRingTimeoutRef.current); callRingTimeoutRef.current = null; }
+        setCallState(prev => prev?.phase === "ringing" ? { ...prev, phase: "connected", duration: 0 } : prev);
+        if (callTimerRef.current) clearInterval(callTimerRef.current);
+        callTimerRef.current = setInterval(() => setCallState(p => p ? { ...p, duration: p.duration + 1 } : p), 1000);
+      }
+      // Other user declined MY outgoing call
+      if (e.key === declineKey && e.newValue) {
+        localStorage.removeItem(declineKey);
+        stopRingtone();
+        if (callRingTimeoutRef.current) { clearTimeout(callRingTimeoutRef.current); callRingTimeoutRef.current = null; }
+        setCallState(null);
+        toast({ title: "Call declined" });
+      }
+    }
+
+    window.addEventListener("storage", handleStorage);
+
+    // Check existing incoming call signal on mount
+    const existing = localStorage.getItem(inKey);
+    if (existing) {
+      try {
+        const sig = JSON.parse(existing);
+        if (Date.now() - sig.timestamp <= 30000) {
+          setIncomingCall({ fromName: sig.fromName, fromId: sig.fromId, signalKey: inKey, type: sig.type });
+          ringtoneStopRef.current = buildRingtone(false);
+        } else {
+          localStorage.removeItem(inKey);
+        }
+      } catch {}
+    }
+
+    return () => window.removeEventListener("storage", handleStorage);
+  }, [myId]);
+
   // ── Call handlers ────────────────────────────────────────────────────────────
   async function startCall(type: "audio" | "video") {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: type === "video" });
       localStreamRef.current = stream;
-      if (localVideoRef.current) { localVideoRef.current.srcObject = stream; }
-      if (remoteAudioRef.current) { remoteAudioRef.current.srcObject = stream; remoteAudioRef.current.play().catch(() => {}); }
-      if (remoteVideoRef.current && type === "video") { remoteVideoRef.current.srcObject = stream; remoteVideoRef.current.play().catch(() => {}); }
-      setCallState({ active: true, type, muted: false, videoOff: false, speaker: true, duration: 0 });
-      callTimerRef.current = setInterval(() => setCallState(prev => prev ? { ...prev, duration: prev.duration + 1 } : prev), 1000);
+      if (localVideoRef.current) localVideoRef.current.srcObject = stream;
+      setCallState({ phase: "ringing", type, muted: false, videoOff: false, speaker: true, duration: 0 });
+      ringtoneStopRef.current = buildRingtone(true);
+      const otherUser = (chat as any)?.members?.find((m: any) => m.id !== myId);
+      if (otherUser) {
+        const sigKey = `pulse_call_in_${otherUser.id}`;
+        const myName = me?.displayName || me?.username || "Someone";
+        localStorage.setItem(sigKey, JSON.stringify({ fromName: myName, fromId: myId, chatId, type, timestamp: Date.now() }));
+        // No-answer timeout — use functional setState to avoid stale closure
+        callRingTimeoutRef.current = setTimeout(() => {
+          stopRingtone();
+          localStorage.removeItem(sigKey);
+          setCallState(prev => {
+            if (prev?.phase === "ringing") {
+              setTimeout(() => toast({ title: "No answer" }), 0);
+              return null;
+            }
+            return prev;
+          });
+        }, 30000);
+      }
     } catch {
       toast({ title: "Could not access camera/microphone", variant: "destructive" });
     }
   }
 
   function endCall() {
+    stopRingtone();
+    if (callRingTimeoutRef.current) { clearTimeout(callRingTimeoutRef.current); callRingTimeoutRef.current = null; }
     localStreamRef.current?.getTracks().forEach(t => t.stop());
     localStreamRef.current = null;
     if (localVideoRef.current) localVideoRef.current.srcObject = null;
     if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
     if (remoteAudioRef.current) remoteAudioRef.current.srcObject = null;
     if (callTimerRef.current) { clearInterval(callTimerRef.current); callTimerRef.current = null; }
+    const otherUser = (chat as any)?.members?.find((m: any) => m.id !== myId);
+    if (otherUser) localStorage.removeItem(`pulse_call_in_${otherUser.id}`);
     setCallState(null);
+  }
+
+  function acceptIncomingCall() {
+    if (!incomingCall) return;
+    stopRingtone();
+    localStorage.removeItem(incomingCall.signalKey);
+    // Signal the caller that we accepted
+    localStorage.setItem(`pulse_call_accepted_${incomingCall.fromId}`, String(Date.now()));
+    setTimeout(() => localStorage.removeItem(`pulse_call_accepted_${incomingCall.fromId}`), 3000);
+    setIncomingCall(null);
+    setCallState({ phase: "connected", type: incomingCall.type, muted: false, videoOff: false, speaker: true, duration: 0 });
+    callTimerRef.current = setInterval(() => setCallState(prev => prev ? { ...prev, duration: prev.duration + 1 } : prev), 1000);
+  }
+
+  function declineIncomingCall() {
+    if (!incomingCall) return;
+    stopRingtone();
+    localStorage.removeItem(incomingCall.signalKey);
+    // Signal the caller that we declined
+    localStorage.setItem(`pulse_call_declined_${incomingCall.fromId}`, String(Date.now()));
+    setTimeout(() => localStorage.removeItem(`pulse_call_declined_${incomingCall.fromId}`), 3000);
+    setIncomingCall(null);
   }
 
   function formatCallDur(s: number) {
@@ -1838,14 +1989,66 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
         </div>
       </div>
 
+      {/* Incoming Call Overlay */}
+      <AnimatePresence>
+        {incomingCall && !callState && (
+          <motion.div
+            key="incoming-call"
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="absolute inset-0 z-50 flex flex-col items-center justify-between bg-gradient-to-b from-slate-900 via-purple-950 to-slate-900 px-6 py-12"
+          >
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              {[1, 2, 3].map(i => (
+                <motion.div key={i} className="absolute rounded-full border border-green-400/20"
+                  animate={{ scale: [1, 1.5 + i * 0.3, 1], opacity: [0.3, 0, 0.3] }}
+                  transition={{ duration: 1.8, repeat: Infinity, delay: i * 0.4 }}
+                  style={{ width: 110 + i * 60, height: 110 + i * 60 }}
+                />
+              ))}
+            </div>
+            <div className="text-center z-10 mt-2">
+              <p className="text-xs text-green-400/80 font-semibold tracking-widest uppercase mb-2">
+                {incomingCall.type === "video" ? "📹 Incoming video call" : "📞 Incoming call"}
+              </p>
+              <h2 className="text-3xl font-extrabold text-white">{incomingCall.fromName}</h2>
+              <p className="text-white/40 text-sm mt-1">is calling you…</p>
+            </div>
+            <motion.div className="relative z-10" animate={{ scale: [1, 1.05, 1] }} transition={{ duration: 1.5, repeat: Infinity }}>
+              <div className="w-32 h-32 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center text-5xl font-black text-white ring-4 ring-green-400/30 shadow-2xl shadow-green-500/30">
+                {incomingCall.fromName.charAt(0).toUpperCase()}
+              </div>
+            </motion.div>
+            <div className="z-10 flex items-center gap-12">
+              <div className="flex flex-col items-center gap-2">
+                <motion.button whileTap={{ scale: 0.9 }} onClick={declineIncomingCall}
+                  className="w-16 h-16 rounded-full bg-red-500 hover:bg-red-600 text-white flex items-center justify-center shadow-2xl shadow-red-500/40 transition-colors">
+                  <PhoneOff size={26} />
+                </motion.button>
+                <span className="text-xs text-white/40">Decline</span>
+              </div>
+              <div className="flex flex-col items-center gap-2">
+                <motion.button whileTap={{ scale: 0.9 }} onClick={acceptIncomingCall}
+                  animate={{ scale: [1, 1.08, 1] }} transition={{ duration: 1, repeat: Infinity }}
+                  className="w-16 h-16 rounded-full bg-green-500 hover:bg-green-400 text-white flex items-center justify-center shadow-2xl shadow-green-500/40 transition-colors">
+                  <Phone size={26} />
+                </motion.button>
+                <span className="text-xs text-white/40">Accept</span>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Call Modal */}
       <AnimatePresence>
         {callState && (
           <motion.div
             key="call-modal"
-            initial={{ opacity: 0, scale: 0.95 }}
+            initial={{ opacity: 0, scale: 0.97 }}
             animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
+            exit={{ opacity: 0, scale: 0.97 }}
             transition={{ duration: 0.2 }}
             className="absolute inset-0 z-50 flex flex-col items-center justify-between bg-gradient-to-b from-slate-900 via-indigo-950 to-slate-900 px-6 py-10"
           >
@@ -1854,54 +2057,85 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
               {[1, 2, 3].map(i => (
                 <motion.div key={i} className="absolute rounded-full border border-primary/20"
                   animate={{ scale: [1, 1.5 + i * 0.3, 1], opacity: [0.25, 0, 0.25] }}
-                  transition={{ duration: 2.5, repeat: Infinity, delay: i * 0.5 }}
+                  transition={{ duration: callState.phase === "ringing" ? 1.6 : 2.5, repeat: Infinity, delay: i * 0.4 }}
                   style={{ width: 120 + i * 60, height: 120 + i * 60 }}
                 />
               ))}
             </div>
+
             {/* Top info */}
             <div className="text-center z-10 mt-4">
               <p className="text-xs text-primary/60 font-medium mb-1">{callState.type === "video" ? "📹 Video call" : "📞 Voice call"}</p>
               <h2 className="text-3xl font-extrabold text-white">{chatName}</h2>
-              <p className="text-primary/50 text-sm mt-1.5 font-mono">{formatCallDur(callState.duration)}</p>
+              <AnimatePresence mode="wait">
+                {callState.phase === "ringing" ? (
+                  <motion.p key="ringing" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                    className="text-primary/50 text-sm mt-1.5">
+                    <motion.span animate={{ opacity: [1, 0.4, 1] }} transition={{ duration: 1.5, repeat: Infinity }}>
+                      Calling…
+                    </motion.span>
+                  </motion.p>
+                ) : (
+                  <motion.p key="connected" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                    className="text-green-400/80 text-sm mt-1.5 font-mono">
+                    {formatCallDur(callState.duration)}
+                  </motion.p>
+                )}
+              </AnimatePresence>
             </div>
+
             {/* Avatar / Video */}
             <div className="z-10 relative">
-              {callState.type === "video" && !callState.videoOff ? (
+              {callState.phase === "connected" && callState.type === "video" && !callState.videoOff ? (
                 <div className="w-48 h-64 rounded-3xl overflow-hidden bg-black border-2 border-primary/30 shadow-2xl">
                   <video ref={remoteVideoRef} autoPlay muted playsInline className="w-full h-full object-cover" />
-                  <video ref={localVideoRef} autoPlay muted playsInline className="w-24 h-32 object-cover mirror absolute bottom-3 right-3 rounded-2xl border border-white/20 shadow-lg" />
+                  <video ref={localVideoRef} autoPlay muted playsInline className="w-24 h-32 object-cover absolute bottom-3 right-3 rounded-2xl border border-white/20 shadow-lg" />
                 </div>
               ) : (
-                <motion.div animate={{ scale: [1, 1.04, 1] }} transition={{ duration: 2, repeat: Infinity }}>
+                <motion.div animate={{ scale: [1, 1.04, 1] }} transition={{ duration: callState.phase === "ringing" ? 1.2 : 2, repeat: Infinity }}>
                   <Avatar src={chatAvatar} name={chatName} size={120} />
                 </motion.div>
               )}
             </div>
+
             {/* Controls */}
             <div className="z-10 flex flex-col items-center gap-5 w-full">
-              <div className="flex justify-center gap-5">
-                {[
-                  { icon: callState.muted ? MicOff : Mic, label: callState.muted ? "Unmute" : "Mute", active: callState.muted, color: "red", onClick: () => setCallState(p => p ? { ...p, muted: !p.muted } : p) },
-                  { icon: callState.speaker ? Volume2 : VolumeX, label: "Speaker", active: !callState.speaker, color: "default", onClick: () => setCallState(p => p ? { ...p, speaker: !p.speaker } : p) },
-                  ...(callState.type === "video" ? [{ icon: callState.videoOff ? VideoOff : Video, label: callState.videoOff ? "Camera off" : "Camera", active: callState.videoOff, color: "red", onClick: () => setCallState(p => p ? { ...p, videoOff: !p.videoOff } : p) }] : []),
-                ].map((btn, i) => (
-                  <div key={i} className="flex flex-col items-center gap-1.5">
-                    <motion.button whileTap={{ scale: 0.9 }} onClick={btn.onClick}
-                      className={`w-14 h-14 rounded-full flex items-center justify-center transition-all ${btn.active && btn.color === "red" ? "bg-red-500 text-white" : "bg-white/10 text-white hover:bg-white/20"}`}>
-                      <btn.icon size={22} />
-                    </motion.button>
-                    <span className="text-[10px] text-white/50">{btn.label}</span>
+              {callState.phase === "ringing" ? (
+                /* Ringing — only show cancel */
+                <div className="flex flex-col items-center gap-2">
+                  <motion.button whileTap={{ scale: 0.95 }} onClick={endCall}
+                    className="w-16 h-16 rounded-full bg-red-500 hover:bg-red-600 text-white flex items-center justify-center shadow-2xl shadow-red-500/40 transition-colors">
+                    <PhoneOff size={26} />
+                  </motion.button>
+                  <span className="text-[11px] text-white/40">Cancel</span>
+                </div>
+              ) : (
+                /* Connected — full controls */
+                <>
+                  <div className="flex justify-center gap-5">
+                    {[
+                      { icon: callState.muted ? MicOff : Mic, label: callState.muted ? "Unmute" : "Mute", active: callState.muted, color: "red", onClick: () => setCallState(p => p ? { ...p, muted: !p.muted } : p) },
+                      { icon: callState.speaker ? Volume2 : VolumeX, label: "Speaker", active: !callState.speaker, color: "default", onClick: () => setCallState(p => p ? { ...p, speaker: !p.speaker } : p) },
+                      ...(callState.type === "video" ? [{ icon: callState.videoOff ? VideoOff : Video, label: callState.videoOff ? "Camera off" : "Camera", active: callState.videoOff, color: "red", onClick: () => setCallState(p => p ? { ...p, videoOff: !p.videoOff } : p) }] : []),
+                    ].map((btn, i) => (
+                      <div key={i} className="flex flex-col items-center gap-1.5">
+                        <motion.button whileTap={{ scale: 0.9 }} onClick={btn.onClick}
+                          className={`w-14 h-14 rounded-full flex items-center justify-center transition-all ${btn.active && btn.color === "red" ? "bg-red-500 text-white" : "bg-white/10 text-white hover:bg-white/20"}`}>
+                          <btn.icon size={22} />
+                        </motion.button>
+                        <span className="text-[10px] text-white/50">{btn.label}</span>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-              <div className="flex flex-col items-center gap-1.5">
-                <motion.button whileTap={{ scale: 0.95 }} onClick={endCall}
-                  className="w-16 h-16 rounded-full bg-red-500 hover:bg-red-600 text-white flex items-center justify-center shadow-2xl shadow-red-500/40 transition-colors">
-                  <PhoneOff size={26} />
-                </motion.button>
-                <span className="text-[10px] text-white/40">End call</span>
-              </div>
+                  <div className="flex flex-col items-center gap-1.5">
+                    <motion.button whileTap={{ scale: 0.95 }} onClick={endCall}
+                      className="w-16 h-16 rounded-full bg-red-500 hover:bg-red-600 text-white flex items-center justify-center shadow-2xl shadow-red-500/40 transition-colors">
+                      <PhoneOff size={26} />
+                    </motion.button>
+                    <span className="text-[10px] text-white/40">End call</span>
+                  </div>
+                </>
+              )}
             </div>
           </motion.div>
         )}
