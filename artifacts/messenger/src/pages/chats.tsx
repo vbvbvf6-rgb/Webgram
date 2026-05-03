@@ -749,6 +749,9 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
     phase: "ringing" | "connected"; type: "audio" | "video";
     muted: boolean; videoOff: boolean; speaker: boolean; duration: number;
   } | null>(null);
+  const [lastCall, setLastCall] = useState<{ type: "audio" | "video"; chatId: number } | null>(null);
+  const lastCallTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [callMinimized, setCallMinimized] = useState(false);
   const [incomingCall, setIncomingCall] = useState<{
     fromName: string; fromId: number; signalKey: string; type: "audio" | "video";
   } | null>(null);
@@ -1031,12 +1034,26 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
     } catch { toast({ title: "Failed to delete", variant: "destructive" }); }
   }
 
-  async function handleReact(msgId: number, emoji: string) {
+  function handleReact(msgId: number, emoji: string) {
     setShowEmojiFor(null);
-    try {
-      await reactToMessage.mutateAsync({ chatId, messageId: msgId, data: { emoji } });
-      qc.invalidateQueries({ queryKey: getGetMessagesQueryKey(chatId, {}) });
-    } catch {}
+    // Optimistic update — instantly update reaction counts without waiting for server
+    qc.setQueryData(getGetMessagesQueryKey(chatId, {}), (old: any) => {
+      if (!old) return old;
+      const patch = (msgs: any[]) => msgs.map(m => {
+        if (m.id !== msgId) return m;
+        const existing = (m.reactions || []).find((r: any) => r.emoji === emoji && r.userId === myId);
+        if (existing) {
+          return { ...m, reactions: (m.reactions || []).filter((r: any) => !(r.emoji === emoji && r.userId === myId)) };
+        }
+        return { ...m, reactions: [...(m.reactions || []), { emoji, userId: myId, id: Date.now() }] };
+      });
+      if (Array.isArray(old)) return patch(old);
+      if (old?.messages) return { ...old, messages: patch(old.messages) };
+      return old;
+    });
+    reactToMessage.mutateAsync({ chatId, messageId: msgId, data: { emoji } })
+      .then(() => qc.invalidateQueries({ queryKey: getGetMessagesQueryKey(chatId, {}) }))
+      .catch(() => qc.invalidateQueries({ queryKey: getGetMessagesQueryKey(chatId, {}) }));
   }
 
   // ── Extra handlers ───────────────────────────────────────────────────────────
@@ -1326,6 +1343,12 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
     if (callTimerRef.current) { clearInterval(callTimerRef.current); callTimerRef.current = null; }
     const otherUser = (chat as any)?.members?.find((m: any) => m.id !== myId);
     if (otherUser) localStorage.removeItem(`pulse_call_in_${otherUser.id}`);
+    // Save last call info so user can rejoin within 15 seconds
+    const type = callState?.type ?? "audio";
+    setLastCall({ type, chatId });
+    setCallMinimized(false);
+    if (lastCallTimerRef.current) clearTimeout(lastCallTimerRef.current);
+    lastCallTimerRef.current = setTimeout(() => setLastCall(null), 15000);
     setCallState(null);
   }
 
@@ -2129,16 +2152,68 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
                     if (e.key === "Escape") { setReplyTo(null); setEditingMsg(null); clearInput(); setCmdSuggestions([]); }
                   }}
                 />
+                {/* Send button — inside toolbar on the right */}
+                <motion.button whileTap={{ scale: 0.9 }} onClick={handleSend}
+                  disabled={(sendMessage.isPending || editMessage.isPending) && !!input.trim()}
+                  className={`w-8 h-8 flex items-center justify-center rounded-xl shrink-0 transition-all ${input.trim() ? "bg-primary text-primary-foreground shadow-md shadow-primary/30 hover:bg-primary/90" : "text-muted-foreground hover:text-foreground"}`}
+                  title="Send">
+                  <Send size={15} />
+                </motion.button>
               </div>
-              <motion.button whileTap={{ scale: 0.9 }} onClick={handleSend}
-                disabled={(sendMessage.isPending || editMessage.isPending) && !!input.trim()}
-                className={`w-10 h-10 flex items-center justify-center rounded-xl shrink-0 transition-all ${input.trim() ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20 hover:bg-primary/90" : "bg-accent text-muted-foreground hover:text-foreground hover:bg-accent/80"}`}>
-                <Send size={16} />
-              </motion.button>
             </div>
           )}
         </div>
       </div>
+
+      {/* Rejoin call pill — appears for 15s after ending a call */}
+      <AnimatePresence>
+        {lastCall && !callState && (
+          <motion.div
+            key="rejoin-pill"
+            initial={{ opacity: 0, y: 24, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 24, scale: 0.95 }}
+            transition={{ type: "spring", stiffness: 380, damping: 30 }}
+            className="absolute bottom-24 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-4 py-2.5 rounded-2xl bg-green-600 text-white shadow-2xl shadow-green-600/40 cursor-pointer hover:bg-green-500 transition-colors select-none"
+            onClick={() => {
+              if (lastCallTimerRef.current) clearTimeout(lastCallTimerRef.current);
+              setLastCall(null);
+              startCall(lastCall.type);
+            }}
+          >
+            <motion.div className="w-2 h-2 rounded-full bg-white/80" animate={{ opacity: [1, 0.3, 1] }} transition={{ duration: 1.2, repeat: Infinity }} />
+            <span className="text-sm font-semibold">{lastCall.type === "video" ? "📹" : "📞"} Rejoin call</span>
+            <button
+              className="ml-1 text-white/60 hover:text-white transition-colors"
+              onClick={e => { e.stopPropagation(); if (lastCallTimerRef.current) clearTimeout(lastCallTimerRef.current); setLastCall(null); }}
+            >
+              <X size={14} />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Minimized call bar — floating pill at top when call is active but minimized */}
+      <AnimatePresence>
+        {callState && callMinimized && (
+          <motion.div
+            key="mini-call"
+            initial={{ opacity: 0, y: -16 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -16 }}
+            transition={{ type: "spring", stiffness: 400, damping: 32 }}
+            className="absolute top-16 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-4 py-2 rounded-2xl bg-slate-900/95 backdrop-blur border border-primary/20 shadow-2xl cursor-pointer hover:bg-slate-800/95 transition-colors"
+            onClick={() => setCallMinimized(false)}
+          >
+            <motion.div className="w-2 h-2 rounded-full bg-green-400" animate={{ opacity: [1, 0.3, 1] }} transition={{ duration: 1.5, repeat: Infinity }} />
+            <span className="text-xs font-semibold text-white">{callState.type === "video" ? "📹" : "📞"} {chatName}</span>
+            <span className="text-xs text-green-400 font-mono">{formatCallDur(callState.duration)}</span>
+            <button className="w-6 h-6 rounded-full bg-red-500 hover:bg-red-600 text-white flex items-center justify-center transition-colors" onClick={e => { e.stopPropagation(); endCall(); }}>
+              <PhoneOff size={10} />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Incoming Call Overlay */}
       <AnimatePresence>
@@ -2203,6 +2278,14 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
             transition={{ duration: 0.2 }}
             className="absolute inset-0 z-50 flex flex-col items-center justify-between bg-gradient-to-b from-slate-900 via-indigo-950 to-slate-900 px-6 py-10"
           >
+            {/* Minimize button */}
+            <button
+              onClick={() => setCallMinimized(true)}
+              className="absolute top-4 right-4 z-20 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white/60 hover:text-white flex items-center justify-center transition-colors"
+              title="Minimize"
+            >
+              <ChevronDown size={16} />
+            </button>
             {/* Rings */}
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
               {[1, 2, 3].map(i => (
