@@ -2269,25 +2269,25 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
           <AnimatePresence>
             {showStickers && (
               <motion.div initial={{ opacity: 0, y: 6, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 6, scale: 0.98 }} transition={{ duration: 0.15 }} className="mb-2">
-                <div className="bg-[#ffffffea] border border-white/60 rounded-2xl overflow-hidden shadow-2xl">
+                <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-2xl">
                   {/* Header */}
                   <div className="flex items-center justify-between px-3.5 pt-3 pb-2">
                     <div className="flex items-center gap-2">
-                      <Sparkles size={13} className="text-primary" />
-                      <p className="text-xs font-bold text-[#4b1f7a]">Stickers</p>
+                      <Sparkles size={13} className="text-fuchsia-400" />
+                      <p className="text-xs font-bold text-foreground">Stickers</p>
                     </div>
-                    <button onClick={() => setShowStickers(false)} className="w-6 h-6 flex items-center justify-center rounded-full bg-white/80 text-[#5b3d8c] hover:text-[#2f1857] transition-colors">
+                    <button onClick={() => setShowStickers(false)} className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-accent text-muted-foreground hover:text-foreground transition-colors">
                       <X size={12}/>
                     </button>
                   </div>
                   {/* Pack tabs */}
-                  <div className="flex gap-1.5 px-3.5 pb-2 overflow-x-auto">
+                  <div className="flex gap-1.5 px-3.5 pb-2 overflow-x-auto scrollbar-none">
                     {Object.keys(STICKER_PACKS).map(pack => {
                       const icon = pack.split(" ")[0];
                       const isActive = stickerPack === pack;
                       return (
                         <button key={pack} onClick={() => setStickerPack(pack)} title={pack}
-                          className={`w-9 h-9 flex items-center justify-center rounded-xl text-lg shrink-0 transition-all ${isActive ? "bg-violet-200 ring-2 ring-violet-300 scale-105" : "hover:bg-violet-100/80"}`}>
+                          className={`w-9 h-9 flex items-center justify-center rounded-xl text-lg shrink-0 transition-all ${isActive ? "bg-fuchsia-500/20 ring-2 ring-fuchsia-500/40 scale-105" : "hover:bg-accent"}`}>
                           {icon}
                         </button>
                       );
@@ -2298,7 +2298,7 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
                     {(STICKER_PACKS[stickerPack] || []).map(s => (
                       <motion.button key={s} whileHover={{ scale: 1.2 }} whileTap={{ scale: 0.9 }}
                         onClick={async () => { setShowStickers(false); await sendMessage.mutateAsync({ chatId, data: { content: s, replyToId: null } }); qc.invalidateQueries({ queryKey: getGetMessagesQueryKey(chatId, {}) }); }}
-                        className="text-2xl flex items-center justify-center h-11 rounded-xl hover:bg-violet-100/80 transition-colors">
+                        className="text-2xl flex items-center justify-center h-11 rounded-xl hover:bg-fuchsia-500/10 transition-colors">
                         {s}
                       </motion.button>
                     ))}
