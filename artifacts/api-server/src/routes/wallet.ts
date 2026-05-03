@@ -81,7 +81,19 @@ router.post("/send", requireAuth, async (req: AuthenticatedRequest, res): Promis
     }
     const recipientWallet = await ensureWallet(toUserId);
     const now = new Date();
-    await db.update(walletsTable).set({ balance: myWallet.balance - amount, updatedAt: now }).where(eq(walletsTable.userId, me.id));
+    
+    // Atomically deduct from sender — re-fetch to avoid race condition
+    const [freshWallet] = await db.select().from(walletsTable).where(eq(walletsTable.userId, me.id)).limit(1);
+    if (!freshWallet || freshWallet.balance < amount) {
+      res.status(400).json({ error: "Insufficient balance" });
+      return;
+    }
+    
+    const [updated] = await db.update(walletsTable)
+      .set({ balance: freshWallet.balance - amount, updatedAt: now })
+      .where(eq(walletsTable.userId, me.id))
+      .returning();
+    
     await db.update(walletsTable).set({ balance: recipientWallet.balance + amount, updatedAt: now }).where(eq(walletsTable.userId, toUserId));
     await db.insert(transactionsTable).values({
       fromUserId: me.id, toUserId: me.id, amount: -amount, type: "send",
@@ -91,7 +103,7 @@ router.post("/send", requireAuth, async (req: AuthenticatedRequest, res): Promis
       fromUserId: me.id, toUserId, amount, type: "receive",
       description: description || `Received from ${me.displayName}`, chatId,
     });
-    res.json({ success: true, newBalance: myWallet.balance - amount, recipient: recipient[0] });
+    res.json({ success: true, newBalance: updated.balance, recipient: recipient[0] });
   } catch (err) {
     req.log.error({ err }, "Failed to send coins");
     res.status(500).json({ error: "Internal server error" });
@@ -121,13 +133,25 @@ router.post("/gift", requireAuth, async (req: AuthenticatedRequest, res): Promis
     if (toUserId === me.id) { res.status(400).json({ error: "Cannot send to yourself" }); return; }
     const recipient = await db.select().from(usersTable).where(eq(usersTable.id, toUserId)).limit(1);
     if (!recipient.length) { res.status(404).json({ error: "User not found" }); return; }
+    
     const now = new Date();
-    await db.update(walletsTable).set({ balance: myWallet.balance - gift.price, updatedAt: now }).where(eq(walletsTable.userId, me.id));
+    // Re-fetch fresh wallet to avoid race condition
+    const [freshWallet] = await db.select().from(walletsTable).where(eq(walletsTable.userId, me.id)).limit(1);
+    if (!freshWallet || freshWallet.balance < gift.price) {
+      res.status(400).json({ error: "Insufficient balance" });
+      return;
+    }
+    
+    const [updated] = await db.update(walletsTable)
+      .set({ balance: freshWallet.balance - gift.price, updatedAt: now })
+      .where(eq(walletsTable.userId, me.id))
+      .returning();
+    
     await db.insert(transactionsTable).values({
       fromUserId: me.id, toUserId: me.id, amount: -gift.price, type: "send",
       description: `Sent ${gift.name} gift to ${recipient[0].displayName}`, chatId,
     });
-    res.json({ success: true, newBalance: myWallet.balance - gift.price, gift, recipient: recipient[0] });
+    res.json({ success: true, newBalance: updated.balance, gift, recipient: recipient[0] });
   } catch (err) {
     req.log.error({ err }, "Failed to send gift");
     res.status(500).json({ error: "Internal server error" });
