@@ -2002,6 +2002,7 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
                                 const gift = GIFTS.find(g => g.id === m[1]);
                                 const senderName = m[2];
                                 if (gift) {
+                                  const Icon = gift.icon;
                                   return (
                                     <div className={`gift-appear flex flex-col items-center gap-2 py-3 px-4 bg-gradient-to-br ${gift.gradient} rounded-xl min-w-[130px] relative overflow-hidden`}>
                                       {gift.rare && (
@@ -2014,7 +2015,7 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
                                           ))}
                                         </div>
                                       )}
-                                      <span className={`text-5xl ${gift.animation}`}>{gift.emoji}</span>
+                                      <Icon size={56} className={`${gift.animation} ${gift.color}`} />
                                       <div className="text-center">
                                         <p className={`text-xs font-bold ${gift.color}`}>{gift.name}</p>
                                         <p className="text-[10px] text-white/60 mt-0.5">from {senderName}</p>
@@ -3090,6 +3091,7 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
                   <div className="grid grid-cols-4 gap-2">
                     {GIFTS.map(gift => {
                       const canAfford = walletBal === null || walletBal >= gift.price;
+                      const Icon = gift.icon;
                       return (
                         <motion.button key={gift.id} whileTap={{ scale: 0.92 }} whileHover={{ scale: 1.05 }}
                           onClick={() => canAfford && setGiftModal(m => m ? { ...m, step: "confirm", selectedGift: gift, message: "" } : null)}
@@ -3097,7 +3099,7 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
                             ${canAfford ? "hover:border-fuchsia-500/50 hover:bg-fuchsia-500/10 cursor-pointer" : "opacity-40 cursor-not-allowed"}
                             ${gift.rare ? "border-yellow-500/40 bg-yellow-500/5" : "border-border bg-accent/30"}`}>
                           {gift.rare && <span className="absolute top-0.5 right-0.5 text-[8px]">✨</span>}
-                          <span className={`text-2xl ${gift.animation}`}>{gift.emoji}</span>
+                          <Icon size={28} className={`${gift.animation} ${gift.color}`} />
                           <p className="text-[9px] font-semibold leading-none text-muted-foreground">{gift.name}</p>
                           <p className="text-[9px] font-bold text-fuchsia-400">⚡{gift.price}</p>
                         </motion.button>
@@ -3110,6 +3112,7 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
               {/* Step 2: confirm */}
               {giftModal.step === "confirm" && giftModal.selectedGift && giftModal.recipient && (() => {
                 const gift = giftModal.selectedGift;
+                const Icon = gift.icon;
                 const sendGift = async () => {
                   if (giftModal.loading) return;
                   setGiftModal(m => m ? { ...m, loading: true } : null);
@@ -3130,7 +3133,7 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
                         data: { content: `[gift:${gift.id}:${senderDisplayName}]`, replyToId: null },
                       });
                       setWalletBal(data.newBalance ?? null);
-                      toast({ title: `${gift.emoji} Gift sent to ${giftModal.recipient!.displayName}!` });
+                      toast({ title: `🎁 ${gift.name} sent to ${giftModal.recipient!.displayName}!` });
                       setGiftModal(null);
                       qc.invalidateQueries({ queryKey: getGetMessagesQueryKey(chatId, {}) });
                     } else {
@@ -3147,7 +3150,7 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
                   <div className="p-4 space-y-4">
                     {/* Gift preview */}
                     <div className={`flex flex-col items-center gap-3 py-5 bg-gradient-to-br ${gift.gradient} rounded-xl border border-white/10`}>
-                      <span className={`text-6xl ${gift.animation}`}>{gift.emoji}</span>
+                      <Icon size={64} className={`${gift.animation} ${gift.color}`} />
                       <div className="text-center">
                         <p className={`font-bold ${gift.color}`}>{gift.name}</p>
                         <p className="text-xs text-white/60 mt-0.5">for {giftModal.recipient.displayName}</p>
@@ -3181,7 +3184,7 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
                       {giftModal.loading ? (
                         <><svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg> Sending gift…</>
                       ) : (
-                        <>{gift.emoji} Send {gift.name}</>
+                        <>🎁 Send {gift.name}</>
                       )}
                     </button>
                   </div>

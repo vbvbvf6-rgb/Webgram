@@ -350,10 +350,11 @@ export default function WalletPage() {
                   {gifts.map(gift => {
                     const giftInfo = GIFTS_CATALOG.find(g => g.id === gift.giftId);
                     const sellPrice = Math.floor((giftInfo?.price || 0) * 0.5);
+                    const Icon = giftInfo?.icon;
                     return (
                       <motion.div key={gift.id} initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}
                         className="flex items-center gap-3 p-3 rounded-xl bg-card border border-border/60 hover:border-primary/30 transition-colors">
-                        <span className="text-2xl">{giftInfo?.emoji || "🎁"}</span>
+                        {Icon && <Icon size={24} className="text-primary shrink-0" />}
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-semibold">{giftInfo?.name || "Unknown"}</p>
                           <p className="text-[10px] text-muted-foreground">from {gift.fromUser.displayName}</p>
