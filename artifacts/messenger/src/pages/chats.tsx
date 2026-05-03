@@ -374,16 +374,14 @@ function clearCurrentSession() {
 export default function ChatsPage({ activeChatId }: { activeChatId?: number }) {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  const { signOut } = useClerk();
   const qc = useQueryClient();
   
-  // Per-tab logout handler — mark this tab as logged out
+  // Per-tab logout handler — only logout current tab, not globally
   const handleTabLogout = async () => {
     clearCurrentSession();
     qc.clear();
     const app = await import("../App");
     app.setTabLoggedOut();
-    await signOut();
     setLocation("/sign-in");
   };
   const { data: me } = useGetMe();
