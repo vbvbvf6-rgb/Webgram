@@ -570,7 +570,8 @@ export default function SettingsPage() {
                           const reader = new FileReader();
                           reader.onload = (ev) => {
                             const result = ev.target?.result as string;
-                            mark(setAvatarUrl)(result);
+                            setAvatarUrl(result);
+                            setDirty(true);
                           };
                           reader.readAsDataURL(file);
                         }
