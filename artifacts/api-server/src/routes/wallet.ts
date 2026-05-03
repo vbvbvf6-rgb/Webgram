@@ -153,6 +153,7 @@ router.post("/gift", requireAuth, async (req: AuthenticatedRequest, res): Promis
         giftId,
         fromUserId: me.id,
         toUserId,
+        currentOwnerId: toUserId,
         chatId: chatId ?? null,
         message: message?.trim() ?? null,
       });
