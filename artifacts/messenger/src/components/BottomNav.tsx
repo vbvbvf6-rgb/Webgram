@@ -1,11 +1,11 @@
 import { useLocation } from "wouter";
-import { MessageSquare, Search, Phone, Settings, Zap } from "lucide-react";
+import { MessageSquare, Search, Phone, Settings, Zap, Bot } from "lucide-react";
 import { motion } from "framer-motion";
 
 const TABS = [
   { path: "/chats", icon: MessageSquare, label: "Chats" },
   { path: "/search", icon: Search, label: "Search" },
-  { path: "/calls", icon: Phone, label: "Calls" },
+  { path: "/ai", icon: Bot, label: "AI" },
   { path: "/wallet", icon: Zap, label: "Wallet" },
   { path: "/settings", icon: Settings, label: "Settings" },
 ];

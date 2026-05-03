@@ -7,6 +7,7 @@ import {
   Bell, BellOff, Shield, Palette, Volume2, VolumeX, Eye, EyeOff,
   Trash2, HardDrive, Info, ChevronRight, Check, Moon, Sun,
   Smartphone, Globe, Lock, Download, Star, MessageSquare, Bug, LifeBuoy,
+  Phone, CheckCircle2, XCircle,
 } from "lucide-react";
 import { useGetMe, useUpdateMe, getGetMeQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -197,6 +198,11 @@ export default function SettingsPage() {
   const [username, setUsername] = useState("");
   const [bio, setBio] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
+  const [phone, setPhone] = useState("");
+  const [phoneCode, setPhoneCode] = useState("");
+  const [phoneSent, setPhoneSent] = useState(false);
+  const [phoneVerifying, setPhoneVerifying] = useState(false);
+  const [phoneVerified, setPhoneVerified] = useState(false);
   const [dirty, setDirty] = useState(false);
 
   // Notifications
@@ -278,6 +284,8 @@ export default function SettingsPage() {
       setUsername(m.username || "");
       setBio(m.bio || "");
       setAvatarUrl(m.avatarUrl || "");
+      setPhone(m.phone || "");
+      setPhoneVerified(m.phoneVerified || false);
       setDirty(false);
     }
   }, [me]);
@@ -286,13 +294,47 @@ export default function SettingsPage() {
 
   async function handleSave() {
     try {
-      await updateMe.mutateAsync({ data: { displayName, username, bio: bio || null, avatarUrl: avatarUrl || null } });
+      await updateMe.mutateAsync({ data: { displayName, username, bio: bio || null, avatarUrl: avatarUrl || null, phone: phone || null } as any });
       qc.invalidateQueries({ queryKey: getGetMeQueryKey() });
       toast({ title: "Profile saved ✓" });
       setDirty(false);
     } catch {
       toast({ title: "Failed to save", variant: "destructive" });
     }
+  }
+
+  // Simulated phone verification (OTP sent via toast; real SMS would need Twilio/etc.)
+  async function sendPhoneCode() {
+    if (!phone.trim() || !/^\+?[\d\s\-()]{7,15}$/.test(phone.trim())) {
+      toast({ title: "Enter a valid phone number", variant: "destructive" }); return;
+    }
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    sessionStorage.setItem("phone_verify_code", code);
+    sessionStorage.setItem("phone_verify_number", phone.trim());
+    setPhoneSent(true);
+    toast({ title: "Verification code sent", description: `Demo code: ${code}` });
+  }
+
+  async function verifyPhoneCode() {
+    setPhoneVerifying(true);
+    const stored = sessionStorage.getItem("phone_verify_code");
+    const storedPhone = sessionStorage.getItem("phone_verify_number");
+    if (phoneCode === stored && storedPhone === phone.trim()) {
+      try {
+        await updateMe.mutateAsync({ data: { phone: phone.trim(), phoneVerified: true } as any });
+        qc.invalidateQueries({ queryKey: getGetMeQueryKey() });
+        setPhoneVerified(true);
+        setPhoneSent(false);
+        setPhoneCode("");
+        sessionStorage.removeItem("phone_verify_code");
+        toast({ title: "Phone number verified ✓" });
+      } catch {
+        toast({ title: "Failed to save phone", variant: "destructive" });
+      }
+    } else {
+      toast({ title: "Wrong code", description: "Check and try again", variant: "destructive" });
+    }
+    setPhoneVerifying(false);
   }
 
   function applyTab(tab: SettingsTab) {
@@ -430,6 +472,64 @@ export default function SettingsPage() {
                       </div>
                     )}
                   </div>
+
+                  {/* Phone number */}
+                  <div>
+                    <label className="flex items-center gap-2 text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+                      <Phone size={11} />Phone number
+                      <span className="ml-auto text-[10px] text-slate-500 normal-case tracking-normal font-normal">(optional)</span>
+                    </label>
+                    <div className="space-y-2">
+                      <div className="flex gap-2">
+                        <input
+                          value={phone}
+                          onChange={e => { setPhone(e.target.value); setPhoneVerified(false); setPhoneSent(false); setDirty(true); }}
+                          placeholder="+1 555 000 1234"
+                          disabled={phoneVerified}
+                          className="flex-1 bg-white/6 border border-white/10 rounded-xl px-4 py-3 text-sm text-slate-100 outline-none focus:ring-2 ring-fuchsia-400/40 transition-all placeholder:text-slate-500 disabled:opacity-50"
+                        />
+                        {phoneVerified ? (
+                          <div className="flex items-center gap-1.5 px-3 text-green-400 bg-green-500/10 border border-green-500/20 rounded-xl text-xs font-semibold">
+                            <CheckCircle2 size={13} />Verified
+                          </div>
+                        ) : (
+                          <button
+                            onClick={sendPhoneCode}
+                            disabled={!phone.trim()}
+                            className="px-4 py-2 text-xs font-semibold bg-fuchsia-500/20 text-fuchsia-300 border border-fuchsia-500/30 rounded-xl hover:bg-fuchsia-500/30 transition-colors disabled:opacity-40 whitespace-nowrap"
+                          >
+                            {phoneSent ? "Resend" : "Verify"}
+                          </button>
+                        )}
+                      </div>
+                      <AnimatePresence>
+                        {phoneSent && !phoneVerified && (
+                          <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} className="flex gap-2">
+                            <input
+                              value={phoneCode}
+                              onChange={e => setPhoneCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                              placeholder="6-digit code"
+                              maxLength={6}
+                              className="flex-1 bg-white/6 border border-white/10 rounded-xl px-4 py-3 text-sm text-slate-100 outline-none focus:ring-2 ring-fuchsia-400/40 transition-all placeholder:text-slate-500 font-mono tracking-widest"
+                            />
+                            <button
+                              onClick={verifyPhoneCode}
+                              disabled={phoneCode.length !== 6 || phoneVerifying}
+                              className="px-4 py-2 text-xs font-semibold bg-green-500/20 text-green-300 border border-green-500/30 rounded-xl hover:bg-green-500/30 transition-colors disabled:opacity-40"
+                            >
+                              {phoneVerifying ? "…" : "Confirm"}
+                            </button>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                      {!phoneVerified && phone.trim() && (
+                        <p className="text-[10px] text-slate-500 flex items-center gap-1">
+                          <Info size={9} />Enter your phone to get a verification code
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
                   <button onClick={handleSave} disabled={!dirty || updateMe.isPending} className="w-full flex items-center justify-center gap-2 bg-fuchsia-500 text-white rounded-xl py-3.5 font-bold text-sm hover:bg-fuchsia-400 transition-colors disabled:opacity-40 shadow-lg shadow-fuchsia-500/20">
                     <Save size={16} />
                     {updateMe.isPending ? "Saving…" : "Save profile"}

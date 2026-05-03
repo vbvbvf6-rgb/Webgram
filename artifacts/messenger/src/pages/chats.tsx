@@ -525,6 +525,27 @@ export default function ChatsPage({ activeChatId }: { activeChatId?: number }) {
 
         {/* Chat list */}
         <div className="flex-1 overflow-y-auto">
+          {/* AI Bot pinned entry */}
+          {!searchQuery && (
+            <button
+              onClick={() => setLocation("/ai")}
+              className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/6 transition-all text-left border-b border-white/5"
+            >
+              <div className="relative shrink-0 w-[46px] h-[46px]">
+                <div className="w-full h-full rounded-full bg-gradient-to-br from-violet-500 via-fuchsia-500 to-cyan-500 flex items-center justify-center shadow-lg shadow-fuchsia-500/25">
+                  <Sparkles size={20} className="text-white" />
+                </div>
+                <span className="absolute bottom-0 right-0 w-3 h-3 bg-fuchsia-400 rounded-full border-2 border-[#13182b] animate-pulse" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between mb-0.5">
+                  <span className="text-sm font-semibold text-white">Droidgram AI</span>
+                  <span className="text-[10px] text-fuchsia-300 font-medium">DeepSeek</span>
+                </div>
+                <p className="text-xs text-slate-400 truncate">Your AI assistant · Always online</p>
+              </div>
+            </button>
+          )}
           {chatsLoading ? (
             <div className="space-y-1 p-2">
               {[...Array(5)].map((_, i) => (

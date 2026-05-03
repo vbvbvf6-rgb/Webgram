@@ -43,7 +43,7 @@ router.get("/me", requireAuth, async (req: AuthenticatedRequest, res) => {
 router.put("/me", requireAuth, async (req: AuthenticatedRequest, res) => {
   try {
     const user = await ensureUser(req.userId!);
-    const { username, displayName, bio, avatarUrl } = req.body;
+    const { username, displayName, bio, avatarUrl, phone, phoneVerified } = req.body;
     const [updated] = await db
       .update(usersTable)
       .set({
@@ -51,6 +51,8 @@ router.put("/me", requireAuth, async (req: AuthenticatedRequest, res) => {
         ...(displayName !== undefined && { displayName }),
         ...(bio !== undefined && { bio }),
         ...(avatarUrl !== undefined && { avatarUrl }),
+        ...(phone !== undefined && { phone }),
+        ...(phoneVerified !== undefined && { phoneVerified: Boolean(phoneVerified) }),
       })
       .where(eq(usersTable.id, user.id))
       .returning();

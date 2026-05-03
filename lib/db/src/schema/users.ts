@@ -9,6 +9,8 @@ export const usersTable = pgTable("users", {
   displayName: text("display_name").notNull(),
   avatarUrl: text("avatar_url"),
   bio: text("bio"),
+  phone: text("phone"),
+  phoneVerified: boolean("phone_verified").notNull().default(false),
   isOnline: boolean("is_online").notNull().default(false),
   lastSeen: timestamp("last_seen"),
   createdAt: timestamp("created_at").notNull().defaultNow(),

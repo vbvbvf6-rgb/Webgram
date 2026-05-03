@@ -5,6 +5,7 @@ import chatsRouter from "./chats";
 import messagesRouter from "./messages";
 import walletRouter from "./wallet";
 import pollsRouter from "./polls";
+import aiRouter from "./ai";
 
 const router: IRouter = Router();
 
@@ -14,5 +15,6 @@ router.use("/chats/:chatId/messages", messagesRouter);
 router.use("/chats/:chatId/polls", pollsRouter);
 router.use("/chats", chatsRouter);
 router.use("/wallet", walletRouter);
+router.use("/ai", aiRouter);
 
 export default router;

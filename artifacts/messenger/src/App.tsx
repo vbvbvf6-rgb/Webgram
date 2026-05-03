@@ -14,6 +14,7 @@ import SearchPage from "@/pages/search";
 import CallsPage from "@/pages/calls";
 import WalletPage from "@/pages/wallet";
 import SavedPage from "@/pages/saved";
+import AiChatPage from "@/pages/ai-chat";
 import NotFound from "@/pages/not-found";
 import { BottomNav } from "@/components/BottomNav";
 
@@ -275,6 +276,9 @@ function AppRoutes() {
           </Route>
           <Route path="/saved">
             <ProtectedRoute><SavedPage /></ProtectedRoute>
+          </Route>
+          <Route path="/ai">
+            <ProtectedRoute><AiChatPage /></ProtectedRoute>
           </Route>
           <Route component={NotFound} />
         </Switch>
