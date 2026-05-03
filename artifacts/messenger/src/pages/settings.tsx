@@ -445,7 +445,6 @@ export default function SettingsPage() {
                     </div>
                   )}
                   <button onClick={() => {
-                    window.dispatchEvent(new Event("pulse-logout-overlay"));
                     signOut();
                   }} className="w-full flex items-center justify-center gap-2 border border-red-500/30 text-red-400 rounded-xl py-3 font-semibold text-sm hover:bg-red-500/8 transition-colors">
                     <LogOut size={15} />Sign out

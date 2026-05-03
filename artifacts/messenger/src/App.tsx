@@ -17,6 +17,15 @@ import SavedPage from "@/pages/saved";
 import NotFound from "@/pages/not-found";
 import { BottomNav } from "@/components/BottomNav";
 
+function getTabSessionId() {
+  const key = "pulse_tab_session_id";
+  const existing = sessionStorage.getItem(key);
+  if (existing) return existing;
+  const value = crypto.randomUUID();
+  sessionStorage.setItem(key, value);
+  return value;
+}
+
 const clerkPubKey = publishableKeyFromHost(
   window.location.hostname,
   import.meta.env.VITE_CLERK_PUBLISHABLE_KEY,
@@ -117,24 +126,6 @@ function ClerkQueryClientCacheInvalidator() {
   return null;
 }
 
-function LogoutOverlay() {
-  const [show, setShow] = useState(false);
-
-  useEffect(() => {
-    function onShow() {
-      setShow(true);
-      window.setTimeout(() => setShow(false), 30000);
-    }
-    window.addEventListener("pulse-logout-overlay", onShow);
-    return () => window.removeEventListener("pulse-logout-overlay", onShow);
-  }, []);
-
-  if (!show) return null;
-  return (
-    <div className="fixed inset-0 z-[100] bg-black" />
-  );
-}
-
 function AuthBackground({ children }: { children: React.ReactNode }) {
   return (
     <div className="relative flex min-h-[100dvh] items-center justify-center px-4 overflow-hidden bg-gradient-to-br from-purple-50 via-pink-50 to-indigo-50">
@@ -220,6 +211,7 @@ function AppRoutes() {
       publishableKey={clerkPubKey}
       proxyUrl={clerkProxyUrl}
       appearance={clerkAppearance}
+      sessionKey={getTabSessionId()}
       signInUrl={`${basePath}/sign-in`}
       signUpUrl={`${basePath}/sign-up`}
       localization={{
@@ -232,7 +224,6 @@ function AppRoutes() {
       <QueryClientProvider client={queryClient}>
         <ClerkApiSetup />
         <ClerkQueryClientCacheInvalidator />
-        <LogoutOverlay />
         <Switch>
           <Route path="/" component={HomeRedirect} />
           <Route path="/sign-in/*?" component={SignInPage} />
