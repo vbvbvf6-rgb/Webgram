@@ -25,7 +25,7 @@ async function formatMessage(msg: typeof messagesTable.$inferSelect) {
   };
 }
 
-router.get("/", requireAuth, async (req: AuthenticatedRequest, res) => {
+router.get("/", requireAuth, async (req: AuthenticatedRequest, res): Promise<void> => {
   try {
     const chatId = Number(req.params.chatId);
     const limit = Math.min(Number(req.query.limit || 50), 100);
@@ -53,7 +53,7 @@ router.get("/", requireAuth, async (req: AuthenticatedRequest, res) => {
   }
 });
 
-router.post("/", requireAuth, async (req: AuthenticatedRequest, res) => {
+router.post("/", requireAuth, async (req: AuthenticatedRequest, res): Promise<void> => {
   try {
     const chatId = Number(req.params.chatId);
     const me = await ensureUser(req.userId!);
@@ -72,14 +72,17 @@ router.post("/", requireAuth, async (req: AuthenticatedRequest, res) => {
   }
 });
 
-router.put("/:messageId", requireAuth, async (req: AuthenticatedRequest, res) => {
+router.put("/:messageId", requireAuth, async (req: AuthenticatedRequest, res): Promise<void> => {
   try {
     const messageId = Number(req.params.messageId);
     const me = await ensureUser(req.userId!);
     const { content } = req.body;
 
     const msg = await db.query.messagesTable.findFirst({ where: eq(messagesTable.id, messageId) });
-    if (!msg || msg.senderId !== me.id) return res.status(403).json({ error: "Forbidden" });
+    if (!msg || msg.senderId !== me.id) {
+      res.status(403).json({ error: "Forbidden" });
+      return;
+    }
 
     const [updated] = await db
       .update(messagesTable)
@@ -95,13 +98,16 @@ router.put("/:messageId", requireAuth, async (req: AuthenticatedRequest, res) =>
   }
 });
 
-router.delete("/:messageId", requireAuth, async (req: AuthenticatedRequest, res) => {
+router.delete("/:messageId", requireAuth, async (req: AuthenticatedRequest, res): Promise<void> => {
   try {
     const messageId = Number(req.params.messageId);
     const me = await ensureUser(req.userId!);
 
     const msg = await db.query.messagesTable.findFirst({ where: eq(messagesTable.id, messageId) });
-    if (!msg || msg.senderId !== me.id) return res.status(403).json({ error: "Forbidden" });
+    if (!msg || msg.senderId !== me.id) {
+      res.status(403).json({ error: "Forbidden" });
+      return;
+    }
 
     await db
       .update(messagesTable)
@@ -115,14 +121,17 @@ router.delete("/:messageId", requireAuth, async (req: AuthenticatedRequest, res)
   }
 });
 
-router.post("/:messageId/react", requireAuth, async (req: AuthenticatedRequest, res) => {
+router.post("/:messageId/react", requireAuth, async (req: AuthenticatedRequest, res): Promise<void> => {
   try {
     const messageId = Number(req.params.messageId);
     const me = await ensureUser(req.userId!);
     const { emoji } = req.body;
 
     const msg = await db.query.messagesTable.findFirst({ where: eq(messagesTable.id, messageId) });
-    if (!msg) return res.status(404).json({ error: "Not found" });
+    if (!msg) {
+      res.status(404).json({ error: "Not found" });
+      return;
+    }
 
     const reactions = (msg.reactions as Record<string, number[]>) || {};
     if (!reactions[emoji]) reactions[emoji] = [];
@@ -148,13 +157,16 @@ router.post("/:messageId/react", requireAuth, async (req: AuthenticatedRequest, 
   }
 });
 
-router.post("/:messageId/read", requireAuth, async (req: AuthenticatedRequest, res) => {
+router.post("/:messageId/read", requireAuth, async (req: AuthenticatedRequest, res): Promise<void> => {
   try {
     const messageId = Number(req.params.messageId);
     const me = await ensureUser(req.userId!);
 
     const msg = await db.query.messagesTable.findFirst({ where: eq(messagesTable.id, messageId) });
-    if (!msg) return res.status(404).json({ error: "Not found" });
+    if (!msg) {
+      res.status(404).json({ error: "Not found" });
+      return;
+    }
 
     const readBy = (msg.readBy as number[]) || [];
     if (!readBy.includes(me.id)) {

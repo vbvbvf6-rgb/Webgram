@@ -2420,7 +2420,7 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -16 }}
             transition={{ type: "spring", stiffness: 400, damping: 32 }}
-            className="absolute top-16 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-4 py-2 rounded-2xl bg-slate-900/95 backdrop-blur border border-primary/20 shadow-2xl cursor-pointer hover:bg-slate-800/95 transition-colors"
+            className="absolute top-16 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-4 py-2 rounded-2xl bg-slate-900/95 backdrop-blur border border-primary/20 shadow-2xl cursor-pointer hover:bg-slate-800/95 transition-colors relative"
             onClick={() => setCallMinimized(false)}
           >
             <motion.div className="w-2 h-2 rounded-full bg-green-400" animate={{ opacity: [1, 0.3, 1] }} transition={{ duration: 1.5, repeat: Infinity }} />

@@ -85,12 +85,15 @@ router.get("/stats", requireAuth, async (req: AuthenticatedRequest, res) => {
 });
 
 // ── List chats ────────────────────────────────────────────────────────────────
-router.get("/", requireAuth, async (req: AuthenticatedRequest, res) => {
+router.get("/", requireAuth, async (req: AuthenticatedRequest, res): Promise<void> => {
   try {
     const me = await ensureUser(req.userId!);
     const memberRows = await db.select({ chatId: chatMembersTable.chatId }).from(chatMembersTable).where(eq(chatMembersTable.userId, me.id));
     const chatIds = memberRows.map((r) => r.chatId);
-    if (!chatIds.length) return res.json([]);
+    if (!chatIds.length) {
+      res.json([]);
+      return;
+    }
     const chatsWithDetails = await Promise.all(chatIds.map((id) => getChatWithDetails(id, me.id)));
     const sorted = chatsWithDetails.filter(Boolean).sort((a, b) => {
       const aTime = a!.lastMessage?.createdAt ?? a!.createdAt;
@@ -102,7 +105,7 @@ router.get("/", requireAuth, async (req: AuthenticatedRequest, res) => {
 });
 
 // ── Create chat ───────────────────────────────────────────────────────────────
-router.post("/", requireAuth, async (req: AuthenticatedRequest, res) => {
+router.post("/", requireAuth, async (req: AuthenticatedRequest, res): Promise<void> => {
   try {
     const me = await ensureUser(req.userId!);
     const { type, name, memberIds } = req.body as { type: "direct" | "group"; name?: string; memberIds: number[] };
@@ -113,7 +116,11 @@ router.post("/", requireAuth, async (req: AuthenticatedRequest, res) => {
         const chat = await db.query.chatsTable.findFirst({ where: eq(chatsTable.id, chatId) });
         if (chat?.type !== "direct") continue;
         const otherMember = await db.query.chatMembersTable.findFirst({ where: and(eq(chatMembersTable.chatId, chatId), eq(chatMembersTable.userId, otherUserId)) });
-        if (otherMember) { const details = await getChatWithDetails(chatId, me.id); return res.status(201).json(details); }
+        if (otherMember) {
+          const details = await getChatWithDetails(chatId, me.id);
+          res.status(201).json(details);
+          return;
+        }
       }
     }
     const [chat] = await db.insert(chatsTable).values({ type, name: name ?? null, createdBy: me.id }).returning();
@@ -125,12 +132,15 @@ router.post("/", requireAuth, async (req: AuthenticatedRequest, res) => {
 });
 
 // ── Get single chat ───────────────────────────────────────────────────────────
-router.get("/:chatId", requireAuth, async (req: AuthenticatedRequest, res) => {
+router.get("/:chatId", requireAuth, async (req: AuthenticatedRequest, res): Promise<void> => {
   try {
     const me = await ensureUser(req.userId!);
     const chatId = Number(req.params.chatId);
     const details = await getChatWithDetails(chatId, me.id);
-    if (!details) return res.status(404).json({ error: "Chat not found" });
+    if (!details) {
+      res.status(404).json({ error: "Chat not found" });
+      return;
+    }
     res.json(details);
   } catch (err) { req.log.error({ err }, "Failed to get chat"); res.status(500).json({ error: "Internal server error" }); }
 });
@@ -173,12 +183,15 @@ router.post("/:chatId/typing", requireAuth, async (req: AuthenticatedRequest, re
   } catch (err) { req.log.error({ err }, "Failed to update typing"); res.status(500).json({ error: "Internal server error" }); }
 });
 
-router.get("/:chatId/typing", requireAuth, async (req: AuthenticatedRequest, res) => {
+router.get("/:chatId/typing", requireAuth, async (req: AuthenticatedRequest, res): Promise<void> => {
   try {
     const chatId = Number(req.params.chatId);
     const me = await ensureUser(req.userId!);
     const chatTyping = typingStore.get(chatId);
-    if (!chatTyping) return res.json({ typing: [] });
+    if (!chatTyping) {
+      res.json({ typing: [] });
+      return;
+    }
     const now = Date.now();
     const typing: { userId: number; name: string }[] = [];
     chatTyping.forEach((data, userId) => {
@@ -189,25 +202,39 @@ router.get("/:chatId/typing", requireAuth, async (req: AuthenticatedRequest, res
 });
 
 // ── Pinned message ────────────────────────────────────────────────────────────
-router.get("/:chatId/pin", requireAuth, async (req: AuthenticatedRequest, res) => {
+router.get("/:chatId/pin", requireAuth, async (req: AuthenticatedRequest, res): Promise<void> => {
   try {
     const chatId = Number(req.params.chatId);
     const msgId = pinnedMessages.get(chatId);
-    if (!msgId) return res.json({ pinnedMessage: null });
+    if (!msgId) {
+      res.json({ pinnedMessage: null });
+      return;
+    }
     const msg = await db.query.messagesTable.findFirst({ where: eq(messagesTable.id, msgId) });
-    if (!msg || msg.isDeleted) { pinnedMessages.delete(chatId); return res.json({ pinnedMessage: null }); }
+    if (!msg || msg.isDeleted) {
+      pinnedMessages.delete(chatId);
+      res.json({ pinnedMessage: null });
+      return;
+    }
     const sender = await db.query.usersTable.findFirst({ where: eq(usersTable.id, msg.senderId) });
     res.json({ pinnedMessage: { ...msg, sender, reactions: msg.reactions as Record<string, number[]>, readBy: msg.readBy as number[] } });
   } catch (err) { req.log.error({ err }, "Failed to get pin"); res.status(500).json({ error: "Internal server error" }); }
 });
 
-router.post("/:chatId/pin", requireAuth, async (req: AuthenticatedRequest, res) => {
+router.post("/:chatId/pin", requireAuth, async (req: AuthenticatedRequest, res): Promise<void> => {
   try {
     const chatId = Number(req.params.chatId);
     const { messageId } = req.body as { messageId: number | null };
-    if (!messageId) { pinnedMessages.delete(chatId); return res.json({ success: true }); }
+    if (!messageId) {
+      pinnedMessages.delete(chatId);
+      res.json({ success: true });
+      return;
+    }
     const msg = await db.query.messagesTable.findFirst({ where: eq(messagesTable.id, messageId) });
-    if (!msg) return res.status(404).json({ error: "Message not found" });
+    if (!msg) {
+      res.status(404).json({ error: "Message not found" });
+      return;
+    }
     pinnedMessages.set(chatId, messageId);
     res.json({ success: true });
   } catch (err) { req.log.error({ err }, "Failed to pin message"); res.status(500).json({ error: "Internal server error" }); }

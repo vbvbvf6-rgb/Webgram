@@ -28,7 +28,7 @@ router.get("/", requireAuth, async (req: AuthenticatedRequest, res) => {
   }
 });
 
-router.post("/daily", requireAuth, async (req: AuthenticatedRequest, res) => {
+router.post("/daily", requireAuth, async (req: AuthenticatedRequest, res): Promise<void> => {
   try {
     const user = await ensureUser(req.userId!);
     const wallet = await ensureWallet(user.id);
@@ -37,7 +37,8 @@ router.post("/daily", requireAuth, async (req: AuthenticatedRequest, res) => {
       const diff = now.getTime() - wallet.lastDailyBonus.getTime();
       if (diff < 24 * 60 * 60 * 1000) {
         const next = new Date(wallet.lastDailyBonus.getTime() + 24 * 60 * 60 * 1000);
-        return res.status(400).json({ error: "Already claimed today", nextAt: next.toISOString() });
+        res.status(400).json({ error: "Already claimed today", nextAt: next.toISOString() });
+        return;
       }
     }
     const bonus = 50;
@@ -56,16 +57,28 @@ router.post("/daily", requireAuth, async (req: AuthenticatedRequest, res) => {
   }
 });
 
-router.post("/send", requireAuth, async (req: AuthenticatedRequest, res) => {
+router.post("/send", requireAuth, async (req: AuthenticatedRequest, res): Promise<void> => {
   try {
     const me = await ensureUser(req.userId!);
     const myWallet = await ensureWallet(me.id);
     const { toUserId, amount, description, chatId } = req.body;
-    if (!toUserId || !amount || amount < 1) return res.status(400).json({ error: "Invalid request" });
-    if (amount > myWallet.balance) return res.status(400).json({ error: "Insufficient balance" });
-    if (toUserId === me.id) return res.status(400).json({ error: "Cannot send to yourself" });
+    if (!toUserId || !amount || amount < 1) {
+      res.status(400).json({ error: "Invalid request" });
+      return;
+    }
+    if (amount > myWallet.balance) {
+      res.status(400).json({ error: "Insufficient balance" });
+      return;
+    }
+    if (toUserId === me.id) {
+      res.status(400).json({ error: "Cannot send to yourself" });
+      return;
+    }
     const recipient = await db.select().from(usersTable).where(eq(usersTable.id, toUserId)).limit(1);
-    if (!recipient.length) return res.status(404).json({ error: "User not found" });
+    if (!recipient.length) {
+      res.status(404).json({ error: "User not found" });
+      return;
+    }
     const recipientWallet = await ensureWallet(toUserId);
     const now = new Date();
     await db.update(walletsTable).set({ balance: myWallet.balance - amount, updatedAt: now }).where(eq(walletsTable.userId, me.id));

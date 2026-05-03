@@ -6,13 +6,14 @@ import { ensureUser } from "./users";
 
 const router = Router({ mergeParams: true });
 
-router.post("/", requireAuth, async (req: AuthenticatedRequest, res) => {
+router.post("/", requireAuth, async (req: AuthenticatedRequest, res): Promise<void> => {
   try {
     const user = await ensureUser(req.userId!);
     const chatId = Number(req.params.chatId);
     const { question, options, allowMultiple = false, anonymous = false } = req.body;
     if (!question?.trim() || !Array.isArray(options) || options.length < 2) {
-      return res.status(400).json({ error: "Need question and at least 2 options" });
+      res.status(400).json({ error: "Need question and at least 2 options" });
+      return;
     }
     const [poll] = await db.insert(pollsTable).values({
       chatId, createdBy: user.id,
@@ -27,12 +28,15 @@ router.post("/", requireAuth, async (req: AuthenticatedRequest, res) => {
   }
 });
 
-router.get("/:pollId", requireAuth, async (req: AuthenticatedRequest, res) => {
+router.get("/:pollId", requireAuth, async (req: AuthenticatedRequest, res): Promise<void> => {
   try {
     const user = await ensureUser(req.userId!);
     const pollId = Number(req.params.pollId);
     const [poll] = await db.select().from(pollsTable).where(eq(pollsTable.id, pollId)).limit(1);
-    if (!poll) return res.status(404).json({ error: "Poll not found" });
+    if (!poll) {
+      res.status(404).json({ error: "Poll not found" });
+      return;
+    }
     const votes = await db.select({
       id: pollVotesTable.id,
       pollId: pollVotesTable.pollId,
@@ -54,16 +58,28 @@ router.get("/:pollId", requireAuth, async (req: AuthenticatedRequest, res) => {
   }
 });
 
-router.post("/:pollId/vote", requireAuth, async (req: AuthenticatedRequest, res) => {
+router.post("/:pollId/vote", requireAuth, async (req: AuthenticatedRequest, res): Promise<void> => {
   try {
     const user = await ensureUser(req.userId!);
     const pollId = Number(req.params.pollId);
     const { choices } = req.body;
-    if (!Array.isArray(choices) || choices.length === 0) return res.status(400).json({ error: "No choices provided" });
+    if (!Array.isArray(choices) || choices.length === 0) {
+      res.status(400).json({ error: "No choices provided" });
+      return;
+    }
     const [poll] = await db.select().from(pollsTable).where(eq(pollsTable.id, pollId)).limit(1);
-    if (!poll) return res.status(404).json({ error: "Poll not found" });
-    if (poll.closedAt && poll.closedAt < new Date()) return res.status(400).json({ error: "Poll is closed" });
-    if (!poll.allowMultiple && choices.length > 1) return res.status(400).json({ error: "Multiple choices not allowed" });
+    if (!poll) {
+      res.status(404).json({ error: "Poll not found" });
+      return;
+    }
+    if (poll.closedAt && poll.closedAt < new Date()) {
+      res.status(400).json({ error: "Poll is closed" });
+      return;
+    }
+    if (!poll.allowMultiple && choices.length > 1) {
+      res.status(400).json({ error: "Multiple choices not allowed" });
+      return;
+    }
     const existing = await db.select().from(pollVotesTable)
       .where(and(eq(pollVotesTable.pollId, pollId), eq(pollVotesTable.userId, user.id))).limit(1);
     if (existing.length > 0) {
@@ -79,13 +95,19 @@ router.post("/:pollId/vote", requireAuth, async (req: AuthenticatedRequest, res)
   }
 });
 
-router.put("/:pollId/close", requireAuth, async (req: AuthenticatedRequest, res) => {
+router.put("/:pollId/close", requireAuth, async (req: AuthenticatedRequest, res): Promise<void> => {
   try {
     const user = await ensureUser(req.userId!);
     const pollId = Number(req.params.pollId);
     const [poll] = await db.select().from(pollsTable).where(eq(pollsTable.id, pollId)).limit(1);
-    if (!poll) return res.status(404).json({ error: "Poll not found" });
-    if (poll.createdBy !== user.id) return res.status(403).json({ error: "Not authorized" });
+    if (!poll) {
+      res.status(404).json({ error: "Poll not found" });
+      return;
+    }
+    if (poll.createdBy !== user.id) {
+      res.status(403).json({ error: "Not authorized" });
+      return;
+    }
     const [updated] = await db.update(pollsTable).set({ closedAt: new Date() }).where(eq(pollsTable.id, pollId)).returning();
     res.json(updated);
   } catch (err) {

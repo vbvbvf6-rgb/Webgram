@@ -61,10 +61,13 @@ router.put("/me", requireAuth, async (req: AuthenticatedRequest, res) => {
   }
 });
 
-router.get("/search", requireAuth, async (req: AuthenticatedRequest, res) => {
+router.get("/search", requireAuth, async (req: AuthenticatedRequest, res): Promise<void> => {
   try {
     const q = String(req.query.q || "").trim().slice(0, 100);
-    if (!q) return res.json([]);
+    if (!q) {
+      res.json([]);
+      return;
+    }
     const me = await ensureUser(req.userId!);
     const results = await db
       .select()
@@ -83,7 +86,7 @@ router.get("/search", requireAuth, async (req: AuthenticatedRequest, res) => {
   }
 });
 
-router.get("/online", requireAuth, async (req: AuthenticatedRequest, res) => {
+router.get("/online", requireAuth, async (req: AuthenticatedRequest, res): Promise<void> => {
   try {
     const me = await ensureUser(req.userId!);
     const users = await db
@@ -99,12 +102,13 @@ router.get("/online", requireAuth, async (req: AuthenticatedRequest, res) => {
 
 // ── E2EE public key exchange ──────────────────────────────────────────────────
 
-router.post("/pubkey", requireAuth, async (req: AuthenticatedRequest, res) => {
+router.post("/pubkey", requireAuth, async (req: AuthenticatedRequest, res): Promise<void> => {
   try {
     const user = await ensureUser(req.userId!);
     const { publicKey } = req.body;
     if (!publicKey || typeof publicKey !== "string" || publicKey.length > 2048) {
-      return res.status(400).json({ error: "Invalid public key" });
+      res.status(400).json({ error: "Invalid public key" });
+      return;
     }
     pubKeyStore.set(user.id, publicKey);
     res.json({ success: true });
@@ -114,12 +118,18 @@ router.post("/pubkey", requireAuth, async (req: AuthenticatedRequest, res) => {
   }
 });
 
-router.get("/:userId/pubkey", requireAuth, async (req: AuthenticatedRequest, res) => {
+router.get("/:userId/pubkey", requireAuth, async (req: AuthenticatedRequest, res): Promise<void> => {
   try {
     const userId = Number(req.params.userId);
-    if (isNaN(userId)) return res.status(400).json({ error: "Invalid user ID" });
+    if (isNaN(userId)) {
+      res.status(400).json({ error: "Invalid user ID" });
+      return;
+    }
     const key = pubKeyStore.get(userId);
-    if (!key) return res.status(404).json({ error: "Public key not found — user may not be online" });
+    if (!key) {
+      res.status(404).json({ error: "Public key not found — user may not be online" });
+      return;
+    }
     res.json({ publicKey: key });
   } catch (err) {
     req.log.error({ err }, "Failed to get public key");
