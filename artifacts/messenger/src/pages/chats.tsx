@@ -2677,7 +2677,7 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
                 <p className="text-xs text-muted-foreground mt-0.5">{profileViewer.isOnline ? "🟢 Active now" : "Last seen recently"}</p>
                 {profileViewer.bio && <p className="text-xs text-muted-foreground mt-3 leading-relaxed">{profileViewer.bio}</p>}
                 {walletBal !== null && profileViewer.id !== myId && (
-                  <button onClick={() => { setProfileViewer(null); setShowPollCreate(false); if (inputRef.current) { inputRef.current.textContent = `/coin @${profileViewer.displayName} `; inputRef.current.focus(); setInput(`/coin @${profileViewer.displayName} `); } }}
+                  <button onClick={() => { setProfileViewer(null); if (inputRef.current) { inputRef.current.textContent = `/coin @${profileViewer.displayName} `; inputRef.current.focus(); setInput(`/coin @${profileViewer.displayName} `); } }}
                     className="mt-4 flex items-center gap-1.5 mx-auto px-4 py-2 rounded-xl bg-primary/10 text-primary text-xs font-semibold hover:bg-primary/20 transition-colors">
                     <Zap size={12} />
                     Send Droidgram coins
