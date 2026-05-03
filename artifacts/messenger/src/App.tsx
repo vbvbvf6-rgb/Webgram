@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { ClerkProvider, SignIn, SignUp, Show, useClerk, useAuth } from "@clerk/react";
 import { publishableKeyFromHost } from "@clerk/react/internal";
 import { shadcn } from "@clerk/themes";
-import { Switch, Route, useLocation, Router as WouterRouter, Redirect } from "wouter";
+import { Switch, Route, useLocation, Router as WouterRouter, Redirect, Link } from "wouter";
 import { QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { queryClient } from "@/lib/queryClient";
@@ -149,9 +149,9 @@ function AuthBackground({ children }: { children: React.ReactNode }) {
             <p className="mt-1 text-sm text-slate-400">Мессенджер будущего</p>
           </div>
           <div className="mt-6 flex justify-center">
-            <a href={`${basePath}/chats`} className="inline-flex items-center justify-center rounded-xl bg-fuchsia-500 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-fuchsia-400">
+            <Link href="/chats" className="inline-flex items-center justify-center rounded-xl bg-fuchsia-500 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-fuchsia-400">
               Войти в мессенджер
-            </a>
+            </Link>
           </div>
           {children}
         </div>
