@@ -44,8 +44,17 @@ const messageLimiter = rateLimit({
   message: { error: "Message rate limit exceeded" },
 });
 
+const walletLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many requests, please try again later" },
+});
+
 app.use(globalLimiter);
 app.use("/api/chats/:chatId/messages", messageLimiter);
+app.use("/api/wallet/send", walletLimiter);
 
 // ── Logging ───────────────────────────────────────────────────────────────────
 app.use(

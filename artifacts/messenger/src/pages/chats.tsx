@@ -2736,36 +2736,43 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-fuchsia-400 font-bold text-sm">⚡</span>
                       <input
                         autoFocus
+                        disabled={coinModal.loading}
                         type="number"
                         min="1"
                         placeholder="0"
                         value={coinModal.amount}
                         onChange={e => setCoinModal(m => m ? { ...m, amount: e.target.value } : null)}
                         onKeyDown={async e => {
-                          if (e.key === "Enter") {
+                          if (e.key === "Enter" && !coinModal.loading) {
+                            e.preventDefault();
                             const amt = parseInt(coinModal.amount);
                             if (!amt || amt <= 0) return;
                             setCoinModal(m => m ? { ...m, loading: true } : null);
                             const token = await getToken();
-                            const wr = await fetch("/api/wallet/send", {
-                              method: "POST",
-                              headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-                              body: JSON.stringify({ toUserId: coinModal.recipient!.id, amount: amt, chatId }),
-                            });
-                            if (wr.ok) {
-                              await sendMessage.mutateAsync({ chatId, data: { content: `⚡ Sent **${amt} Droidgram coins** to ${coinModal.recipient!.displayName}!`, replyToId: null } });
-                              setWalletBal(prev => prev !== null ? prev - amt : null);
-                              toast({ title: `⚡ ${amt} coins sent to ${coinModal.recipient!.displayName}!` });
-                              setCoinModal(null);
-                              qc.invalidateQueries({ queryKey: getGetMessagesQueryKey(chatId, {}) });
-                            } else {
-                              const err = await wr.json().catch(() => ({}));
-                              toast({ title: err.error || "Failed to send coins", variant: "destructive" });
+                            try {
+                              const wr = await fetch("/api/wallet/send", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+                                body: JSON.stringify({ toUserId: coinModal.recipient!.id, amount: amt, chatId }),
+                              });
+                              if (wr.ok) {
+                                await sendMessage.mutateAsync({ chatId, data: { content: `⚡ Sent **${amt} Droidgram coins** to ${coinModal.recipient!.displayName}!`, replyToId: null } });
+                                setWalletBal(prev => prev !== null ? prev - amt : null);
+                                toast({ title: `⚡ ${amt} coins sent to ${coinModal.recipient!.displayName}!` });
+                                setCoinModal(null);
+                                qc.invalidateQueries({ queryKey: getGetMessagesQueryKey(chatId, {}) });
+                              } else {
+                                const err = await wr.json().catch(() => ({}));
+                                toast({ title: err.error || "Failed to send coins", variant: "destructive" });
+                                setCoinModal(m => m ? { ...m, loading: false } : null);
+                              }
+                            } catch (e) {
+                              toast({ title: "Network error", variant: "destructive" });
                               setCoinModal(m => m ? { ...m, loading: false } : null);
                             }
                           }
                         }}
-                        className="w-full bg-background border border-border rounded-xl pl-8 pr-4 py-2.5 text-base font-bold outline-none focus:ring-2 focus:ring-fuchsia-500/50 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
+                        className="w-full bg-background border border-border rounded-xl pl-8 pr-4 py-2.5 text-base font-bold outline-none focus:ring-2 focus:ring-fuchsia-500/50 disabled:opacity-50 disabled:cursor-not-allowed [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
                       />
                     </div>
                     {walletBal !== null && (
