@@ -3208,13 +3208,22 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
                 <h3 className="font-bold text-base">{profileViewer.displayName}</h3>
                 <p className="text-xs text-muted-foreground mt-0.5">{profileViewer.isOnline ? "🟢 Active now" : "Last seen recently"}</p>
                 {profileViewer.bio && <p className="text-xs text-muted-foreground mt-3 leading-relaxed">{profileViewer.bio}</p>}
-                {walletBal !== null && profileViewer.id !== myId && (
-                  <button onClick={() => { setProfileViewer(null); if (inputRef.current) { inputRef.current.textContent = `/coin @${profileViewer.displayName} `; inputRef.current.focus(); setInput(`/coin @${profileViewer.displayName} `); } }}
-                    className="mt-4 flex items-center gap-1.5 mx-auto px-4 py-2 rounded-xl bg-primary/10 text-primary text-xs font-semibold hover:bg-primary/20 transition-colors">
-                    <Zap size={12} />
-                    Send Droidgram coins
-                  </button>
-                )}
+                <div className="flex flex-col gap-2 mt-4">
+                  {profileViewer.randomId && (
+                    <button onClick={() => { setProfileViewer(null); setLocation(`/user/${profileViewer.randomId}`); }}
+                      className="flex items-center justify-center gap-1.5 w-full px-4 py-2 rounded-xl bg-primary/10 text-primary text-xs font-semibold hover:bg-primary/20 transition-colors">
+                      <UserCircle2 size={12} />
+                      View Profile
+                    </button>
+                  )}
+                  {walletBal !== null && profileViewer.id !== myId && (
+                    <button onClick={() => { setProfileViewer(null); if (inputRef.current) { inputRef.current.textContent = `/coin @${profileViewer.displayName} `; inputRef.current.focus(); setInput(`/coin @${profileViewer.displayName} `); } }}
+                      className="flex items-center justify-center gap-1.5 w-full px-4 py-2 rounded-xl bg-primary/10 text-primary text-xs font-semibold hover:bg-primary/20 transition-colors">
+                      <Zap size={12} />
+                      Send Droidgram coins
+                    </button>
+                  )}
+                </div>
               </div>
             </motion.div>
           </motion.div>
