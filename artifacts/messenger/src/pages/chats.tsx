@@ -409,13 +409,13 @@ export default function ChatsPage({ activeChatId }: { activeChatId?: number }) {
   }, [totalUnread]);
 
   return (
-    <div className="h-screen flex bg-[#f4edf9] overflow-hidden">
+    <div className="h-screen flex bg-[#f4edf9] text-white overflow-hidden">
       <ClerkProfileSync meId={myId} />
 
       {/* Sidebar */}
-      <div className={`${activeChatId ? "hidden md:flex" : "flex"} flex-col w-full md:w-80 lg:w-[340px] border-r border-white/50 bg-white/75 backdrop-blur-xl shrink-0 pb-16 md:pb-0`}>
+      <div className={`${activeChatId ? "hidden md:flex" : "flex"} flex-col w-full md:w-80 lg:w-[340px] border-r border-white/50 bg-white/75 text-white backdrop-blur-xl shrink-0 pb-16 md:pb-0`}>
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-white/50">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-white/50 text-white">
           <button onClick={() => setLocation("/settings")} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
             <Avatar src={(me as any)?.avatarUrl} name={(me as any)?.displayName || "Me"} size={34} online />
             <div className="text-left">
@@ -425,23 +425,23 @@ export default function ChatsPage({ activeChatId }: { activeChatId?: number }) {
           </button>
           <div className="flex items-center gap-0.5">
             <button onClick={() => setLocation("/saved")} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-accent transition-colors" title="Saved messages">
-              <Bookmark size={15} className="text-muted-foreground" />
+              <Bookmark size={15} className="text-white" />
             </button>
             <button onClick={() => setLocation("/wallet")} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-accent transition-colors" title="Droidgram coins wallet">
-              <Zap size={15} className="text-muted-foreground" />
+              <Zap size={15} className="text-white" />
             </button>
             <button onClick={() => setLocation("/search")} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-accent transition-colors" title="Search users">
-              <Search size={15} className="text-muted-foreground" />
+              <Search size={15} className="text-white" />
             </button>
             <button onClick={() => setShowNewChat(true)} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-accent transition-colors" title="New chat">
-              <Plus size={15} className="text-muted-foreground" />
+              <Plus size={15} className="text-white" />
             </button>
             <button onClick={() => {
               clearCurrentSession();
               window.dispatchEvent(new Event("pulse-logout-overlay"));
               signOut();
             }} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-accent transition-colors" title="Sign out">
-              <LogOut size={15} className="text-muted-foreground" />
+              <LogOut size={15} className="text-white" />
             </button>
           </div>
         </div>
@@ -455,8 +455,8 @@ export default function ChatsPage({ activeChatId }: { activeChatId?: number }) {
               { label: "Online", value: (onlineUsers || []).length },
             ].map((s, i) => (
               <div key={i} className="bg-accent/40 px-2 py-2">
-                <div className={`text-sm font-bold ${s.label === "Unread" && s.value > 0 ? "text-primary" : "text-foreground"}`}>{s.value}</div>
-                <div className="text-[9px] text-muted-foreground uppercase tracking-wide">{s.label}</div>
+                <div className="text-sm font-bold text-white">{s.value}</div>
+                <div className="text-[9px] text-white/70 uppercase tracking-wide">{s.label}</div>
               </div>
             ))}
           </div>

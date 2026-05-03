@@ -321,25 +321,25 @@ export default function SettingsPage() {
   const accounts = getAccounts();
 
   return (
-    <div className="min-h-screen bg-background flex flex-col pb-16 md:pb-0">
+    <div className="min-h-screen bg-[#f4edf9] text-white flex flex-col pb-16 md:pb-0">
       {/* Header */}
-      <div className="sticky top-0 z-20 flex items-center gap-3 px-4 py-3 border-b border-border bg-sidebar/80 backdrop-blur-xl">
+      <div className="sticky top-0 z-20 flex items-center gap-3 px-4 py-3 border-b border-white/50 bg-white/20 backdrop-blur-xl text-white">
         <button onClick={() => setLocation("/chats")} className="w-8 h-8 flex items-center justify-center rounded-xl hover:bg-accent transition-colors">
           <ArrowLeft size={18} />
         </button>
-        <h1 className="font-bold text-lg">Settings</h1>
-        {dirty && <span className="ml-auto text-xs text-primary font-medium animate-pulse">Unsaved</span>}
+        <h1 className="font-bold text-lg text-white">Settings</h1>
+        {dirty && <span className="ml-auto text-xs text-white font-medium animate-pulse">Unsaved</span>}
       </div>
 
       <div className="flex flex-col md:flex-row max-w-4xl mx-auto w-full flex-1">
         {/* Sidebar tabs - horizontal on mobile, vertical on desktop */}
-        <div className="md:w-56 shrink-0 border-b md:border-b-0 md:border-r border-border">
+        <div className="md:w-56 shrink-0 border-b md:border-b-0 md:border-r border-white/50">
           <div className="flex md:flex-col gap-1 px-2 py-2 md:py-4 overflow-x-auto">
             {TABS.map(tab => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-medium whitespace-nowrap transition-all shrink-0 ${activeTab === tab.id ? "bg-primary/15 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-accent/50"}`}
+                className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-medium whitespace-nowrap transition-all shrink-0 ${activeTab === tab.id ? "bg-white/20 text-white" : "text-white/70 hover:text-white hover:bg-white/10"}`}
               >
                 <tab.icon size={16} />
                 <span className="hidden md:inline">{tab.label}</span>
