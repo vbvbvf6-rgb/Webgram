@@ -8,6 +8,7 @@ import {
   ArrowLeft, Zap, Send, Gift, Trophy, TrendingUp,
   History, ChevronRight, User, Check, X, RefreshCw,
   Coins, Star, Crown, Award, Sparkles, Clock,
+  Flame, Rocket, Wand2, Gem, Flower2,
 } from "lucide-react";
 
 interface WalletData {
@@ -36,15 +37,15 @@ function Avatar({ src, name, size = 40 }: { src?: string | null; name: string; s
 }
 
 const GIFTS_CATALOG = [
-  { id: "rose", name: "Rose", emoji: "🌹", price: 25 },
-  { id: "star", name: "Star", emoji: "⭐", price: 30 },
-  { id: "fire", name: "Fire Heart", emoji: "❤️‍🔥", price: 50 },
-  { id: "rocket", name: "Rocket", emoji: "🚀", price: 75 },
-  { id: "crown", name: "Crown", emoji: "👑", price: 100 },
-  { id: "rainbow", name: "Rainbow", emoji: "🌈", price: 150 },
-  { id: "diamond", name: "Diamond", emoji: "💎", price: 200 },
-  { id: "trophy", name: "Trophy", emoji: "🏆", price: 500 },
-  { id: "crown-jewel", name: "Crown Jewel", emoji: "👑✨", price: 10000 },
+  { id: "rose", name: "Rose", icon: Flower2, price: 25 },
+  { id: "star", name: "Star", icon: Star, price: 30 },
+  { id: "fire", name: "Fire Heart", icon: Flame, price: 50 },
+  { id: "rocket", name: "Rocket", icon: Rocket, price: 75 },
+  { id: "crown", name: "Crown", icon: Crown, price: 100 },
+  { id: "magic", name: "Magic", icon: Wand2, price: 150 },
+  { id: "diamond", name: "Diamond", icon: Gem, price: 200 },
+  { id: "trophy", name: "Trophy", icon: Trophy, price: 500 },
+  { id: "crown-jewel", name: "Crown Jewel", icon: Crown, price: 10000 },
 ];
 
 const TABS = [
@@ -77,7 +78,7 @@ export default function WalletPage() {
   const [userSearch, setUserSearch] = useState<any[]>([]);
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [giftAction, setGiftAction] = useState<{ type: "sell" | "transfer"; giftId: number } | null>(null);
+  const [giftAction, setGiftAction] = useState<{ type: "sell" | "transfer" | "buy"; giftId?: string } | null>(null);
   const [transferSearch, setTransferSearch] = useState("");
   const [transferUser, setTransferUser] = useState<any>(null);
   const [actionLoading, setActionLoading] = useState(false);
@@ -386,18 +387,21 @@ export default function WalletPage() {
                 {GIFTS_CATALOG.map(gift => {
                   const canAfford = wallet ? wallet.balance >= gift.price : false;
                   const isUltra = gift.price === 10000;
+                  const Icon = gift.icon;
                   return (
-                    <motion.div key={gift.id}
+                    <motion.button key={gift.id}
                       whileHover={canAfford ? { scale: 1.05 } : {}}
+                      onClick={() => canAfford && setGiftAction({ type: "buy", giftId: gift.id })}
+                      disabled={!canAfford}
                       className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border transition-all ${
                         isUltra ? "border-yellow-500/50 bg-gradient-to-br from-yellow-500/10 to-pink-500/10" :
-                        canAfford ? "border-primary/30 bg-primary/5 hover:border-primary/50" : "border-border/50 opacity-40"
-                      } ${!canAfford ? "cursor-not-allowed" : "cursor-pointer"}`}>
-                      <span className={`text-2xl ${isUltra ? "gift-supreme" : ""}`}>{gift.emoji}</span>
+                        canAfford ? "border-primary/30 bg-primary/5 hover:border-primary/50 cursor-pointer" : "border-border/50 opacity-40 cursor-not-allowed"
+                      }`}>
+                      <Icon size={24} className={isUltra ? "gift-supreme" : ""} />
                       <p className="text-[10px] font-semibold leading-none text-center text-muted-foreground">{gift.name}</p>
                       <p className={`text-[10px] font-bold ${isUltra ? "text-yellow-400" : "text-primary"}`}>⚡{gift.price}</p>
                       {isUltra && <span className="text-[7px] text-yellow-400 font-bold">ULTRA RARE</span>}
-                    </motion.div>
+                    </motion.button>
                   );
                 })}
               </div>
@@ -414,10 +418,48 @@ export default function WalletPage() {
               className="bg-card border border-border rounded-2xl w-full max-w-sm overflow-hidden"
               onClick={e => e.stopPropagation()}>
               <div className="p-4 border-b border-border/50">
-                <h3 className="font-semibold text-sm">{giftAction.type === "sell" ? "Sell Gift" : "Transfer Gift"}</h3>
+                <h3 className="font-semibold text-sm">
+                  {giftAction.type === "buy" ? `Buy ${GIFTS_CATALOG.find(g => g.id === giftAction.giftId)?.name || "Gift"}` :
+                   giftAction.type === "sell" ? "Sell Gift" : "Transfer Gift"}
+                </h3>
               </div>
 
-              {giftAction.type === "sell" ? (
+              {giftAction.type === "buy" ? (
+                <div className="p-4 space-y-4">
+                  <p className="text-xs text-muted-foreground">Buy this beautiful gift for your friends!</p>
+                  <motion.button whileTap={{ scale: 0.97 }} 
+                    onClick={async () => {
+                      const gift = GIFTS_CATALOG.find(g => g.id === giftAction.giftId);
+                      if (!gift) return;
+                      setActionLoading(true);
+                      try {
+                        const token = await getToken();
+                        const res = await fetch("/api/wallet/gift", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+                          body: JSON.stringify({ toUserId: (me as any)?.id, giftId: gift.id, message: null }),
+                        });
+                        if (res.ok) {
+                          const data = await res.json();
+                          setWallet(w => w ? { ...w, balance: data.newBalance } : null);
+                          setGiftAction(null);
+                          fetchWallet();
+                          fetchGifts();
+                          toast({ title: `Bought ${gift.name}! 🎁` });
+                        } else {
+                          const err = await res.json().catch(() => ({}));
+                          toast({ title: err.error || "Failed to buy gift", variant: "destructive" });
+                        }
+                      } finally {
+                        setActionLoading(false);
+                      }
+                    }}
+                    disabled={actionLoading}
+                    className="w-full py-2 bg-primary/20 text-primary rounded-xl font-semibold text-sm hover:bg-primary/30 transition-colors disabled:opacity-50">
+                    {actionLoading ? "Buying…" : `Buy for ⚡${GIFTS_CATALOG.find(g => g.id === giftAction.giftId)?.price || 0}`}
+                  </motion.button>
+                </div>
+              ) : giftAction.type === "sell" ? (
                 <div className="p-4 space-y-4">
                   <p className="text-xs text-muted-foreground">You'll receive 50% of the gift's original price.</p>
                   <motion.button whileTap={{ scale: 0.97 }} 

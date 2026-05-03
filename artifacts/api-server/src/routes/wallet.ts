@@ -116,7 +116,7 @@ const GIFT_CATALOG: Record<string, { name: string; price: number }> = {
   fire:         { name: "Fire Heart",  price: 50   },
   rocket:       { name: "Rocket",      price: 75   },
   crown:        { name: "Crown",       price: 100  },
-  rainbow:      { name: "Rainbow",     price: 150  },
+  magic:        { name: "Magic",       price: 150  },
   diamond:      { name: "Diamond",     price: 200  },
   trophy:       { name: "Trophy",      price: 500  },
   "crown-jewel": { name: "Crown Jewel", price: 10000 },
@@ -203,7 +203,7 @@ router.post("/gift/:id/sell", requireAuth, async (req: AuthenticatedRequest, res
     
     const SELL_GIFT_PRICES: Record<string, { price: number }> = {
       "rose": { price: 25 }, "star": { price: 30 }, "fire": { price: 50 },
-      "rocket": { price: 75 }, "crown": { price: 100 }, "rainbow": { price: 150 },
+      "rocket": { price: 75 }, "crown": { price: 100 }, "magic": { price: 150 },
       "diamond": { price: 200 }, "trophy": { price: 500 }, "crown-jewel": { price: 10000 },
     };
     const giftInfo = SELL_GIFT_PRICES[gift[0].giftId];
