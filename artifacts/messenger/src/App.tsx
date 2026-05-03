@@ -39,46 +39,46 @@ const clerkAppearance = {
   theme: shadcn,
   cssLayerName: "clerk",
   options: {
-    logoPlacement: "inside" as const,
+    logoPlacement: "none" as const,
     logoLinkUrl: basePath || "/",
-    logoImageUrl: `${window.location.origin}${basePath}/logo.svg`,
   },
   variables: {
-    colorPrimary: "#8AB4FF",
-    colorForeground: "#d4dae8",
-    colorMutedForeground: "#6b7a99",
+    colorPrimary: "#7C3AED",
+    colorForeground: "#1e1b4b",
+    colorMutedForeground: "#6b7280",
     colorDanger: "#ef4444",
-    colorBackground: "#0f1521",
-    colorInput: "#1a2133",
-    colorInputForeground: "#d4dae8",
-    colorNeutral: "#1e2d47",
+    colorBackground: "#ffffff",
+    colorInput: "#f3f4f6",
+    colorInputForeground: "#1e1b4b",
+    colorNeutral: "#e5e7eb",
     fontFamily: "Inter, sans-serif",
-    borderRadius: "0.75rem",
+    borderRadius: "0.875rem",
   },
   elements: {
     rootBox: "w-full flex justify-center",
-    cardBox: "bg-[#0f1521] border border-[#1e2d47] rounded-2xl w-[440px] max-w-full overflow-hidden shadow-2xl",
-    card: "!shadow-none !border-0 !bg-transparent !rounded-none",
+    cardBox: "bg-white rounded-3xl w-[400px] max-w-full overflow-hidden shadow-xl shadow-purple-100/60",
+    card: "!shadow-none !border-0 !bg-transparent !rounded-none px-2",
     footer: "!shadow-none !border-0 !bg-transparent !rounded-none",
-    headerTitle: "text-[#d4dae8] font-semibold",
-    headerSubtitle: "text-[#6b7a99]",
-    socialButtonsBlockButtonText: "text-[#d4dae8]",
-    formFieldLabel: "text-[#d4dae8]",
-    footerActionLink: "text-[#8AB4FF] hover:text-[#C4B5FD]",
-    footerActionText: "text-[#6b7a99]",
-    dividerText: "text-[#6b7a99]",
-    identityPreviewEditButton: "text-[#8AB4FF]",
-    formFieldSuccessText: "text-green-400",
-    alertText: "text-[#d4dae8]",
-    logoBox: "flex justify-center py-2",
-    logoImage: "w-12 h-12",
-    socialButtonsBlockButton: "border border-[#1e2d47] bg-[#1a2133] hover:bg-[#1e2d47] text-[#d4dae8]",
-    formButtonPrimary: "bg-[#8AB4FF] hover:bg-[#6F9CFF] text-white",
-    formFieldInput: "bg-[#1a2133] border-[#1e2d47] text-[#d4dae8] placeholder:text-[#6b7a99]",
-    footerAction: "bg-[#0d1420]",
-    dividerLine: "bg-[#1e2d47]",
-    alert: "bg-[#1a2133] border-[#1e2d47]",
-    otpCodeFieldInput: "bg-[#1a2133] border-[#1e2d47] text-[#d4dae8]",
+    header: "hidden",
+    headerTitle: "hidden",
+    headerSubtitle: "hidden",
+    socialButtonsBlockButtonText: "text-gray-700",
+    formFieldLabel: "text-gray-600 text-sm font-medium",
+    footerActionLink: "text-purple-600 hover:text-pink-500 font-semibold",
+    footerActionText: "text-gray-400",
+    dividerText: "text-gray-400",
+    identityPreviewEditButton: "text-purple-600",
+    formFieldSuccessText: "text-green-500",
+    alertText: "text-gray-700",
+    logoBox: "hidden",
+    logoImage: "hidden",
+    socialButtonsBlockButton: "border border-gray-200 bg-gray-50 hover:bg-gray-100 text-gray-700",
+    formButtonPrimary: "!bg-gradient-to-r !from-purple-500 !to-pink-500 hover:!from-purple-600 hover:!to-pink-600 !text-white !font-semibold !rounded-2xl !shadow-lg !shadow-purple-200",
+    formFieldInput: "!bg-gray-50 !border-gray-200 !text-gray-800 !rounded-xl placeholder:text-gray-400 focus:!border-purple-400 focus:!ring-purple-200",
+    footerAction: "!bg-gray-50/50",
+    dividerLine: "bg-gray-200",
+    alert: "bg-red-50 border-red-200",
+    otpCodeFieldInput: "bg-gray-50 border-gray-200 text-gray-800",
     formFieldRow: "",
     main: "",
   },
@@ -135,19 +135,55 @@ function LogoutOverlay() {
   );
 }
 
+function AuthBackground({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="relative flex min-h-[100dvh] items-center justify-center px-4 overflow-hidden bg-gradient-to-br from-purple-50 via-pink-50 to-indigo-50">
+      {/* Gradient orbs */}
+      <div className="pointer-events-none absolute -top-24 -left-24 w-80 h-80 rounded-full bg-gradient-to-br from-purple-300/50 to-pink-300/40 blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-20 -right-20 w-72 h-72 rounded-full bg-gradient-to-br from-indigo-300/50 to-purple-300/40 blur-3xl" />
+      <div className="pointer-events-none absolute top-1/3 right-10 w-40 h-40 rounded-full bg-pink-200/40 blur-2xl" />
+
+      <div className="relative z-10 w-full max-w-[400px]">
+        {/* Custom header */}
+        <div className="flex flex-col items-center mb-6">
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-500 to-indigo-500 flex items-center justify-center shadow-lg shadow-purple-200 mb-3">
+            <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+              <path d="M6 8C6 6.9 6.9 6 8 6h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2h-4l-4 4-4-4H8c-1.1 0-2-.9-2-2V8z" fill="white" opacity="0.95"/>
+              <circle cx="11" cy="13" r="1.5" fill="url(#g2)"/>
+              <circle cx="16" cy="13" r="1.5" fill="url(#g2)"/>
+              <circle cx="21" cy="13" r="1.5" fill="url(#g2)"/>
+              <defs>
+                <linearGradient id="g2" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
+                  <stop stopColor="#7C3AED"/>
+                  <stop offset="1" stopColor="#EC4899"/>
+                </linearGradient>
+              </defs>
+            </svg>
+          </div>
+          <h1 className="text-2xl font-extrabold text-gray-800 tracking-tight">Droidgram</h1>
+          <p className="text-sm text-gray-400 mt-0.5">Мессенджер будущего</p>
+        </div>
+
+        {/* Clerk form card */}
+        {children}
+      </div>
+    </div>
+  );
+}
+
 function SignInPage() {
   return (
-    <div className="flex min-h-[100dvh] items-center justify-center bg-background px-4">
+    <AuthBackground>
       <SignIn routing="path" path={`${basePath}/sign-in`} signUpUrl={`${basePath}/sign-up`} />
-    </div>
+    </AuthBackground>
   );
 }
 
 function SignUpPage() {
   return (
-    <div className="flex min-h-[100dvh] items-center justify-center bg-background px-4">
+    <AuthBackground>
       <SignUp routing="path" path={`${basePath}/sign-up`} signInUrl={`${basePath}/sign-in`} />
-    </div>
+    </AuthBackground>
   );
 }
 
