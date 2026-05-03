@@ -143,7 +143,7 @@ function AuthBackground({ children }: { children: React.ReactNode }) {
                 <circle cx="16" cy="13" r="1.5" fill="#7C3AED" />
                 <circle cx="21" cy="13" r="1.5" fill="#7C3AED" />
               </svg>
-            </div>
+            </motion.div>
             <h1 className="text-3xl font-black text-zinc-900">Droidgram</h1>
             <p className="mt-1 text-sm text-zinc-500">Мессенджер будущего</p>
           </div>

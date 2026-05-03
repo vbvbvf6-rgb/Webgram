@@ -2656,61 +2656,6 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
         )}
       </AnimatePresence>
 
-      {/* Poll creation modal */}
-      <AnimatePresence>
-        {showPollCreate && (
-          <motion.div key="poll-modal" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="absolute inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4"
-            onClick={() => setShowPollCreate(false)}>
-            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-card border border-border rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden"
-              onClick={e => e.stopPropagation()}>
-              <div className="flex items-center justify-between p-4 border-b border-border">
-                <div className="flex items-center gap-2">
-                  <BarChart2 size={16} className="text-primary" />
-                  <h3 className="font-bold text-sm">Create Poll</h3>
-                </div>
-                <button onClick={() => setShowPollCreate(false)} className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-accent text-muted-foreground"><X size={14}/></button>
-              </div>
-              <div className="p-4 space-y-3">
-                <div>
-                  <label className="text-xs font-semibold text-muted-foreground block mb-1.5">Question</label>
-                  <input value={pollQuestion} onChange={e => setPollQuestion(e.target.value)} placeholder="Ask a question…"
-                    className="w-full bg-accent border border-border/50 focus:border-primary/50 rounded-xl px-3 py-2 text-sm outline-none transition-colors" />
-                </div>
-                <div>
-                  <label className="text-xs font-semibold text-muted-foreground block mb-1.5">Options</label>
-                  <div className="space-y-2">
-                    {pollOptions.map((opt, i) => (
-                      <div key={i} className="flex items-center gap-2">
-                        <input value={opt} onChange={e => { const n = [...pollOptions]; n[i] = e.target.value; setPollOptions(n); }} placeholder={`Option ${i + 1}`}
-                          className="flex-1 bg-accent border border-border/50 focus:border-primary/50 rounded-xl px-3 py-2 text-sm outline-none transition-colors" />
-                        {pollOptions.length > 2 && (
-                          <button onClick={() => setPollOptions(prev => prev.filter((_, j) => j !== i))} className="text-muted-foreground hover:text-destructive transition-colors"><X size={14}/></button>
-                        )}
-                      </div>
-                    ))}
-                    {pollOptions.length < 8 && (
-                      <button onClick={() => setPollOptions(prev => [...prev, ""])} className="text-xs text-primary hover:text-primary/80 transition-colors font-medium">+ Add option</button>
-                    )}
-                  </div>
-                </div>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <div onClick={() => setPollMultiple(!pollMultiple)} className={`w-9 h-5 rounded-full transition-colors relative ${pollMultiple ? "bg-primary" : "bg-muted"}`}>
-                    <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${pollMultiple ? "translate-x-4" : "translate-x-0.5"}`} />
-                  </div>
-                  <span className="text-xs text-muted-foreground">Allow multiple choices</span>
-                </label>
-              </div>
-              <div className="flex items-center gap-2 p-4 border-t border-border">
-                <button onClick={() => setShowPollCreate(false)} className="flex-1 py-2 rounded-xl border border-border text-sm font-medium hover:bg-accent transition-colors">Cancel</button>
-                <button onClick={handleCreatePoll} className="flex-1 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-colors">Create Poll</button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
       {/* Profile viewer modal */}
       <AnimatePresence>
         {profileViewer && (
