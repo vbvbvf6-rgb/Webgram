@@ -10,8 +10,12 @@ import {
   Copy, MoreHorizontal, Pin, PinOff, ImageIcon, Play, Pause,
   Star, StopCircle, ExternalLink, Keyboard, Hash,
   BarChart2, Zap, Sparkles, Palette, UserCircle2,
-  Slash, ChevronUp, Bookmark, Trophy, CornerUpLeft,
+  Slash, ChevronUp, Bookmark, Trophy, CornerUpLeft, Lock,
 } from "lucide-react";
+import {
+  getOrCreateKeyPair, importPublicKey, deriveSharedKey, deriveGroupKey,
+  encryptMsg, decryptMsg, isEncrypted, shouldEncrypt,
+} from "@/lib/e2ee";
 import {
   useGetMe, useGetChats, useGetMessages, useSendMessage,
   useEditMessage, useDeleteMessage, useReactToMessage, useMarkMessageRead,
@@ -212,6 +216,7 @@ interface Message {
 
 function formatMsgPreview(content: string | null | undefined): string {
   if (!content) return "";
+  if (isEncrypted(content)) return "🔒 Encrypted message";
   if (content.startsWith("[voice:")) {
     const m = content.match(/^\[voice:(\d+):/);
     if (m) {
@@ -790,6 +795,12 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
   const isSendingVoiceRef = useRef(false);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // ── E2EE state ──────────────────────────────────────────────────────────────
+  const keyPairRef = useRef<CryptoKeyPair | null>(null);
+  const e2eeInitRef = useRef(false);
+  const [chatKey, setChatKey] = useState<CryptoKey | null>(null);
+  const [decryptedMsgs, setDecryptedMsgs] = useState<Map<number, string>>(new Map());
+
   // ── Extra features state ─────────────────────────────────────────────────────
   const [showStickers, setShowStickers] = useState(false);
   const [stickerPack, setStickerPack] = useState(Object.keys(STICKER_PACKS)[0]);
@@ -874,6 +885,76 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
       Notification.requestPermission().catch(() => {});
     }
   }, []);
+
+  // ── E2EE: init key pair + upload public key ──────────────────────────────────
+  useEffect(() => {
+    if (!myId || e2eeInitRef.current) return;
+    e2eeInitRef.current = true;
+    getOrCreateKeyPair().then(async ({ keyPair, publicKeyB64 }) => {
+      keyPairRef.current = keyPair;
+      const token = await getToken();
+      fetch("/api/users/pubkey", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ publicKey: publicKeyB64 }),
+      }).catch(() => {});
+    }).catch(() => {});
+  }, [myId]);
+
+  // ── E2EE: derive per-chat encryption key ─────────────────────────────────────
+  useEffect(() => {
+    if (!chat || !myId) return;
+    const currentChat = chat;
+    setChatKey(null);
+    setDecryptedMsgs(new Map());
+
+    async function derive() {
+      if (!keyPairRef.current) {
+        const { keyPair } = await getOrCreateKeyPair();
+        keyPairRef.current = keyPair;
+      }
+      const token = await getToken();
+
+      if (currentChat.type === "direct") {
+        const other = (currentChat as any).members?.find((m: any) => m.id !== myId);
+        if (!other) return;
+        const r = await fetch(`/api/users/${other.id}/pubkey`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!r.ok) return;
+        const { publicKey: theirB64 } = await r.json();
+        const theirKey = await importPublicKey(theirB64);
+        const key = await deriveSharedKey(keyPairRef.current.privateKey, theirKey);
+        setChatKey(key);
+      } else {
+        const ids: number[] = ((currentChat as any).members || []).map((m: any) => m.id as number);
+        const key = await deriveGroupKey(ids, currentChat.id);
+        setChatKey(key);
+      }
+    }
+
+    derive().catch(() => {});
+  }, [chatId, (chat as any)?.members?.length, myId]);
+
+  // ── E2EE: decrypt incoming messages ──────────────────────────────────────────
+  useEffect(() => {
+    if (!chatKey || !messages) return;
+    const encMsgs = (messages as Message[]).filter(m => isEncrypted(m.content));
+    if (!encMsgs.length) return;
+
+    Promise.all(
+      encMsgs.map(async (m) => {
+        const dec = await decryptMsg(chatKey, m.content!);
+        return [m.id, dec] as [number, string];
+      })
+    ).then(pairs => {
+      setDecryptedMsgs(prev => {
+        const next = new Map(prev);
+        pairs.forEach(([id, text]) => next.set(id, text));
+        return next;
+      });
+    }).catch(() => {});
+  }, [messages, chatKey]);
 
   // Typing indicator polling
   useEffect(() => {
@@ -1045,7 +1126,14 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
         return old;
       });
       try {
-        await editMessage.mutateAsync({ chatId, messageId: wasEditing.id, data: { content: text } });
+        let editContent = text;
+        if (chatKey && shouldEncrypt(text)) {
+          editContent = await encryptMsg(chatKey, text);
+        }
+        const updated = await editMessage.mutateAsync({ chatId, messageId: wasEditing.id, data: { content: editContent } });
+        if ((updated as any)?.id && editContent !== text) {
+          setDecryptedMsgs(prev => new Map(prev).set((updated as any).id, text));
+        }
         qc.invalidateQueries({ queryKey: getGetMessagesQueryKey(chatId, {}) });
       } catch {
         toast({ title: "Failed to edit message", variant: "destructive" });
@@ -1077,7 +1165,15 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
       // Scroll to bottom immediately
       setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }), 30);
       try {
-        await sendMessage.mutateAsync({ chatId, data: { content: text, replyToId: rId } });
+        let contentToSend = text;
+        if (chatKey && shouldEncrypt(text)) {
+          contentToSend = await encryptMsg(chatKey, text);
+        }
+        const sent = await sendMessage.mutateAsync({ chatId, data: { content: contentToSend, replyToId: rId } });
+        // Pre-populate decrypted map so sent message renders instantly without flash
+        if ((sent as any)?.id && contentToSend !== text) {
+          setDecryptedMsgs(prev => new Map(prev).set((sent as any).id, text));
+        }
         qc.invalidateQueries({ queryKey: getGetMessagesQueryKey(chatId, {}) });
         qc.invalidateQueries({ queryKey: getGetChatsQueryKey() });
       } catch {
@@ -1103,16 +1199,21 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
 
   function handleReact(msgId: number, emoji: string) {
     setShowEmojiFor(null);
-    // Optimistic update — instantly update reaction counts without waiting for server
+    // Optimistic update — reactions are Record<string, number[]> (emoji → userIds)
     qc.setQueryData(getGetMessagesQueryKey(chatId, {}), (old: any) => {
       if (!old) return old;
       const patch = (msgs: any[]) => msgs.map(m => {
         if (m.id !== msgId) return m;
-        const existing = (m.reactions || []).find((r: any) => r.emoji === emoji && r.userId === myId);
-        if (existing) {
-          return { ...m, reactions: (m.reactions || []).filter((r: any) => !(r.emoji === emoji && r.userId === myId)) };
+        const reactions: Record<string, number[]> = { ...(m.reactions as Record<string, number[]> || {}) };
+        if (!reactions[emoji]) reactions[emoji] = [];
+        const idx = reactions[emoji].indexOf(myId);
+        if (idx > -1) {
+          reactions[emoji] = reactions[emoji].filter(id => id !== myId);
+          if (!reactions[emoji].length) delete reactions[emoji];
+        } else {
+          reactions[emoji] = [...reactions[emoji], myId];
         }
-        return { ...m, reactions: [...(m.reactions || []), { emoji, userId: myId, id: Date.now() }] };
+        return { ...m, reactions };
       });
       if (Array.isArray(old)) return patch(old);
       if (old?.messages) return { ...old, messages: patch(old.messages) };
@@ -1503,10 +1604,22 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
                 )}
               </div>
               <div className="min-w-0">
-                <p className="font-bold text-sm truncate">{chatName}</p>
+                <div className="flex items-center gap-1.5">
+                  <p className="font-bold text-sm truncate">{chatName}</p>
+                  {chatKey && (
+                    <span title="End-to-end encrypted" className="flex items-center gap-0.5 shrink-0">
+                      <Lock size={10} className="text-green-400" />
+                    </span>
+                  )}
+                </div>
                 <p className={`text-[11px] truncate ${chatOnline ? "text-green-400 font-medium" : "text-muted-foreground"}`}>
                   {typingUsers.length > 0
                     ? <span className="text-primary italic">{typingUsers[0].name} is typing…</span>
+                    : chatKey ? (
+                        chatOnline ? "Active now · End-to-end encrypted"
+                        : chat.type === "group" ? `${chat.members?.length || 0} members · End-to-end encrypted`
+                        : "End-to-end encrypted"
+                      )
                     : chatOnline ? "Active now"
                     : chat.type === "group" ? `${chat.members?.length || 0} members`
                     : "Last seen recently"}
@@ -1753,15 +1866,22 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
                           ${msg.isDeleted ? "opacity-50" : ""}
                           ${pinnedMsg?.id === msg.id ? "ring-1 ring-primary/40" : ""}
                         `}>
-                          {msg.isDeleted ? (
-                            <span className="italic text-xs opacity-70">Message was deleted</span>
-                          ) : msg.content?.startsWith("[voice:") ? (
-                            <VoiceMessage content={msg.content} isOwn={isOwn} />
-                          ) : msg.content?.match(/^\[poll:(\d+)\]$/) ? (
-                            <PollMessage pollId={Number(msg.content.match(/^\[poll:(\d+)\]$/)![1])} pollsData={pollsData} onVote={votePoll} myId={myId} />
-                          ) : (
-                            renderRichText(msg.content || "")
-                          )}
+                          {(() => {
+                            const rawContent = msg.content;
+                            const displayContent = isEncrypted(rawContent)
+                              ? (decryptedMsgs.get(msg.id) ?? "🔒 Decrypting…")
+                              : rawContent;
+                            if (msg.isDeleted) {
+                              return <span className="italic text-xs opacity-70">Message was deleted</span>;
+                            }
+                            if (displayContent?.startsWith("[voice:")) {
+                              return <VoiceMessage content={displayContent} isOwn={isOwn} />;
+                            }
+                            if (displayContent?.match(/^\[poll:(\d+)\]$/)) {
+                              return <PollMessage pollId={Number(displayContent.match(/^\[poll:(\d+)\]$/)![1])} pollsData={pollsData} onVote={votePoll} myId={myId} />;
+                            }
+                            return renderRichText(displayContent || "");
+                          })()}
                           {starredMsgs.has(msg.id) && <Star size={8} className={`absolute top-1 ${isOwn ? "right-1" : "left-1"} text-yellow-400 fill-yellow-400`} />}
 
                           {/* Timestamp + status */}

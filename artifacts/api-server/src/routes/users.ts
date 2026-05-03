@@ -6,6 +6,10 @@ import { sql } from "drizzle-orm";
 
 const router = Router();
 
+// ── In-memory public key store (ephemeral per server session) ─────────────────
+// Users re-register their public key on each app load.
+const pubKeyStore = new Map<number, string>();
+
 export async function ensureUser(clerkId: string) {
   const username = `user_${clerkId.slice(-8)}`;
   const displayName = `User ${clerkId.slice(-4)}`;
@@ -59,7 +63,7 @@ router.put("/me", requireAuth, async (req: AuthenticatedRequest, res) => {
 
 router.get("/search", requireAuth, async (req: AuthenticatedRequest, res) => {
   try {
-    const q = String(req.query.q || "").trim();
+    const q = String(req.query.q || "").trim().slice(0, 100);
     if (!q) return res.json([]);
     const me = await ensureUser(req.userId!);
     const results = await db
@@ -89,6 +93,36 @@ router.get("/online", requireAuth, async (req: AuthenticatedRequest, res) => {
     res.json(users.filter((u) => u.id !== me.id));
   } catch (err) {
     req.log.error({ err }, "Failed to get online users");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// ── E2EE public key exchange ──────────────────────────────────────────────────
+
+router.post("/pubkey", requireAuth, async (req: AuthenticatedRequest, res) => {
+  try {
+    const user = await ensureUser(req.userId!);
+    const { publicKey } = req.body;
+    if (!publicKey || typeof publicKey !== "string" || publicKey.length > 2048) {
+      return res.status(400).json({ error: "Invalid public key" });
+    }
+    pubKeyStore.set(user.id, publicKey);
+    res.json({ success: true });
+  } catch (err) {
+    req.log.error({ err }, "Failed to store public key");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.get("/:userId/pubkey", requireAuth, async (req: AuthenticatedRequest, res) => {
+  try {
+    const userId = Number(req.params.userId);
+    if (isNaN(userId)) return res.status(400).json({ error: "Invalid user ID" });
+    const key = pubKeyStore.get(userId);
+    if (!key) return res.status(404).json({ error: "Public key not found — user may not be online" });
+    res.json({ publicKey: key });
+  } catch (err) {
+    req.log.error({ err }, "Failed to get public key");
     res.status(500).json({ error: "Internal server error" });
   }
 });
