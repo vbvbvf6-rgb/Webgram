@@ -1,4 +1,12 @@
-const KEY_STORAGE_KEY = "pulse_ecdh_keypair_v1";
+// Use sessionStorage for per-tab E2EE keys (survives refresh but not across tabs)
+function getKeyStorageKey(): string {
+  let tabId = sessionStorage.getItem("pulse_tab_id");
+  if (!tabId) {
+    tabId = `tab_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
+    sessionStorage.setItem("pulse_tab_id", tabId);
+  }
+  return `pulse_ecdh_keypair_v1_${tabId}`;
+}
 
 // ── Buffer helpers ────────────────────────────────────────────────────────────
 
@@ -19,7 +27,8 @@ export async function getOrCreateKeyPair(): Promise<{
   keyPair: CryptoKeyPair;
   publicKeyB64: string;
 }> {
-  const stored = localStorage.getItem(KEY_STORAGE_KEY);
+  const KEY_STORAGE_KEY = getKeyStorageKey();
+  const stored = sessionStorage.getItem(KEY_STORAGE_KEY);
   if (stored) {
     try {
       const { priv, pub } = JSON.parse(stored);
@@ -39,7 +48,7 @@ export async function getOrCreateKeyPair(): Promise<{
       );
       return { keyPair: { privateKey, publicKey }, publicKeyB64: pub };
     } catch {
-      localStorage.removeItem(KEY_STORAGE_KEY);
+      sessionStorage.removeItem(KEY_STORAGE_KEY);
     }
   }
 
@@ -53,7 +62,7 @@ export async function getOrCreateKeyPair(): Promise<{
   const pubRaw = await crypto.subtle.exportKey("spki", keyPair.publicKey);
   const pub = bufToB64(pubRaw);
 
-  localStorage.setItem(
+  sessionStorage.setItem(
     KEY_STORAGE_KEY,
     JSON.stringify({ priv: bufToB64(privRaw), pub })
   );

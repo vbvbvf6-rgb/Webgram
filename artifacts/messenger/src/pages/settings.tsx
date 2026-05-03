@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useClerk, useUser } from "@clerk/react";
+import { setTabLoggedOut } from "@/App";
 import {
   ArrowLeft, Save, LogOut, Camera, User, AtSign, FileText, Link,
   Bell, BellOff, Shield, Palette, Volume2, VolumeX, Eye, EyeOff,
@@ -60,8 +61,27 @@ function SettingRow({ icon: Icon, label, description, children, onClick, danger 
   );
 }
 
+function getTabId(): string {
+  let tabId = sessionStorage.getItem("pulse_tab_id");
+  if (!tabId) {
+    tabId = `tab_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
+    sessionStorage.setItem("pulse_tab_id", tabId);
+  }
+  return tabId;
+}
+
 function getAccountId() {
-  return localStorage.getItem("pulse_active_account") || "default";
+  return sessionStorage.getItem("pulse_active_account") || "default";
+}
+
+function setAccountId(id: string) {
+  sessionStorage.setItem("pulse_active_account", id);
+}
+
+function clearCurrentSession() {
+  const active = sessionStorage.getItem("pulse_active_account");
+  if (active) sessionStorage.removeItem(`pulse_session_${active}`);
+  sessionStorage.removeItem("pulse_active_account");
 }
 
 function getAccounts() {
@@ -79,7 +99,7 @@ function saveCurrentAccount() {
     accounts.push(id);
     localStorage.setItem("pulse_accounts", JSON.stringify(accounts));
   }
-  localStorage.setItem("pulse_session_" + id, JSON.stringify({ lastSeen: Date.now() }));
+  sessionStorage.setItem("pulse_session_" + id, JSON.stringify({ lastSeen: Date.now(), tabId: getTabId() }));
 }
 
 function getAccountLabel(id: string) {
@@ -425,7 +445,7 @@ export default function SettingsPage() {
                         <button
                           key={id}
                           onClick={() => {
-                            localStorage.setItem("pulse_active_account", id);
+                            setAccountId(id);
                             window.location.reload();
                           }}
                           className={`px-3 py-1.5 rounded-lg text-xs font-semibold ${getAccountId() === id ? "bg-fuchsia-500 text-white" : "bg-white/6 text-slate-200"}`}
@@ -445,7 +465,10 @@ export default function SettingsPage() {
                     </div>
                   )}
                   <button onClick={() => {
-                    signOut();
+                    clearCurrentSession();
+                    setTabLoggedOut();
+                    setLocation("/");
+                    toast({ title: "Logged out on this tab" });
                   }} className="w-full flex items-center justify-center gap-2 border border-red-500/30 text-red-300 rounded-xl py-3 font-semibold text-sm hover:bg-red-500/8 transition-colors">
                     <LogOut size={15} />Sign out
                   </button>

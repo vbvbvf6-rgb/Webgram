@@ -344,9 +344,9 @@ function ClerkProfileSync({ meId }: { meId?: number }) {
 }
 
 function clearCurrentSession() {
-  const active = localStorage.getItem("pulse_active_account");
-  if (active) localStorage.removeItem(`pulse_session_${active}`);
-  localStorage.removeItem("pulse_active_account");
+  const active = sessionStorage.getItem("pulse_active_account");
+  if (active) sessionStorage.removeItem(`pulse_session_${active}`);
+  sessionStorage.removeItem("pulse_active_account");
 }
 
 // ─── ChatsSidebar ─────────────────────────────────────────────────────────────
@@ -356,6 +356,15 @@ export default function ChatsPage({ activeChatId }: { activeChatId?: number }) {
   const { toast } = useToast();
   const { signOut } = useClerk();
   const qc = useQueryClient();
+  
+  // Per-tab logout handler — mark this tab as logged out
+  const handleTabLogout = async () => {
+    clearCurrentSession();
+    const app = await import("../App");
+    app.setTabLoggedOut();
+    setLocation("/");
+    toast({ title: "Logged out on this tab" });
+  };
   const { data: me } = useGetMe();
   const { data: chats, isLoading: chatsLoading } = useGetChats();
   const { data: stats } = useGetChatStats();
@@ -454,11 +463,7 @@ export default function ChatsPage({ activeChatId }: { activeChatId?: number }) {
             <button onClick={() => setShowNewChat(true)} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/10 transition-colors" title="New chat">
               <Plus size={15} className="text-slate-100" />
             </button>
-            <button onClick={() => {
-              clearCurrentSession();
-              window.dispatchEvent(new Event("pulse-logout-overlay"));
-              signOut();
-            }} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/10 transition-colors" title="Sign out">
+            <button onClick={handleTabLogout} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/10 transition-colors" title="Sign out">
               <LogOut size={15} className="text-slate-100" />
             </button>
           </div>

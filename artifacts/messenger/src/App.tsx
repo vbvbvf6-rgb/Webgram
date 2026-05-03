@@ -26,6 +26,16 @@ function getTabSessionId() {
   return value;
 }
 
+// Per-tab session management — each tab can have its own auth state
+function isTabLoggedOut(): boolean {
+  return sessionStorage.getItem("pulse_tab_logged_out") === "true";
+}
+
+export function setTabLoggedOut() {
+  sessionStorage.setItem("pulse_tab_logged_out", "true");
+  sessionStorage.removeItem("pulse_active_account");
+}
+
 const clerkPubKey = publishableKeyFromHost(
   window.location.hostname,
   import.meta.env.VITE_CLERK_PUBLISHABLE_KEY,
@@ -202,6 +212,13 @@ function HomeRedirect() {
 }
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  // Check if this tab was logged out (per-tab session)
+  const tabLoggedOut = isTabLoggedOut();
+  
+  if (tabLoggedOut) {
+    return <Redirect to="/" />;
+  }
+  
   return (
     <>
       <Show when="signed-in">
