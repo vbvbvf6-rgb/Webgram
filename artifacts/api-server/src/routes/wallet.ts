@@ -130,7 +130,6 @@ router.post("/gift", requireAuth, async (req: AuthenticatedRequest, res): Promis
     if (!gift) { res.status(400).json({ error: "Invalid gift" }); return; }
     if (!toUserId) { res.status(400).json({ error: "Invalid request" }); return; }
     if (gift.price > myWallet.balance) { res.status(400).json({ error: "Insufficient balance" }); return; }
-    if (toUserId === me.id) { res.status(400).json({ error: "Cannot send to yourself" }); return; }
     const recipient = await db.select().from(usersTable).where(eq(usersTable.id, toUserId)).limit(1);
     if (!recipient.length) { res.status(404).json({ error: "User not found" }); return; }
     

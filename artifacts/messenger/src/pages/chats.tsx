@@ -3046,8 +3046,12 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
                   .map((c: any) => c.members?.find((m: any) => m.id !== myId))
                   .filter(Boolean)
                   .filter((u: any, idx: number, arr: any[]) => arr.findIndex((x: any) => x.id === u.id) === idx);
+                const meData = (chats || [])
+                  .flatMap((c: any) => c.members || [])
+                  .find((m: any) => m.id === myId);
+                const allContacts = meData ? [meData, ...directContacts] : directContacts;
                 const q = giftModal.search.toLowerCase().trim();
-                const filtered = q ? directContacts.filter((u: any) => u.displayName?.toLowerCase().includes(q)) : directContacts;
+                const filtered = q ? allContacts.filter((u: any) => u.displayName?.toLowerCase().includes(q)) : allContacts;
                 return (
                   <>
                     <div className="px-3 pt-3 pb-2">
