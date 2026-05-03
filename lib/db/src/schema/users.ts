@@ -13,6 +13,7 @@ export const usersTable = pgTable("users", {
   phoneVerified: boolean("phone_verified").notNull().default(false),
   isOnline: boolean("is_online").notNull().default(false),
   isAdmin: boolean("is_admin").notNull().default(false),
+  randomId: text("random_id").unique(),
   lastSeen: timestamp("last_seen"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });

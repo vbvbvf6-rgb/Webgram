@@ -13,10 +13,12 @@ const pubKeyStore = new Map<number, string>();
 export async function ensureUser(clerkId: string) {
   const username = `user_${clerkId.slice(-8)}`;
   const displayName = `User ${clerkId.slice(-4)}`;
+  // Generate random 6-digit ID (100000-999999)
+  const randomId = String(Math.floor(Math.random() * 900000) + 100000);
 
   const [user] = await db
     .insert(usersTable)
-    .values({ clerkId, username, displayName })
+    .values({ clerkId, username, displayName, randomId })
     .onConflictDoUpdate({
       target: usersTable.clerkId,
       set: { clerkId: sql`excluded.clerk_id` },

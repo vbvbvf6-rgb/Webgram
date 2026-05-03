@@ -477,16 +477,15 @@ export default function SettingsPage() {
                   <div className="text-center">
                     <p className="font-bold text-lg text-slate-100">{previewName}</p>
                     <p className="text-sm text-slate-400">@{username || m?.username || "username"}</p>
-                    {m?.id && (
+                    {m?.randomId && (
                       <button
                         onClick={() => {
-                          const userId = String(m.id).padStart(6, "0");
-                          navigator.clipboard.writeText(userId);
-                          toast({ title: `Copied User ID: ${userId}` });
+                          navigator.clipboard.writeText(m.randomId);
+                          toast({ title: `Copied User ID: ${m.randomId}` });
                         }}
                         className="text-xs text-slate-500 hover:text-slate-300 mt-2 flex items-center gap-1 justify-center transition-colors"
                       >
-                        <span>ID: {String(m.id).padStart(6, "0")}</span>
+                        <span>ID: {m.randomId}</span>
                         <Copy size={12} />
                       </button>
                     )}
