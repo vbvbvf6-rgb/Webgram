@@ -28,6 +28,17 @@ import { useToast } from "@/hooks/use-toast";
 
 const EMOJIS = ["👍", "❤️", "😂", "😮", "😢", "🔥", "👏", "✅", "🎉", "💯"];
 
+const GIFTS: { id: string; name: string; emoji: string; price: number; animation: string; gradient: string; color: string; rare?: boolean }[] = [
+  { id: "rose",    name: "Rose",       emoji: "🌹",  price: 25,  animation: "gift-float",   gradient: "from-rose-500/30 to-pink-600/20",     color: "text-rose-300" },
+  { id: "star",    name: "Star",       emoji: "⭐",  price: 30,  animation: "gift-twinkle", gradient: "from-yellow-400/30 to-orange-500/20", color: "text-yellow-200" },
+  { id: "fire",    name: "Fire Heart", emoji: "❤️‍🔥", price: 50,  animation: "gift-pulse",   gradient: "from-orange-500/30 to-red-600/20",   color: "text-orange-300" },
+  { id: "rocket",  name: "Rocket",     emoji: "🚀",  price: 75,  animation: "gift-launch",  gradient: "from-violet-500/30 to-purple-600/20", color: "text-violet-300" },
+  { id: "crown",   name: "Crown",      emoji: "👑",  price: 100, animation: "gift-bounce",  gradient: "from-yellow-500/30 to-amber-600/20",  color: "text-yellow-300" },
+  { id: "rainbow", name: "Rainbow",    emoji: "🌈",  price: 150, animation: "gift-sway",    gradient: "from-pink-500/30 to-fuchsia-600/20",  color: "text-pink-300" },
+  { id: "diamond", name: "Diamond",    emoji: "💎",  price: 200, animation: "gift-spin",    gradient: "from-cyan-500/30 to-blue-600/20",     color: "text-cyan-300",  rare: true },
+  { id: "trophy",  name: "Trophy",     emoji: "🏆",  price: 500, animation: "gift-shine",   gradient: "from-yellow-500/40 to-amber-700/30",  color: "text-yellow-300", rare: true },
+];
+
 const STICKER_PACKS: Record<string, string[]> = {
   "❤️ Love":   ["❤️‍🔥","💕","🥰","😘","💝","🫀","😻","💌","🫦","💖","💗","🌹"],
   "😂 Funny":  ["🤣","😭","💀","🤦","🙈","🫡","🤡","🫠","💩","🤪","😜","🙃"],
@@ -227,6 +238,13 @@ function formatMsgPreview(content: string | null | undefined): string {
     return "🎤 Voice message";
   }
   if (content.match(/^\[poll:\d+\]$/)) return "📊 Poll";
+  if (content.match(/^\[gift:[a-z]+:.+\]$/)) {
+    const m = content.match(/^\[gift:([a-z]+):(.+)\]$/);
+    if (m) {
+      const g = GIFTS.find(x => x.id === m[1]);
+      return `${g?.emoji || "🎁"} Gift from ${m[2]}`;
+    }
+  }
   return content;
 }
 
@@ -820,6 +838,13 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
     search: string;
     recipient: { id: number; displayName: string; avatarUrl?: string | null; isOnline?: boolean } | null;
     amount: string;
+    loading: boolean;
+  } | null>(null);
+  const [giftModal, setGiftModal] = useState<{
+    step: "pick_gift" | "confirm";
+    search: string;
+    recipient: { id: number; displayName: string; avatarUrl?: string | null; isOnline?: boolean } | null;
+    selectedGift: typeof GIFTS[0] | null;
     loading: boolean;
   } | null>(null);
 
@@ -1863,6 +1888,34 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
                             if (displayContent?.match(/^\[poll:(\d+)\]$/)) {
                               return <PollMessage pollId={Number(displayContent.match(/^\[poll:(\d+)\]$/)![1])} pollsData={pollsData} onVote={votePoll} myId={myId} />;
                             }
+                            if (displayContent?.match(/^\[gift:[a-z]+:.+\]$/)) {
+                              const m = displayContent.match(/^\[gift:([a-z]+):(.+)\]$/);
+                              if (m) {
+                                const gift = GIFTS.find(g => g.id === m[1]);
+                                const senderName = m[2];
+                                if (gift) {
+                                  return (
+                                    <div className={`gift-appear flex flex-col items-center gap-2 py-3 px-4 bg-gradient-to-br ${gift.gradient} rounded-xl min-w-[130px] relative overflow-hidden`}>
+                                      {gift.rare && (
+                                        <div className="absolute inset-0 pointer-events-none">
+                                          {["✨","⭐","💫"].map((s, i) => (
+                                            <span key={i} className="absolute text-xs opacity-60 gift-twinkle"
+                                              style={{ top: `${[15,65,30][i]}%`, left: `${[10,80,50][i]}%`, animationDelay: `${i * 0.4}s` }}>
+                                              {s}
+                                            </span>
+                                          ))}
+                                        </div>
+                                      )}
+                                      <span className={`text-5xl ${gift.animation}`}>{gift.emoji}</span>
+                                      <div className="text-center">
+                                        <p className={`text-xs font-bold ${gift.color}`}>{gift.name}</p>
+                                        <p className="text-[10px] text-white/60 mt-0.5">from {senderName}</p>
+                                      </div>
+                                    </div>
+                                  );
+                                }
+                              }
+                            }
                             return renderRichText(displayContent || "");
                           })()}
                           {starredMsgs.has(msg.id) && <Star size={8} className={`absolute top-1 ${isOwn ? "right-1" : "left-1"} text-yellow-400 fill-yellow-400`} />}
@@ -2319,6 +2372,18 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
                 <motion.button whileTap={{ scale: 0.9 }} onClick={() => setShowStickers(!showStickers)}
                   className={`w-8 h-8 flex items-center justify-center rounded-xl transition-all shrink-0 ${showStickers ? "bg-primary/20 text-primary" : "text-muted-foreground hover:text-foreground"}`} title="Stickers">
                   <Sparkles size={15} />
+                </motion.button>
+                <motion.button whileTap={{ scale: 0.9 }}
+                  onClick={() => {
+                    const otherUser = chat?.type === "direct" ? chat.members?.find((m: any) => m.id !== myId) : null;
+                    if (otherUser) {
+                      setGiftModal({ step: "pick_gift", search: "", recipient: otherUser, selectedGift: null, loading: false });
+                    } else {
+                      setGiftModal({ step: "pick_gift", search: "", recipient: null, selectedGift: null, loading: false });
+                    }
+                  }}
+                  className={`w-8 h-8 flex items-center justify-center rounded-xl transition-all shrink-0 ${giftModal ? "bg-fuchsia-500/20 text-fuchsia-400" : "text-muted-foreground hover:text-foreground"}`} title="Send a gift">
+                  <span className="text-base leading-none">🎁</span>
                 </motion.button>
                 <motion.button whileTap={{ scale: 0.9 }} animate={{ rotate: [0, 10, -10, 0] }} transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }} onClick={startVoiceRecording}
                   className="w-8 h-8 flex items-center justify-center rounded-xl transition-all shrink-0 text-muted-foreground hover:text-foreground" title="Record voice message">
@@ -2829,6 +2894,173 @@ function ChatWindow({ chatId, myId, me, onBack }: { chatId: number; myId: number
                   </button>
                 </div>
               )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Gift modal */}
+      <AnimatePresence>
+        {giftModal && (
+          <motion.div key="gift-modal" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="absolute inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-end justify-center sm:items-center p-4"
+            onClick={() => setGiftModal(null)}>
+            <motion.div initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              className="bg-card border border-border rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden"
+              onClick={e => e.stopPropagation()}>
+
+              {/* Header */}
+              <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-gradient-to-r from-fuchsia-950/40 to-violet-950/40">
+                <div className="flex items-center gap-2">
+                  {giftModal.step === "confirm" && (
+                    <button onClick={() => setGiftModal(m => m ? { ...m, step: "pick_gift", selectedGift: null } : null)}
+                      className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-accent text-muted-foreground mr-0.5">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M15 18l-6-6 6-6"/></svg>
+                    </button>
+                  )}
+                  <span className="text-xl">🎁</span>
+                  <div>
+                    <h3 className="font-bold text-sm leading-none">Send a Gift</h3>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                      {giftModal.step === "pick_gift"
+                        ? giftModal.recipient ? `To: ${giftModal.recipient.displayName}` : "Choose a recipient"
+                        : `${giftModal.selectedGift?.name} → ${giftModal.recipient?.displayName}`}
+                    </p>
+                  </div>
+                </div>
+                <button onClick={() => setGiftModal(null)} className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-accent text-muted-foreground">
+                  <X size={14}/>
+                </button>
+              </div>
+
+              {/* Step 0: select recipient (if group chat) */}
+              {giftModal.step === "pick_gift" && !giftModal.recipient && (() => {
+                const directContacts = (chats || [])
+                  .filter((c: any) => c.type === "direct")
+                  .map((c: any) => c.members?.find((m: any) => m.id !== myId))
+                  .filter(Boolean)
+                  .filter((u: any, idx: number, arr: any[]) => arr.findIndex((x: any) => x.id === u.id) === idx);
+                const q = giftModal.search.toLowerCase().trim();
+                const filtered = q ? directContacts.filter((u: any) => u.displayName?.toLowerCase().includes(q)) : directContacts;
+                return (
+                  <>
+                    <div className="px-3 pt-3 pb-2">
+                      <input autoFocus type="text" placeholder="Search contacts…" value={giftModal.search}
+                        onChange={e => setGiftModal(m => m ? { ...m, search: e.target.value } : null)}
+                        className="w-full bg-background border border-border rounded-xl px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-fuchsia-500/60 placeholder:text-muted-foreground" />
+                    </div>
+                    <div className="max-h-56 overflow-y-auto p-2 space-y-0.5">
+                      {filtered.length === 0 && <p className="text-xs text-muted-foreground text-center py-6">No contacts found</p>}
+                      {filtered.map((u: any) => (
+                        <motion.button key={u.id} whileTap={{ scale: 0.97 }}
+                          onClick={() => setGiftModal(m => m ? { ...m, recipient: u } : null)}
+                          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-fuchsia-500/10 transition-colors text-left group">
+                          <Avatar src={u.avatarUrl} name={u.displayName} size={36} online={u.isOnline} />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium truncate">{u.displayName}</p>
+                            <p className="text-[10px] text-muted-foreground">{u.isOnline ? "🟢 Online" : "Offline"}</p>
+                          </div>
+                        </motion.button>
+                      ))}
+                    </div>
+                  </>
+                );
+              })()}
+
+              {/* Step 1: pick gift */}
+              {giftModal.step === "pick_gift" && giftModal.recipient && (
+                <div className="p-3">
+                  {walletBal !== null && (
+                    <p className="text-[11px] text-muted-foreground mb-2 text-center">
+                      Your balance: <span className="text-fuchsia-400 font-bold">⚡ {walletBal}</span>
+                    </p>
+                  )}
+                  <div className="grid grid-cols-4 gap-2">
+                    {GIFTS.map(gift => {
+                      const canAfford = walletBal === null || walletBal >= gift.price;
+                      return (
+                        <motion.button key={gift.id} whileTap={{ scale: 0.92 }} whileHover={{ scale: 1.05 }}
+                          onClick={() => canAfford && setGiftModal(m => m ? { ...m, step: "confirm", selectedGift: gift } : null)}
+                          className={`flex flex-col items-center gap-1.5 p-2.5 rounded-xl border transition-all relative
+                            ${canAfford ? "hover:border-fuchsia-500/50 hover:bg-fuchsia-500/10 cursor-pointer" : "opacity-40 cursor-not-allowed"}
+                            ${gift.rare ? "border-yellow-500/40 bg-yellow-500/5" : "border-border bg-accent/30"}`}>
+                          {gift.rare && <span className="absolute top-0.5 right-0.5 text-[8px]">✨</span>}
+                          <span className={`text-2xl ${gift.animation}`}>{gift.emoji}</span>
+                          <p className="text-[9px] font-semibold leading-none text-muted-foreground">{gift.name}</p>
+                          <p className="text-[9px] font-bold text-fuchsia-400">⚡{gift.price}</p>
+                        </motion.button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Step 2: confirm */}
+              {giftModal.step === "confirm" && giftModal.selectedGift && giftModal.recipient && (() => {
+                const gift = giftModal.selectedGift;
+                const sendGift = async () => {
+                  if (giftModal.loading) return;
+                  setGiftModal(m => m ? { ...m, loading: true } : null);
+                  const token = await getToken();
+                  try {
+                    const res = await fetch("/api/wallet/gift", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+                      body: JSON.stringify({ toUserId: giftModal.recipient!.id, giftId: gift.id, chatId }),
+                    });
+                    if (res.ok) {
+                      const data = await res.json();
+                      const senderDisplayName = (chats || [])
+                        .flatMap((c: any) => c.members || [])
+                        .find((m: any) => m.id === myId)?.displayName || "Someone";
+                      await sendMessage.mutateAsync({
+                        chatId,
+                        data: { content: `[gift:${gift.id}:${senderDisplayName}]`, replyToId: null },
+                      });
+                      setWalletBal(data.newBalance ?? null);
+                      toast({ title: `${gift.emoji} Gift sent to ${giftModal.recipient!.displayName}!` });
+                      setGiftModal(null);
+                      qc.invalidateQueries({ queryKey: getGetMessagesQueryKey(chatId, {}) });
+                    } else {
+                      const err = await res.json().catch(() => ({}));
+                      toast({ title: err.error || "Failed to send gift", variant: "destructive" });
+                      setGiftModal(m => m ? { ...m, loading: false } : null);
+                    }
+                  } catch {
+                    toast({ title: "Network error", variant: "destructive" });
+                    setGiftModal(m => m ? { ...m, loading: false } : null);
+                  }
+                };
+                return (
+                  <div className="p-4 space-y-4">
+                    {/* Gift preview */}
+                    <div className={`flex flex-col items-center gap-3 py-5 bg-gradient-to-br ${gift.gradient} rounded-xl border border-white/10`}>
+                      <span className={`text-6xl ${gift.animation}`}>{gift.emoji}</span>
+                      <div className="text-center">
+                        <p className={`font-bold ${gift.color}`}>{gift.name}</p>
+                        <p className="text-xs text-white/60 mt-0.5">for {giftModal.recipient.displayName}</p>
+                      </div>
+                    </div>
+
+                    {/* Price summary */}
+                    <div className="flex items-center justify-between bg-fuchsia-500/10 border border-fuchsia-500/20 rounded-xl px-3 py-2.5">
+                      <span className="text-sm text-muted-foreground">Cost</span>
+                      <span className="font-bold text-fuchsia-400">⚡ {gift.price} coins</span>
+                    </div>
+
+                    {/* Confirm button */}
+                    <button disabled={giftModal.loading}
+                      onClick={sendGift}
+                      className="w-full bg-gradient-to-r from-fuchsia-500 to-violet-500 hover:from-fuchsia-400 hover:to-violet-400 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold rounded-xl py-2.5 text-sm transition-all flex items-center justify-center gap-2 shadow-lg shadow-fuchsia-500/20">
+                      {giftModal.loading ? (
+                        <><svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg> Sending gift…</>
+                      ) : (
+                        <>{gift.emoji} Send {gift.name}</>
+                      )}
+                    </button>
+                  </div>
+                );
+              })()}
             </motion.div>
           </motion.div>
         )}

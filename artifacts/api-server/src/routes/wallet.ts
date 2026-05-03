@@ -98,6 +98,42 @@ router.post("/send", requireAuth, async (req: AuthenticatedRequest, res): Promis
   }
 });
 
+const GIFT_CATALOG: Record<string, { name: string; price: number }> = {
+  rose:    { name: "Rose",       price: 25  },
+  star:    { name: "Star",       price: 30  },
+  fire:    { name: "Fire Heart", price: 50  },
+  rocket:  { name: "Rocket",     price: 75  },
+  crown:   { name: "Crown",      price: 100 },
+  rainbow: { name: "Rainbow",    price: 150 },
+  diamond: { name: "Diamond",    price: 200 },
+  trophy:  { name: "Trophy",     price: 500 },
+};
+
+router.post("/gift", requireAuth, async (req: AuthenticatedRequest, res): Promise<void> => {
+  try {
+    const me = await ensureUser(req.userId!);
+    const myWallet = await ensureWallet(me.id);
+    const { toUserId, giftId, chatId } = req.body;
+    const gift = GIFT_CATALOG[giftId];
+    if (!gift) { res.status(400).json({ error: "Invalid gift" }); return; }
+    if (!toUserId) { res.status(400).json({ error: "Invalid request" }); return; }
+    if (gift.price > myWallet.balance) { res.status(400).json({ error: "Insufficient balance" }); return; }
+    if (toUserId === me.id) { res.status(400).json({ error: "Cannot send to yourself" }); return; }
+    const recipient = await db.select().from(usersTable).where(eq(usersTable.id, toUserId)).limit(1);
+    if (!recipient.length) { res.status(404).json({ error: "User not found" }); return; }
+    const now = new Date();
+    await db.update(walletsTable).set({ balance: myWallet.balance - gift.price, updatedAt: now }).where(eq(walletsTable.userId, me.id));
+    await db.insert(transactionsTable).values({
+      fromUserId: me.id, toUserId: me.id, amount: -gift.price, type: "send",
+      description: `Sent ${gift.name} gift to ${recipient[0].displayName}`, chatId,
+    });
+    res.json({ success: true, newBalance: myWallet.balance - gift.price, gift, recipient: recipient[0] });
+  } catch (err) {
+    req.log.error({ err }, "Failed to send gift");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 router.get("/transactions", requireAuth, async (req: AuthenticatedRequest, res) => {
   try {
     const user = await ensureUser(req.userId!);
